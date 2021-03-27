@@ -110,8 +110,13 @@ func (e *RewardInfo) clone() *RewardInfo {
 func (e *RewardInfo) String() string {
 	return fmt.Sprintf("[Address:%v,Amount:%s\n]", e.Address.String(), ToAbey(e.Amount).Text('f', 8))
 }
-func (e *RewardInfo) StringToAbey() string {
-	return fmt.Sprintf("[Address:%v,Amount:%s\n]", e.Address.StringToAbey(), ToAbey(e.Amount).Text('f', 8))
+func (e *RewardInfo) ToJson() map[string]interface{} {
+	item := make(map[string]interface{})
+	item["Address"] = e.Address.StringToAbey()
+	item["Amount"] = (*hexutil.Big)(e.Amount)
+	item["Staking"] = (*hexutil.Big)(e.Staking)
+
+	return item
 }
 func FetchOne(sas []*SARewardInfos, addr common.Address) []*RewardInfo {
 	items := make([]*RewardInfo, 0, 0)
@@ -135,9 +140,9 @@ func FetchOneToAbey(sas []*SARewardInfos, addr common.Address) map[string]interf
 			}
 		}
 	}
-	infos := make([]string,0,0)
+	infos := make([]map[string]interface{},0,0)
 	for _,v := range items {
-		infos = append(infos,v.StringToAbey())
+		infos = append(infos,v.ToJson())
 	}
 	return map[string]interface{}{
 		"committeeReward": infos,
@@ -183,12 +188,14 @@ func (s *SARewardInfos) String() string {
 	}
 	return ss
 }
-func (s *SARewardInfos) StringToAbey() string {
-	var ss string
+func (s *SARewardInfos) StringToAbey() map[string]interface{} {
+	ss := make([]map[string]interface{},0,0)
 	for _, v := range s.Items {
-		ss += v.StringToAbey()
+		ss = append(ss,v.ToJson())
 	}
-	return ss
+	item := make(map[string]interface{})
+	item["SaReward"] = ss
+	return item
 }
 type TimedChainReward struct {
 	St     uint64
@@ -205,14 +212,14 @@ type ChainReward struct {
 }
 func (s *ChainReward) CoinRewardInfo()  map[string]interface{} {
 	feild := map[string]interface{}{
-		"blockminer": s.CoinBase.StringToAbey(),
+		"blockminer": s.CoinBase.ToJson(),
 	}
 	return feild
 }
 func (s *ChainReward) FruitRewardInfo() map[string]interface{} {
-	infos := make([]string,0,0)
+	infos := make([]map[string]interface{},0,0)
 	for _,v := range s.FruitBase {
-		infos = append(infos,v.StringToAbey())
+		infos = append(infos,v.ToJson())
 	}
 	feild := map[string]interface{}{
 		"fruitminer": infos,
@@ -220,7 +227,7 @@ func (s *ChainReward) FruitRewardInfo() map[string]interface{} {
 	return feild
 }
 func (s *ChainReward) CommitteeRewardInfo() map[string]interface{} {
-	infos := make([]string,0,0)
+	infos := make([]map[string]interface{},0,0)
 	for _,v := range s.CommitteeBase {
 		infos = append(infos,v.StringToAbey())
 	}
