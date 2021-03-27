@@ -5968,7 +5968,7 @@ require = (function e(t, n, r) {
                 call,
                 estimateGas,
                 sendRawTransaction,
-                SendAbeyRawTransaction,
+                sendAbeyRawTransaction,
                 signTransaction,
                 sendTransaction,
                 sign,
