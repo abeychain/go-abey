@@ -26,17 +26,17 @@ import (
 
 	"crypto/ecdsa"
 
+	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/abey/gasprice"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain"
-	"github.com/abeychain/go-abey/abey/downloader"
-	"github.com/abeychain/go-abey/abey/gasprice"
 	"github.com/abeychain/go-abey/params"
 )
 
-// DefaultConfig contains default settings for use on the Abeychain main net.
+// DefaultConfig contains default settings for use on the ABEY chain main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
 	MinervaHash: minerva.Config{
@@ -46,7 +46,7 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2,
 	},
-	NetworkId:     19330,
+	NetworkId:     179,
 	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
@@ -55,7 +55,7 @@ var DefaultConfig = Config{
 	MinerGasCeil:  16000000,
 	//GasPrice:      big.NewInt(18 * params.Shannon),
 
-	GasPrice: big.NewInt(1 * params.Babbage),
+	GasPrice: big.NewInt(1 * params.Shannon),
 
 	TxPool:    core.DefaultTxPoolConfig,
 	SnailPool: snailchain.DefaultSnailPoolConfig,

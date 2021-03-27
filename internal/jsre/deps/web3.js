@@ -5827,9 +5827,9 @@ require = (function e(t, n, r) {
                 inputFormatter: [null]
             });
 
-            var sendTrueRawTransaction = new Method({
-                name: 'sendTrueRawTransaction',
-                call: 'abey_sendTrueRawTransaction',
+            var sendAbeyRawTransaction = new Method({
+                name: 'sendAbeyRawTransaction',
+                call: 'abey_sendAbeyRawTransaction',
                 params: 1,
                 inputFormatter: [null]
             });
@@ -5968,7 +5968,7 @@ require = (function e(t, n, r) {
                 call,
                 estimateGas,
                 sendRawTransaction,
-                sendTrueRawTransaction,
+                sendAbeyRawTransaction,
                 signTransaction,
                 sendTransaction,
                 sign,

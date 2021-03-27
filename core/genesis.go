@@ -26,6 +26,7 @@ import (
 
 	"github.com/abeychain/go-abey/core/vm"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
 	"github.com/abeychain/go-abey/common/math"
@@ -35,7 +36,6 @@ import (
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rlp"
@@ -458,10 +458,10 @@ func DefaultGenesisBlock() *Genesis {
 
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
-		Nonce:      330,
+		Nonce:      402,
 		ExtraData:  hexutil.MustDecode("0x54727565436861696E204D61696E4E6574"),
 		GasLimit:   16777216,
-		Difficulty: big.NewInt(2147483648),
+		Difficulty: big.NewInt(16777216),
 		//Timestamp:  1553918400,
 		Coinbase:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
