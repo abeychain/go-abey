@@ -28,16 +28,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/consensus"
-	"github.com/abeychain/go-abey/core"
-	"github.com/abeychain/go-abey/core/snailchain"
-	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"github.com/abeychain/go-abey/abey/fetcher"
 	"github.com/abeychain/go-abey/abey/fetcher/snail"
 	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/consensus"
+	"github.com/abeychain/go-abey/core"
+	"github.com/abeychain/go-abey/core/snailchain"
+	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/p2p"
@@ -335,7 +335,7 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 }
 
 func (pm *ProtocolManager) Stop() {
-	log.Info("Stopping Abeychain protocol")
+	log.Info("Stopping ABEYChain protocol")
 
 	pm.txsSub.Unsubscribe()       // quits txBroadcastLoop
 	pm.minedFastSub.Unsubscribe() // quits minedFastBroadcastLoop

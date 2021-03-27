@@ -36,7 +36,7 @@ import (
 	"github.com/abeychain/go-abey/params"
 )
 
-// DefaultConfig contains default settings for use on the Abeychain main net.
+// DefaultConfig contains default settings for use on the ABEY chain main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
 	MinervaHash: minerva.Config{
@@ -46,7 +46,7 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2,
 	},
-	NetworkId:     19330,
+	NetworkId:     179,
 	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
