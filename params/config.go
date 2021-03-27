@@ -52,8 +52,8 @@ var (
 	MainnetChainConfig = &ChainConfig{
 		ChainID: big.NewInt(179),
 		Minerva: &(MinervaConfig{
-			MinimumDifficulty:      big.NewInt(134217728),
-			MinimumFruitDifficulty: big.NewInt(262144),
+			MinimumDifficulty:      big.NewInt(6000000),
+			MinimumFruitDifficulty: big.NewInt(10000),
 			DurationLimit:          big.NewInt(600),
 		}),
 		TIP3: &BlockConfig{FastNumber: big.NewInt(0)},
@@ -476,4 +476,3 @@ func (c *ChainConfig) IsTIP8(cid, num *big.Int) bool {
 	}
 	return false
 }
-
