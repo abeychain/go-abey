@@ -1314,31 +1314,32 @@ func (s *PublicBlockChainAPI) GetChainRewardContent(blockNr rpc.BlockNumber, add
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	BlockHash        common.Hash     `json:"blockHash"`
-	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             string		 `json:"from"`
-	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
-	Hash             common.Hash     `json:"hash"`
-	Input            hexutil.Bytes   `json:"input"`
-	Nonce            hexutil.Uint64  `json:"nonce"`
+	BlockHash        common.Hash    `json:"blockHash"`
+	BlockNumber      *hexutil.Big   `json:"blockNumber"`
+	From             string         `json:"from"`
+	Gas              hexutil.Uint64 `json:"gas"`
+	GasPrice         *hexutil.Big   `json:"gasPrice"`
+	Hash             common.Hash    `json:"hash"`
+	Input            hexutil.Bytes  `json:"input"`
+	Nonce            hexutil.Uint64 `json:"nonce"`
 	To               string         `json:"to"`
-	TransactionIndex hexutil.Uint    `json:"transactionIndex"`
-	Value            *hexutil.Big    `json:"value"`
-	V                *hexutil.Big    `json:"v"`
-	R                *hexutil.Big    `json:"r"`
-	S                *hexutil.Big    `json:"s"`
+	TransactionIndex hexutil.Uint   `json:"transactionIndex"`
+	Value            *hexutil.Big   `json:"value"`
+	V                *hexutil.Big   `json:"v"`
+	R                *hexutil.Big   `json:"r"`
+	S                *hexutil.Big   `json:"s"`
 	Payer            string         `json:"payer"`
-	Fee              *hexutil.Big    `json:"fee"`
-	PV               *hexutil.Big    `json:"pv"`
-	PR               *hexutil.Big    `json:"pr"`
-	PS               *hexutil.Big    `json:"ps"`
+	Fee              *hexutil.Big   `json:"fee"`
+	PV               *hexutil.Big   `json:"pv"`
+	PR               *hexutil.Big   `json:"pr"`
+	PS               *hexutil.Big   `json:"ps"`
 }
+
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction2 struct {
 	BlockHash        common.Hash     `json:"blockHash"`
 	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             common.Address		 `json:"from"`
+	From             common.Address  `json:"from"`
 	Gas              hexutil.Uint64  `json:"gas"`
 	GasPrice         *hexutil.Big    `json:"gasPrice"`
 	Hash             common.Hash     `json:"hash"`
@@ -1356,6 +1357,7 @@ type RPCTransaction2 struct {
 	PR               *hexutil.Big    `json:"pr"`
 	PS               *hexutil.Big    `json:"ps"`
 }
+
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
@@ -1629,9 +1631,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 
 	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
-    toAddr := ""
-    if tx.To() != nil {
-    	toAddr = tx.To().StringToAbey()
+	toAddr := ""
+	if tx.To() != nil {
+		toAddr = tx.To().StringToAbey()
 	}
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
@@ -1872,13 +1874,13 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 	return submitTransaction(ctx, s.b, tx)
 }
 
-func (s *PublicTransactionPoolAPI) SendTrueRawTransaction(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
+func (s *PublicTransactionPoolAPI) SendAbeyRawTransaction(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
 	tx := new(types.Transaction)
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
-		log.Error("api method SendTrueRawTransaction error", "error", err)
+		log.Error("api method SendAbeyRawTransaction error", "error", err)
 		return common.Hash{}, err
 	}
-	//log.Info("api method SendTrueRawTransaction info", "tx.info", tx.Info())
+	//log.Info("api method SendAbeyRawTransaction info", "tx.info", tx.Info())
 	return submitTransaction(ctx, s.b, tx)
 }
 

@@ -689,7 +689,7 @@ func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) er
 	if err != nil {
 		return err
 	}
-	return ec.c.CallContext(ctx, nil, "abey_sendTrueRawTransaction", common.ToHex(data))
+	return ec.c.CallContext(ctx, nil, "abey_sendAbeyRawTransaction", common.ToHex(data))
 }
 
 // SendPayTransaction injects a signed transaction(both sender and payer) into the pending pool for execution.
@@ -701,7 +701,7 @@ func (ec *Client) SendPayTransaction(ctx context.Context, tx *types.Transaction)
 	if err != nil {
 		return err
 	}
-	return ec.c.CallContext(ctx, nil, "abey_sendTrueRawTransaction", common.ToHex(data))
+	return ec.c.CallContext(ctx, nil, "abey_sendAbeyRawTransaction", common.ToHex(data))
 }
 
 func toCallArg(msg abeychain.CallMsg) interface{} {

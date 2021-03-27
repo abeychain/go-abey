@@ -48,18 +48,18 @@ func send(ip string) {
 
 	if txType {
 		getBalance(client, 3)
-		fmt.Println("go into sendTrueRawTransaction")
+		fmt.Println("go into sendAbeyRawTransaction")
 		fmt.Println("========tx1 start==========")
-		sendTrueRawTransaction(client, account[0], account[1], "", "0xde0b6b3a7640000", "0x0")
+		sendAbeyRawTransaction(client, account[0], account[1], "", "0xde0b6b3a7640000", "0x0")
 		getBalance(client, 3)
 		fmt.Println("========tx2 start==========")
-		sendTrueRawTransaction(client, account[0], account[2], account[1], "0xde0b6b3a7640000", "0x0")
+		sendAbeyRawTransaction(client, account[0], account[2], account[1], "0xde0b6b3a7640000", "0x0")
 		getBalance(client, 3)
 		fmt.Println("========tx3 start==========")
-		sendTrueRawTransaction(client, account[0], account[2], account[1], "0xde0b6b3a7640000", "0xde0b6b3a7640000")
+		sendAbeyRawTransaction(client, account[0], account[2], account[1], "0xde0b6b3a7640000", "0xde0b6b3a7640000")
 		getBalance(client, 3)
 		fmt.Println("========tx4 start==========")
-		sendTrueRawTransaction(client, account[0], account[2], "", "0xde0b6b3a7640000", "0xde0b6b3a7640000")
+		sendAbeyRawTransaction(client, account[0], account[2], "", "0xde0b6b3a7640000", "0xde0b6b3a7640000")
 		getBalance(client, 3)
 		return
 	}
@@ -78,7 +78,7 @@ func getBalance(client *rpc.Client, index int) {
 	}
 }
 
-func sendTrueRawTransaction(client *rpc.Client, from string, to string, payment string, value string, fee string) (string, error) {
+func sendAbeyRawTransaction(client *rpc.Client, from string, to string, payment string, value string, fee string) (string, error) {
 	mapData := make(map[string]interface{})
 	mapData["from"] = from
 	mapData["to"] = to
