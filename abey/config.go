@@ -26,13 +26,13 @@ import (
 
 	"crypto/ecdsa"
 
+	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/abey/gasprice"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain"
-	"github.com/abeychain/go-abey/abey/downloader"
-	"github.com/abeychain/go-abey/abey/gasprice"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -55,7 +55,7 @@ var DefaultConfig = Config{
 	MinerGasCeil:  16000000,
 	//GasPrice:      big.NewInt(18 * params.Shannon),
 
-	GasPrice: big.NewInt(1 * params.Babbage),
+	GasPrice: big.NewInt(1 * params.Shannon),
 
 	TxPool:    core.DefaultTxPoolConfig,
 	SnailPool: snailchain.DefaultSnailPoolConfig,
