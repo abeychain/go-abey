@@ -45,6 +45,7 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
+var baseAllocamount = new(big.Int).Mul(big.NewInt(1000000),big.NewInt(1e18))
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -264,12 +265,19 @@ func (g *Genesis) ToFastBlock(db abeydb.Database) *types.Block {
 		if hh != 0 {
 			hh = hh - 1
 		}
+
 		for _, member := range g.Committee {
-			err := impl.InsertSAccount2(hh, 0, member.Coinbase, member.Publickey, params.ElectionMinLimitForStaking, big.NewInt(100), true)
+			var err error
+			if g.Config.ChainID.Uint64() == 179 {
+				// mainnet
+				err = impl.InsertSAccount2(hh, 0, member.Coinbase, member.Publickey, baseAllocamount, big.NewInt(100), true)
+			} else {
+				err = impl.InsertSAccount2(hh, 0, member.Coinbase, member.Publickey, params.ElectionMinLimitForStaking, big.NewInt(100), true)
+			}
+
 			if err != nil {
 				log.Error("ToFastBlock InsertSAccount", "error", err)
 			}
-			//statedb.AddBalance(types.StakingAddress, big.NewInt(1000000000000000000))
 		}
 		_, err := impl.DoElections(1, 0)
 		if err != nil {
@@ -439,27 +447,22 @@ func (g *Genesis) MustSnailCommit(db abeydb.Database) *types.SnailBlock {
 
 // DefaultGenesisBlock returns the Abeychain main net snail block.
 func DefaultGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("65750000000000000000000000", 10)
-	j, _ := new(big.Int).SetString("8250000000000000000000000", 10)
-	key1 := hexutil.MustDecode("0x0406e9c1f797fe21229f8146f5ecf837a545e4d7e96dc88903286ce3036f425f307c88418f902c9b08fd07e0aee0f249994cf19819235fd607acd38ce77f777d1a")
-	key2 := hexutil.MustDecode("0x04ce1b2f41acdb293408da34a84162bc313be4b8682c183c7bdd4891ac87c514549a14ac564a9de615e7e8eae75441b1332042a2d00160079b2714b4bed1665f29")
-	key3 := hexutil.MustDecode("0x045e020f6f27adf1bdc8e682c6fb7a7623d8a5899fa88702d436b18e245e35dd4b573c28565b4105abb48a14d5aa442326c56a9eb2fa3f8509aea3f5625cfd621b")
-	key4 := hexutil.MustDecode("0x04028b42cb580bd78579441c96fb25b54b284c3f3258bb7ec9e37828f716cfe2ca4fb3dabc51b3d4215f14715a0999c86ae9ce4bc4e4bccfbcf7b64b6969746fb8")
-	key5 := hexutil.MustDecode("0x04a36c5cc785b10b8d5c7f18f6387f511c060ca0760c06b816db5cdb087723d185f034988ce1a117cd81138f7c971d272a6b6e8affa49ccf82df0d0388c644a6c1")
-	key6 := hexutil.MustDecode("0x049b240252750233ffb2e2fb0872e9dc8029a0af2a0bf8cb494181eae1f2673d662bbbb56215a42cb509ec42e80b089e2d6be581d084f54efe094a3fba3e990717")
-	key7 := hexutil.MustDecode("0x048a0560f53440a84bad6286eb65a756a1a1880492e19f7500e4f3ef760b939b9fafb9e14660ce5fc7a90d45136117690beac13121d22952d054d4727b39764468")
-	key8 := hexutil.MustDecode("0x0409e96160f03587376c3dff6a3b2f8d6028afc25668aa653d7f1bfe9eff8fb1165474cb93d8b2f292a6e4364d5447ca28002ae211b1624e33447864511e1d4d5d")
-	key9 := hexutil.MustDecode("0x040d721ac02c250be372156b4bf2620e6bec1799c70105705fc8aee7f11a11b2a6697086ca2161176b85b663f2d9b98275644fd3971af5d08fd7f6070f45314f55")
-	key10 := hexutil.MustDecode("0x04487dc07260059573abe6e7bf3209c975985c49400092ec246d28cc4d1eb54a6f7f5eb8375a2f7d398f1e0bb75406e5d38451935cc16376ddbac5d057c66a231c")
-	key11 := hexutil.MustDecode("0x04f3611f44cd7913fbd2452040716e13c8759743dd44a566e94df1f81078234a45d36259ede0186cbbec3e2e7bd638d7fca1586ddf47d596bb41c668e39021556a")
-	key12 := hexutil.MustDecode("0x0465c75fa5e80eabd141b08a4345573d43d582b42aed524025e7dcac4919bc16eee14705f49da7f381747a5196de792ba4a11ede9079a9025e11bcb0930760ef2e")
-	key13 := hexutil.MustDecode("0x049a943801bd862f0287eacb8221f13bff351c63b7ab78c9a1f71472ae8a8c28779f32c4dcfd904f36d9edb54d8a0c57462654026cde4f5022fe2d99b63174b9ae")
-	key14 := hexutil.MustDecode("0x04c4e01103818ca955c9219000c297c928b02b89d0eb3043886f524d645e20251343bf117d5a1b553708638c7dca8d1a12fb6379ae2d20756b57fdc5052a0dd787")
+
+	key1 := hexutil.MustDecode("0x04e9dd750f5a409ae52533241c0b4a844c000613f34320c737f787b69ebaca45f10703f77a1b78ed00a8bd5c0bc22508262a33a81e65b2e90a4eb9a8f5a6391db3")
+	key2 := hexutil.MustDecode("0x04c042a428a7df304ac7ea81c1555da49310cebb079a905c8256080e8234af804dad4ad9995771f96fba8182b117f62d2f1a6643e27f5f272c293a8301b6a84442")
+	key3 := hexutil.MustDecode("0x04dc1da011509b6ea17527550cc480f6eb076a225da2bcc87ec7a24669375f229945d76e4f9dbb4bd26c72392050a18c3922bd7ef38c04e018192b253ef4fc9dcb")
+	key4 := hexutil.MustDecode("0x04952af3d04c0b0ba3d16eea8ca0ab6529f5c6e2d08f4aa954ae2296d4ded9f04c8a9e1d52be72e6cebb86b4524645fafac04ac8633c4b33638254b2eb64a89c6a")
+	key5 := hexutil.MustDecode("0x04290cdc7fe53df0f93d43264302337751a58bcf67ee56799abea93b0a6205be8b3c8f1c9dac281f4d759475076596d30aa360d0c3b160dc28ea300b7e4925fb32")
+	key6 := hexutil.MustDecode("0x04427e32084f7565970d74a3df317b68de59e62f28b86700c8a5e3ae83a781ec163c4c83544bd8f88b8d70c4d71f2827b7b279bfc25481453dd35533cf234b2dfe")
+	key7 := hexutil.MustDecode("0x04dd9980aac0edead2de77cc6cde74875c14ac21d95a1cb49d36b810246b50420f1dc7c19f5296d739fcfceb454a18f250fa7802280f5298e5e2b2a591faa15cf9")
+	key8 := hexutil.MustDecode("0x04039dd0fb3869e7d2a1eeb95c9a6475771883614b289c604bf6fef2e1e9dd57340d888f59db0129d250394909d4a3b041bd66e6b83f345b38a397fdeb036b3e1c")
+	key9 := hexutil.MustDecode("0x042ec25823b375f655117d1a7003f9526e9adc0d6d50150812e0408fbfb3256810c912d7cd7e5441bc5e54ac143fb6274ac496548e1a2aaaf370e8aa8b5b1ced4d")
+	key10 := hexutil.MustDecode("0x043e3014c29e42015fe891ca3e97e5fb05961beca9e349b821c6738eadd17d9b784295638e26c1d7ca71beb8703ec8cf944c67f3835bf5119f78192b535ac6a5e0")
 
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      402,
-		ExtraData:  hexutil.MustDecode("0x54727565436861696E204D61696E4E6574"),
+		ExtraData:  hexutil.MustDecode("0x0123456789"),
 		GasLimit:   16777216,
 		Difficulty: big.NewInt(16777216),
 		//Timestamp:  1553918400,
@@ -468,24 +471,28 @@ func DefaultGenesisBlock() *Genesis {
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		//Alloc:      decodePrealloc(mainnetAllocData),
 		Alloc: map[common.Address]types.GenesisAccount{
-			common.HexToAddress("0xa5F41eaf51d24c8eDcDF254F200f8a6D818a6836"): {Balance: i},
-			common.HexToAddress("0xbD1edee3bdD812BB5058Df1F1392dDdd99dE58cc"): {Balance: j},
+			common.HexToAddress("0x50cE72eB9441fbf1b194de3f60932781aF71a328"): {Balance: baseAllocamount},
+		    common.HexToAddress("0xc0cfea09117b285F5A0D8cCa7F610842e44C21C9"): {Balance: baseAllocamount},
+		    common.HexToAddress("0xA61C9FC03Db10AAE1FA9572452c459487cb1cF9A"): {Balance: baseAllocamount},
+			common.HexToAddress("0xc273a98dc1e4723d1cdeA9dC300eE75C15FEf482"): {Balance: baseAllocamount},
+		 	common.HexToAddress("0x8C07B9068A5a26363327DDC82B4727f60641e648"): {Balance: baseAllocamount},
+		 	common.HexToAddress("0xa6EC289aa4C91fEa8AD5696657873D64FBc11c61"): {Balance: baseAllocamount},
+		 	common.HexToAddress("0x81E5875A53C32B4c1A96Fd7Cbce35dc77A35C8Df"): {Balance: baseAllocamount},
+		 	common.HexToAddress("0xdD2F2421983C8c9d5EeC998fF9101f938a75E1EB"): {Balance: baseAllocamount},
+		 	common.HexToAddress("0x1d2EBeB2913148E0D1415b96E57593280F912743"): {Balance: baseAllocamount},
+		 	common.HexToAddress("0xacCCC347C71d687964ACdF35F3bAc7F541c79751"): {Balance: baseAllocamount},
 		},
 		Committee: []*types.CommitteeMember{
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key1},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key2},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key3},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key4},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key5},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key6},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key7},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key8},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key9},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key10},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key11},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key12},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key13},
-			&types.CommitteeMember{Coinbase: common.HexToAddress("0xfC5659050350eB76F9Ebcc6c2b1598C3a2fFc625"), Publickey: key14},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0x50cE72eB9441fbf1b194de3f60932781aF71a328"), Publickey: key1},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0xc0cfea09117b285F5A0D8cCa7F610842e44C21C9"), Publickey: key2},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0xA61C9FC03Db10AAE1FA9572452c459487cb1cF9A"), Publickey: key3},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0xc273a98dc1e4723d1cdeA9dC300eE75C15FEf482"), Publickey: key4},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0x8C07B9068A5a26363327DDC82B4727f60641e648"), Publickey: key5},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0xa6EC289aa4C91fEa8AD5696657873D64FBc11c61"), Publickey: key6},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0x81E5875A53C32B4c1A96Fd7Cbce35dc77A35C8Df"), Publickey: key7},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0xdD2F2421983C8c9d5EeC998fF9101f938a75E1EB"), Publickey: key8},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0x1d2EBeB2913148E0D1415b96E57593280F912743"), Publickey: key9},
+			&types.CommitteeMember{Coinbase: common.HexToAddress("0xacCCC347C71d687964ACdF35F3bAc7F541c79751"), Publickey: key10},
 		},
 	}
 }
