@@ -55,7 +55,7 @@ var DefaultConfig = Config{
 	MinerGasCeil:  16000000,
 	//GasPrice:      big.NewInt(18 * params.Shannon),
 
-	GasPrice: big.NewInt(1 * params.Shannon),
+	GasPrice: big.NewInt(1 * params.Szabo),
 
 	TxPool:    core.DefaultTxPoolConfig,
 	SnailPool: snailchain.DefaultSnailPoolConfig,
