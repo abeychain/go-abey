@@ -52,17 +52,8 @@ var (
 	// sharedMinerva is a full instance that can be shared between multiple users.
 	sharedMinerva = New(Config{"", 3, 0, "", 1, 0, ModeNormal})
 
-	//SnailBlockRewardsBase Snail block rewards base value is 115.555555555555 * 10^12
-	SnailBlockRewardsBase = 115555555555555
-
-	// Big1e6 up to wei  SnailBlockRewardsBase * this is wei
-	Big1e6 = big.NewInt(1e6)
-
 	//BaseBig ...
 	BaseBig = big.NewInt(1e18)
-
-	//NetworkFragmentsNuber The number of main network fragments is currently fixed at 1
-	NetworkFragmentsNuber = 1
 
 	//MiningConstant Mining constant is 20
 	MiningConstant = 20
