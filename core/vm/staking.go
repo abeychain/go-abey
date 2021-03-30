@@ -106,6 +106,10 @@ func addLockedBalance(db StateDB, addr common.Address, amount *big.Int) {
 	db.SetPOSLocked(addr, new(big.Int).Add(db.GetPOSLocked(addr), amount))
 }
 
+func GenesisAddLockedBalance(db StateDB, addr common.Address, amount *big.Int) {
+	db.SetPOSLocked(addr, new(big.Int).Add(db.GetPOSLocked(addr), amount))
+}
+
 func subLockedBalance(db StateDB, addr common.Address, amount *big.Int) {
 	db.SetPOSLocked(addr, new(big.Int).Sub(db.GetPOSLocked(addr), amount))
 }

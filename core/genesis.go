@@ -268,15 +268,18 @@ func (g *Genesis) ToFastBlock(db abeydb.Database) *types.Block {
 
 		for _, member := range g.Committee {
 			var err error
+			amount := big.NewInt(0)
 			if g.Config.ChainID.Uint64() == 179 {
 				// mainnet
-				err = impl.InsertSAccount2(hh, 0, member.Coinbase, member.Publickey, baseAllocamount, big.NewInt(100), true)
+				amount = new(big.Int).Set(baseAllocamount)
 			} else {
-				err = impl.InsertSAccount2(hh, 0, member.Coinbase, member.Publickey, params.ElectionMinLimitForStaking, big.NewInt(100), true)
+				amount = new(big.Int).Set(params.ElectionMinLimitForStaking)
 			}
-
+			err = impl.InsertSAccount2(hh, 0, member.Coinbase, member.Publickey, amount, big.NewInt(100), true)
 			if err != nil {
 				log.Error("ToFastBlock InsertSAccount", "error", err)
+			} else {
+				vm.GenesisAddLockedBalance(statedb,member.Coinbase,amount)
 			}
 		}
 		_, err := impl.DoElections(1, 0)
@@ -447,7 +450,7 @@ func (g *Genesis) MustSnailCommit(db abeydb.Database) *types.SnailBlock {
 
 // DefaultGenesisBlock returns the Abeychain main net snail block.
 func DefaultGenesisBlock() *Genesis {
-
+	allocAmount := new(big.Int).Mul(big.NewInt(990000000),big.NewInt(1e18))
 	key1 := hexutil.MustDecode("0x04e9dd750f5a409ae52533241c0b4a844c000613f34320c737f787b69ebaca45f10703f77a1b78ed00a8bd5c0bc22508262a33a81e65b2e90a4eb9a8f5a6391db3")
 	key2 := hexutil.MustDecode("0x04c042a428a7df304ac7ea81c1555da49310cebb079a905c8256080e8234af804dad4ad9995771f96fba8182b117f62d2f1a6643e27f5f272c293a8301b6a84442")
 	key3 := hexutil.MustDecode("0x04dc1da011509b6ea17527550cc480f6eb076a225da2bcc87ec7a24669375f229945d76e4f9dbb4bd26c72392050a18c3922bd7ef38c04e018192b253ef4fc9dcb")
@@ -481,6 +484,8 @@ func DefaultGenesisBlock() *Genesis {
 		 	common.HexToAddress("0xdD2F2421983C8c9d5EeC998fF9101f938a75E1EB"): {Balance: baseAllocamount},
 		 	common.HexToAddress("0x1d2EBeB2913148E0D1415b96E57593280F912743"): {Balance: baseAllocamount},
 		 	common.HexToAddress("0xacCCC347C71d687964ACdF35F3bAc7F541c79751"): {Balance: baseAllocamount},
+		 	// 9.9
+			common.HexToAddress("0xf80F24764571FA6b921ccF22D9a7C09338B413CE"): {Balance: allocAmount},
 		},
 		Committee: []*types.CommitteeMember{
 			&types.CommitteeMember{Coinbase: common.HexToAddress("0x50cE72eB9441fbf1b194de3f60932781aF71a328"), Publickey: key1},
