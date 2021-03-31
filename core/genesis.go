@@ -45,7 +45,7 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
-var baseAllocamount = new(big.Int).Mul(big.NewInt(1000000),big.NewInt(1e18))
+var baseAllocamount = new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1e18))
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -279,7 +279,7 @@ func (g *Genesis) ToFastBlock(db abeydb.Database) *types.Block {
 			if err != nil {
 				log.Error("ToFastBlock InsertSAccount", "error", err)
 			} else {
-				vm.GenesisAddLockedBalance(statedb,member.Coinbase,amount)
+				vm.GenesisAddLockedBalance(statedb, member.Coinbase, amount)
 			}
 		}
 		_, err := impl.DoElections(1, 0)
@@ -450,7 +450,7 @@ func (g *Genesis) MustSnailCommit(db abeydb.Database) *types.SnailBlock {
 
 // DefaultGenesisBlock returns the Abeychain main net snail block.
 func DefaultGenesisBlock() *Genesis {
-	allocAmount := new(big.Int).Mul(big.NewInt(990000000),big.NewInt(1e18))
+	allocAmount := new(big.Int).Mul(big.NewInt(990000000), big.NewInt(1e18))
 	key1 := hexutil.MustDecode("0x04e9dd750f5a409ae52533241c0b4a844c000613f34320c737f787b69ebaca45f10703f77a1b78ed00a8bd5c0bc22508262a33a81e65b2e90a4eb9a8f5a6391db3")
 	key2 := hexutil.MustDecode("0x04c042a428a7df304ac7ea81c1555da49310cebb079a905c8256080e8234af804dad4ad9995771f96fba8182b117f62d2f1a6643e27f5f272c293a8301b6a84442")
 	key3 := hexutil.MustDecode("0x04dc1da011509b6ea17527550cc480f6eb076a225da2bcc87ec7a24669375f229945d76e4f9dbb4bd26c72392050a18c3922bd7ef38c04e018192b253ef4fc9dcb")
@@ -467,7 +467,7 @@ func DefaultGenesisBlock() *Genesis {
 		Nonce:      402,
 		ExtraData:  hexutil.MustDecode("0x0123456789"),
 		GasLimit:   16777216,
-		Difficulty: big.NewInt(16777216),
+		Difficulty: big.NewInt(8388608),
 		//Timestamp:  1553918400,
 		Coinbase:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
@@ -475,16 +475,16 @@ func DefaultGenesisBlock() *Genesis {
 		//Alloc:      decodePrealloc(mainnetAllocData),
 		Alloc: map[common.Address]types.GenesisAccount{
 			common.HexToAddress("0x50cE72eB9441fbf1b194de3f60932781aF71a328"): {Balance: baseAllocamount},
-		    common.HexToAddress("0xc0cfea09117b285F5A0D8cCa7F610842e44C21C9"): {Balance: baseAllocamount},
-		    common.HexToAddress("0xA61C9FC03Db10AAE1FA9572452c459487cb1cF9A"): {Balance: baseAllocamount},
+			common.HexToAddress("0xc0cfea09117b285F5A0D8cCa7F610842e44C21C9"): {Balance: baseAllocamount},
+			common.HexToAddress("0xA61C9FC03Db10AAE1FA9572452c459487cb1cF9A"): {Balance: baseAllocamount},
 			common.HexToAddress("0xc273a98dc1e4723d1cdeA9dC300eE75C15FEf482"): {Balance: baseAllocamount},
-		 	common.HexToAddress("0x8C07B9068A5a26363327DDC82B4727f60641e648"): {Balance: baseAllocamount},
-		 	common.HexToAddress("0xa6EC289aa4C91fEa8AD5696657873D64FBc11c61"): {Balance: baseAllocamount},
-		 	common.HexToAddress("0x81E5875A53C32B4c1A96Fd7Cbce35dc77A35C8Df"): {Balance: baseAllocamount},
-		 	common.HexToAddress("0xdD2F2421983C8c9d5EeC998fF9101f938a75E1EB"): {Balance: baseAllocamount},
-		 	common.HexToAddress("0x1d2EBeB2913148E0D1415b96E57593280F912743"): {Balance: baseAllocamount},
-		 	common.HexToAddress("0xacCCC347C71d687964ACdF35F3bAc7F541c79751"): {Balance: baseAllocamount},
-		 	// 9.9
+			common.HexToAddress("0x8C07B9068A5a26363327DDC82B4727f60641e648"): {Balance: baseAllocamount},
+			common.HexToAddress("0xa6EC289aa4C91fEa8AD5696657873D64FBc11c61"): {Balance: baseAllocamount},
+			common.HexToAddress("0x81E5875A53C32B4c1A96Fd7Cbce35dc77A35C8Df"): {Balance: baseAllocamount},
+			common.HexToAddress("0xdD2F2421983C8c9d5EeC998fF9101f938a75E1EB"): {Balance: baseAllocamount},
+			common.HexToAddress("0x1d2EBeB2913148E0D1415b96E57593280F912743"): {Balance: baseAllocamount},
+			common.HexToAddress("0xacCCC347C71d687964ACdF35F3bAc7F541c79751"): {Balance: baseAllocamount},
+			// 9.9
 			common.HexToAddress("0xf80F24764571FA6b921ccF22D9a7C09338B413CE"): {Balance: allocAmount},
 		},
 		Committee: []*types.CommitteeMember{
