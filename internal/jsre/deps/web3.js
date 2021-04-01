@@ -5648,9 +5648,9 @@ require = (function e(t, n, r) {
                 outputFormatter: formatters.outputBigNumberFormatter
             });
 
-            var getAbeyBalance = new Method({
-                name: 'getAbeyBalance',
-                call: 'abey_getAbeyBalance',
+            var balance = new Method({
+                name: 'balance',
+                call: 'abey_balance',
                 params: 2,
                 inputFormatter: [null, formatters.inputDefaultBlockNumberFormatter],
                 outputFormatter: formatters.outputBigNumberFormatter
@@ -5951,7 +5951,7 @@ require = (function e(t, n, r) {
             return [
                 getBalance,
                 getLockBalance,
-                getAbeyBalance,
+                balance,
                 getTotalBalance,
                 getStorageAt,
                 getCode,

@@ -628,10 +628,10 @@ func (s *PublicBlockChainAPI) GetLockBalance(ctx context.Context, address common
 	return (*hexutil.Big)(state.GetPOSLocked(address)), state.Error()
 }
 
-// GetAbeyBalance returns the amount of wei for the given address in the state of the
+// Balance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
-func (s *PublicBlockChainAPI) GetAbeyBalance(ctx context.Context, address string, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+func (s *PublicBlockChainAPI) Balance(ctx context.Context, address string, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	addr := common.Address{}
 	err := addr.FromAbeyString(address)
 	if err != nil {
