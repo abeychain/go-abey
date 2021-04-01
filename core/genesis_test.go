@@ -623,26 +623,18 @@ func Test1(t *testing.T) {
 }
 func Test02(t *testing.T) {
 	strs := []string{
-		"ABEYGbVPEitiZWNxVHKU6x17rk2U4xYa6pLHU",
-		"ABEYSoipXrch6SXw5k13P2VqySXyHWgaA3TvV",
-		"ABEYQNYUFCHs5zffbxRsEsV3hjKvRHS7kZACZ",
-		"ABEYSxPf9GXutCTvoCnoYPAwCVVXD8jDMK2MK",
-		"ABEYMzds1fFj18wGZVMjtKaZAiT9qZV8nvt75",
-		"ABEYQSq6126rizUaQs69gvCnmqrYKD4jzC6mz",
-		"ABEYM549FVmrUgfZUw3zs8CNPDe9GpTrJFGRG",
-		"ABEYVPjpPSCety55BbT7BUW32C2h6ws7Ee2Ay",
-		"ABEYBtXc2TZjHBxuCag56AbyUC4NvJW6KJ36G",
-		"ABEYQyuXjXRnLNC8scJz1F6yGkf2TD5h3aree",
-		"ABEYXqqjFucMUfpho9iqxi3oEPFN7d3BP7Gx8",
-		"ABEYKxhAoSpqdmAaiBeiVdZPkdMERe6YeKFHm",
-		"ABEYEA4CJyxHsudG3CtDGWEw92bfkGFz9rdEd",
-		"ABEYFmoQqa6dASJLiKQcJJReYwvfSwXKxMSUQ",
-		"ABEYCFgp5KKgWj18aBKfFBKZoyEfAbQNfkvY3",
-		"ABEYSgUYekaz6zMTZgD7r2DsPEseceNhVWq2Y",
-		"ABEYSerkUAJbVr4feKTxuAT8LM1bS5ZkG5PMU",
-		"ABEYFE1yTwHF2vWp69uVd2ABPtuSLhMdTkBJd",
-		"ABEYNcqHB4s3Pyas8PzuRtfbVDCyoZBXvKRPn",
-		"ABEYDCx6z7guXeLnwAVB8iYxRyAGT8ZGr2WHK",
+		"ABEYLyzn9HvDaLw8c6SygKuzx5nj2ndzT3KWf",
+		"ABEYBsXQbnfaUT7CedZ65hUwtZvYwys3UE99f",
+		"ABEYAuqMqkzRdUM111bw66gAJ3YkBkRsAVpcs",
+		"ABEYXD4QCGDvTmdKNKnGjyVeVZX4zAviPrRWb",
+		"ABEYT1b6UDRUdpPMAq37sWX4uqeD28iSD2XXG",
+		"ABEYByojGTMQUZvpvjXA3dDCJztpFz72jqBii",
+		"ABEYLRr5tggiizWV68SbumTYvywjHxm34iZHF",
+		"ABEYXxqnoL8T3Me2Tgmz8wvQTKwPcq8mtGtE3",
+		"ABEYH1NrQ9tcxd4YuKd1CENo1apMDQmc3DvT6",
+		"ABEYSEq9wyZmSoSoUbqw3xrR68eovUKxMk8pS",
+		"ABEYV6DVAwCoCTFRsK8U4ULfdtmhc2XC1Hwv8",
+		"ABEYWkjDk3QyxZqshGPk6KtasYDc97N6yZTk2",
 	}
 	a := common.Address{}
 	for i,v := range strs {
