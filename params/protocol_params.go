@@ -187,8 +187,8 @@ var (
 
 var (
 	CountInEpoch                      = 20
-	MaxRedeemHeight            uint64 = 500   // about 15 days
-	NewEpochLength             uint64 = 2000  // about 1.5 days
+	MaxRedeemHeight            uint64 = 250000   // about 15 days
+	NewEpochLength             uint64 = 25000  // about 1.5 days
 	ElectionPoint              uint64 = 200
 	FirstNewEpochID            uint64 = 1
 	DposForkPoint              uint64 = 0
