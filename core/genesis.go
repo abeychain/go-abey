@@ -594,11 +594,7 @@ func DefaultSingleNodeGenesisBlock() *Genesis {
 		Difficulty: big.NewInt(256),
 		//Alloc:      decodePrealloc(mainnetAllocData),
 		Alloc: map[common.Address]types.GenesisAccount{
-			common.HexToAddress("0xbd54a6c8298a70e9636d0555a77ffa412abdd71a"): {Balance: i},
-			common.HexToAddress("0x3c2e0a65a023465090aaedaa6ed2975aec9ef7f9"): {Balance: i},
-			common.HexToAddress("0x7c357530174275dd30e46319b89f71186256e4f7"): {Balance: i},
-			common.HexToAddress("0xeeb69c67751e9f4917b605840fa9a28be4517871"): {Balance: i},
-			common.HexToAddress("0x76ea2f3a002431fede1141b660dbb75c26ba6d97"): {Balance: i},
+			common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"): {Balance: i},
 		},
 		Committee: []*types.CommitteeMember{
 			{Coinbase: common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"), Publickey: key1},
