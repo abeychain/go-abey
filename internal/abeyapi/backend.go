@@ -107,12 +107,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 				Version:   "1.0",
 				Service:   NewPublicBlockChainAPI(apiBackend),
 				Public:    true,
-			}, {
-				Namespace: name,
-				Version:   "1.0",
-				Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
-				Public:    true,
-			}, {
+			},{
 				Namespace: name,
 				Version:   "1.0",
 				Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
