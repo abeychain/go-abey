@@ -107,12 +107,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 				Version:   "1.0",
 				Service:   NewPublicBlockChainAPI(apiBackend),
 				Public:    true,
-			}, {
-				Namespace: name,
-				Version:   "1.0",
-				Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
-				Public:    true,
-			}, {
+			},{
 				Namespace: name,
 				Version:   "1.0",
 				Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
@@ -120,6 +115,22 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			},
 		}...)
 	}
+	apis = append(apis, []rpc.API{
+		{
+			Namespace: "abey",
+			Version:   "1.0",
+			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
+			Public:    true,
+		},
+	}...)
+	apis = append(apis, []rpc.API{
+		{
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   NewPublicTransactionPoolAPI2(apiBackend, nonceLock),
+			Public:    true,
+		},
+	}...)
 	apis = append(apis, []rpc.API{
 		{
 			Namespace: "txpool",
