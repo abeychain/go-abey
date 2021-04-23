@@ -1377,16 +1377,26 @@ type RPCTransaction2 struct {
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
+func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64,IsAbey bool) *RPCTransaction {
 	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
+	fromaddr := ""
 	toaddr := ""
 	if tx.To() != nil {
-		toaddr = tx.To().StringToAbey()
+		if IsAbey {
+			toaddr = tx.To().StringToAbey()
+		}else{
+			toaddr = tx.To().String()
+		}
+	}
+	if IsAbey {
+		fromaddr = from.StringToAbey()
+	}else{
+		fromaddr = from.String()
 	}
 	result := &RPCTransaction{
-		From:     from.StringToAbey(),
+		From:     fromaddr,
 		Gas:      hexutil.Uint64(tx.Gas()),
 		GasPrice: (*hexutil.Big)(tx.GasPrice()),
 		Hash:     tx.Hash(),
@@ -1456,16 +1466,16 @@ func newRPCTransaction2(tx *types.Transaction, blockHash common.Hash, blockNumbe
 
 // newRPCPendingTransaction returns a pending transaction that will serialize to the RPC representation
 func newRPCPendingTransaction(tx *types.Transaction) *RPCTransaction {
-	return newRPCTransaction(tx, common.Hash{}, 0, 0)
+	return newRPCTransaction(tx, common.Hash{}, 0, 0,true)
 }
 
 // newRPCTransactionFromBlockIndex returns a transaction that will serialize to the RPC representation.
-func newRPCTransactionFromBlockIndex(b *types.Block, index uint64) *RPCTransaction {
+func newRPCTransactionFromBlockIndex(b *types.Block, index uint64,IsAbey bool) *RPCTransaction {
 	txs := b.Transactions()
 	if index >= uint64(len(txs)) {
 		return nil
 	}
-	return newRPCTransaction(txs[index], b.Hash(), b.NumberU64(), index)
+	return newRPCTransaction(txs[index], b.Hash(), b.NumberU64(), index,IsAbey)
 }
 
 // newRPCFruitFromBlockIndex returns a fruit that will serialize to the RPC representation.
@@ -1491,7 +1501,7 @@ func newRPCRawTransactionFromBlockIndex(b *types.Block, index uint64) hexutil.By
 func newRPCTransactionFromBlockHash(b *types.Block, hash common.Hash) *RPCTransaction {
 	for idx, tx := range b.Transactions() {
 		if tx.Hash() == hash {
-			return newRPCTransactionFromBlockIndex(b, uint64(idx))
+			return newRPCTransactionFromBlockIndex(b, uint64(idx),true)
 		}
 	}
 	return nil
@@ -1499,6 +1509,11 @@ func newRPCTransactionFromBlockHash(b *types.Block, hash common.Hash) *RPCTransa
 
 // PublicTransactionPoolAPI exposes methods for the RPC interface
 type PublicTransactionPoolAPI struct {
+	b         Backend
+	nonceLock *AddrLocker
+}
+
+type PublicTransactionPoolAPI2 struct {
 	b         Backend
 	nonceLock *AddrLocker
 }
@@ -1547,7 +1562,7 @@ func (s *PublicBlockChainAPI) GetBlockFruitCountByHash(ctx context.Context, bloc
 // GetTransactionByBlockNumberAndIndex returns the transaction for the given block number and index.
 func (s *PublicTransactionPoolAPI) GetTransactionByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint) *RPCTransaction {
 	if block, _ := s.b.BlockByNumber(ctx, blockNr); block != nil {
-		return newRPCTransactionFromBlockIndex(block, uint64(index))
+		return newRPCTransactionFromBlockIndex(block, uint64(index),true)
 	}
 	return nil
 }
@@ -1555,7 +1570,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlockNumberAndIndex(ctx conte
 // GetTransactionByBlockHashAndIndex returns the transaction for the given block hash and index.
 func (s *PublicTransactionPoolAPI) GetTransactionByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index uint64) *RPCTransaction {
 	if block, _ := s.b.GetBlock(ctx, blockHash); block != nil {
-		return newRPCTransactionFromBlockIndex(block, uint64(index))
+		return newRPCTransactionFromBlockIndex(block, uint64(index),true)
 	}
 	return nil
 }
@@ -1606,7 +1621,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction {
 	// Try to return an already finalized transaction
 	if tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), hash); tx != nil {
-		return newRPCTransaction(tx, blockHash, blockNumber, index)
+		return newRPCTransaction(tx, blockHash, blockNumber, index,true)
 	}
 	// No finalized transaction, try to retrieve it from the pool
 	if tx := s.b.GetPoolTransaction(hash); tx != nil {
@@ -2282,4 +2297,399 @@ func (s *PublicImpawnAPI) GetImpawnSummay(ctx context.Context, blockNr rpc.Block
 	}
 
 	return types.ToJSON(impawn.Summay()), nil
+}
+
+// NewPublicTransactionPoolAPI creates a new RPC service with methods specific for the transaction pool.
+func NewPublicTransactionPoolAPI2(b Backend, nonceLock *AddrLocker) *PublicTransactionPoolAPI2 {
+	return &PublicTransactionPoolAPI2{b, nonceLock}
+}
+
+// GetTransactionByBlockNumberAndIndex2 returns the transaction for the given block number and index.
+func (s *PublicTransactionPoolAPI2) GetTransactionByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint) *RPCTransaction {
+	if block, _ := s.b.BlockByNumber(ctx, blockNr); block != nil {
+		return newRPCTransactionFromBlockIndex(block, uint64(index),false)
+	}
+	return nil
+}
+
+// GetTransactionByBlockHashAndIndex2 returns the transaction for the given block hash and index.
+func (s *PublicTransactionPoolAPI2) GetTransactionByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index uint64) *RPCTransaction {
+	if block, _ := s.b.GetBlock(ctx, blockHash); block != nil {
+		return newRPCTransactionFromBlockIndex(block, uint64(index),false)
+	}
+	return nil
+}
+
+// GetTransactionByHash2 returns the transaction for the given hash
+func (s *PublicTransactionPoolAPI2) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction {
+	// Try to return an already finalized transaction
+	if tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), hash); tx != nil {
+		return newRPCTransaction(tx, blockHash, blockNumber, index,false)
+	}
+	// No finalized transaction, try to retrieve it from the pool
+	if tx := s.b.GetPoolTransaction(hash); tx != nil {
+		return newRPCPendingTransaction(tx)
+	}
+	// Transaction unknown, return as such
+	return nil
+}
+
+// GetTransactionReceipt returns the transaction receipt for the given transaction hash.
+func (s *PublicTransactionPoolAPI2) GetTransactionReceipt(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
+	tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), hash)
+	if tx == nil {
+		return nil, nil
+	}
+	receipts, err := s.b.GetReceipts(ctx, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	if len(receipts) <= int(index) {
+		return nil, nil
+	}
+	receipt := receipts[index]
+
+	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
+	from, _ := types.Sender(signer, tx)
+	toAddr := ""
+	if tx.To() != nil {
+		toAddr = tx.To().String()
+	}
+	fields := map[string]interface{}{
+		"blockHash":         blockHash,
+		"blockNumber":       hexutil.Uint64(blockNumber),
+		"transactionHash":   hash,
+		"transactionIndex":  hexutil.Uint64(index),
+		"from":              from.String(),
+		"to":                toAddr,
+		"gasUsed":           hexutil.Uint64(receipt.GasUsed),
+		"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
+		"contractAddress":   nil,
+		"logs":              receipt.Logs,
+		"logsBloom":         receipt.Bloom,
+		"status":            hexutil.Uint(receipt.Status),
+	}
+
+	// Assign receipt status or post state.
+	if len(receipt.PostState) > 0 {
+		fields["root"] = hexutil.Bytes(receipt.PostState)
+	}
+	if receipt.Logs == nil {
+		fields["logs"] = [][]*types.Log{}
+	}
+	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
+	if receipt.ContractAddress != (common.Address{}) {
+		fields["contractAddress"] = receipt.ContractAddress.String()
+	}
+	return fields, nil
+}
+
+// GetBlockTransactionCountByNumber returns the number of transactions in the block with the given block number.
+func (s *PublicTransactionPoolAPI2) GetBlockTransactionCountByNumber(ctx context.Context, blockNr rpc.BlockNumber) *hexutil.Uint {
+	if block, _ := s.b.BlockByNumber(ctx, blockNr); block != nil {
+		n := hexutil.Uint(len(block.Transactions()))
+		return &n
+	}
+	return nil
+}
+
+// GetBlockTransactionCountByHash returns the number of transactions in the block with the given hash.
+func (s *PublicTransactionPoolAPI2) GetBlockTransactionCountByHash(ctx context.Context, blockHash common.Hash) *hexutil.Uint {
+	if block, _ := s.b.GetBlock(ctx, blockHash); block != nil {
+		n := hexutil.Uint(len(block.Transactions()))
+		return &n
+	}
+	return nil
+}
+
+// GetRawTransactionByBlockNumberAndIndex returns the bytes of the transaction for the given block number and index.
+func (s *PublicTransactionPoolAPI2) GetRawTransactionByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint) hexutil.Bytes {
+	if block, _ := s.b.BlockByNumber(ctx, blockNr); block != nil {
+		return newRPCRawTransactionFromBlockIndex(block, uint64(index))
+	}
+	return nil
+}
+
+// GetRawTransactionByBlockHashAndIndex returns the bytes of the transaction for the given block hash and index.
+func (s *PublicTransactionPoolAPI2) GetRawTransactionByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index hexutil.Uint) hexutil.Bytes {
+	if block, _ := s.b.GetBlock(ctx, blockHash); block != nil {
+		return newRPCRawTransactionFromBlockIndex(block, uint64(index))
+	}
+	return nil
+}
+
+// GetTransactionCount returns the number of transactions the given address has sent for the given block number
+func (s *PublicTransactionPoolAPI2) GetTransactionCount(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	nonce := state.GetNonce(address)
+	return (*hexutil.Uint64)(&nonce), state.Error()
+}
+
+// GetRawTransactionByHash returns the bytes of the transaction for the given hash.
+func (s *PublicTransactionPoolAPI2) GetRawTransactionByHash(ctx context.Context, hash common.Hash) (hexutil.Bytes, error) {
+	var tx *types.Transaction
+
+	// Retrieve a finalized transaction, or a pooled otherwise
+	if tx, _, _, _ = rawdb.ReadTransaction(s.b.ChainDb(), hash); tx == nil {
+		if tx = s.b.GetPoolTransaction(hash); tx == nil {
+			// Transaction not found anywhere, abort
+			return nil, nil
+		}
+	}
+	// Serialize to RLP and return
+	return rlp.EncodeToBytes(tx)
+}
+
+// sign is a helper function that signs a transaction with the private key of the given address.
+func (s *PublicTransactionPoolAPI2) sign(addr common.Address, tx *types.Transaction) (*types.Transaction, error) {
+	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: addr}
+
+	wallet, err := s.b.AccountManager().Find(account)
+	if err != nil {
+		return nil, err
+	}
+	// Request the wallet to sign the transaction
+	return wallet.SignTx(account, tx, s.b.ChainConfig().ChainID)
+}
+
+
+
+func (s *PublicTransactionPoolAPI2) sign_payment(addr common.Address, tx *types.Transaction) (*types.Transaction, error) {
+	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: addr}
+
+	wallet, err := s.b.AccountManager().Find(account)
+	if err != nil {
+		return nil, err
+	}
+	// Request the wallet to sign the transaction
+	return wallet.SignTx_Payment(account, tx, s.b.ChainConfig().ChainID)
+}
+
+func (s *PublicTransactionPoolAPI2) signPayment(payment common.Address, tx *types.Transaction) (*types.Transaction, error) {
+	if payment == params.EmptyAddress {
+		return tx, nil
+	}
+	signed_payment, err := s.sign_payment(payment, tx)
+	if err != nil {
+		return nil, err
+	}
+	//fmt.Println("newTx:", newTx.Info())
+	return signed_payment, nil
+}
+
+// SendTransaction creates a transaction for the given argument, sign it and submit it to the
+// transaction pool.
+func (s *PublicTransactionPoolAPI2) SendTransaction(ctx context.Context, args SendTxArgs) (common.Hash, error) {
+	log.Debug("SendTransaction", "args",
+		fmt.Sprintf("API recieved  from=%v\n ,Payment=%v", args.From.String(), args.Payment.String()))
+	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: args.From}
+	wallet, err := s.b.AccountManager().Find(account)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	if args.Nonce == nil {
+		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+		// the same nonce to multiple accounts.
+		s.nonceLock.LockAddr(args.From)
+		defer s.nonceLock.UnlockAddr(args.From)
+	}
+
+	// Set some sanity defaults and terminate on failure
+	if err := args.setDefaults(ctx, s.b); err != nil {
+		return common.Hash{}, err
+	}
+	// Assemble the transaction and sign with the wallet
+	tx := args.toTransaction()
+	//sign sender
+	signed, err := wallet.SignTx(account, tx, s.b.ChainConfig().ChainID)
+	if err != nil {
+		return params.EmptyHash, err
+	}
+	//normal transaction execution
+	if args.Payment == (common.Address{}) {
+		return submitTransaction(ctx, s.b, signed)
+	}
+	//sign payment
+	signed_payment, err := s.signPayment(args.Payment, signed)
+	if err != nil {
+		log.Error("signPayment error", "error", err)
+		return params.EmptyHash, err
+	}
+	//fmt.Println("newTx2:", signedPaymentTx.Info())
+	return submitTransaction(ctx, s.b, signed_payment)
+}
+
+// SendRawTransaction will add the signed transaction to the transaction pool.
+// The sender is responsible for signing the transaction and using the correct nonce.
+func (s *PublicTransactionPoolAPI2) SendRawTransaction(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
+	raw_tx := new(types.RawTransaction)
+	if err := rlp.DecodeBytes(encodedTx, raw_tx); err != nil {
+		log.Error("api method SendRawTransaction error", "error", err)
+		return common.Hash{}, err
+	}
+	tx := raw_tx.ConvertTransaction()
+	//log.Info("api method SendRawTransaction info", "tx.info", tx.Info())
+	return submitTransaction(ctx, s.b, tx)
+}
+
+func (s *PublicTransactionPoolAPI2) SendAbeyRawTransaction(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
+	tx := new(types.Transaction)
+	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
+		log.Error("api method SendAbeyRawTransaction error", "error", err)
+		return common.Hash{}, err
+	}
+	//log.Info("api method SendAbeyRawTransaction info", "tx.info", tx.Info())
+	return submitTransaction(ctx, s.b, tx)
+}
+
+func (s *PublicTransactionPoolAPI2) Sign(addr common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
+	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: addr}
+
+	wallet, err := s.b.AccountManager().Find(account)
+	if err != nil {
+		return nil, err
+	}
+	// Sign the requested hash with the wallet
+	signature, err := wallet.SignHash(account, signHash(data))
+	if err == nil {
+		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	}
+	return signature, err
+}
+
+// SignTransaction will sign the given transaction with the from account.
+// The node needs to have the private key of the account corresponding with
+// the given from address and it needs to be unlocked.
+func (s *PublicTransactionPoolAPI2) SignTransaction(ctx context.Context, args SendTxArgs) (*SignTransactionResult, error) {
+	if args.Gas == nil {
+		return nil, fmt.Errorf("gas not specified")
+	}
+	if args.GasPrice == nil {
+		return nil, fmt.Errorf("gasPrice not specified")
+	}
+	if args.Nonce == nil {
+		return nil, fmt.Errorf("nonce not specified")
+	}
+	if err := args.setDefaults(ctx, s.b); err != nil {
+		return nil, err
+	}
+	tx := args.toTransaction()
+	//fmt.Println("api method signTransaction received payment", args.Payment.String())
+	//sign from
+	signed, err := s.sign(args.From, tx)
+	if err != nil {
+		return nil, err
+	}
+	if args.Payment == (common.Address{}) && args.Fee == nil { //normal ethereum transaction
+		raw_tx_signed := signed.ConvertRawTransaction()
+		if err != nil {
+			return nil, err
+		}
+		data, err := rlp.EncodeToBytes(raw_tx_signed)
+		if err != nil {
+			return nil, err
+		}
+		return &SignTransactionResult{data, signed}, nil
+	} else if args.Payment == (common.Address{}) { //pay is nil
+		data, err := rlp.EncodeToBytes(signed)
+		if err != nil {
+			return nil, err
+		}
+		//fmt.Println("api method signTransaction signed", signed.Info())
+		return &SignTransactionResult{data, signed}, nil
+	}
+
+	//sign payment
+	signed_payment, err := s.signPayment(args.Payment, signed)
+	if err != nil {
+		log.Error("SignTransaction signPayment error", "error", err)
+		return nil, err
+	}
+
+	data, err := rlp.EncodeToBytes(signed_payment)
+	if err != nil {
+		return nil, err
+	}
+	//fmt.Println("api method signTransaction signed", signed.Info())
+	return &SignTransactionResult{data, signed_payment}, nil
+}
+
+// PendingTransactions returns the transactions that are in the transaction pool
+// and have a from address that is one of the accounts this node manages.
+func (s *PublicTransactionPoolAPI2) PendingTransactions() ([]*RPCTransaction, error) {
+	pending, err := s.b.GetPoolTransactions()
+	if err != nil {
+		return nil, err
+	}
+	accounts := make(map[common.Address]struct{})
+	for _, wallet := range s.b.AccountManager().Wallets() {
+		for _, account := range wallet.Accounts() {
+			accounts[account.Address] = struct{}{}
+		}
+	}
+	transactions := make([]*RPCTransaction, 0, len(pending))
+	for _, tx := range pending {
+		var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
+		from, _ := types.Sender(signer, tx)
+		if _, exists := accounts[from]; exists {
+			transactions = append(transactions, newRPCPendingTransaction(tx))
+		}
+	}
+	return transactions, nil
+}
+
+// Resend accepts an existing transaction and a new gas price and limit. It will remove
+// the given transaction from the pool and reinsert it with the new gas price and limit.
+func (s *PublicTransactionPoolAPI2) Resend(ctx context.Context, sendArgs SendTxArgs, gasPrice *hexutil.Big, gasLimit *hexutil.Uint64) (common.Hash, error) {
+	if sendArgs.Nonce == nil {
+		return common.Hash{}, fmt.Errorf("missing transaction nonce in transaction spec")
+	}
+	if err := sendArgs.setDefaults(ctx, s.b); err != nil {
+		return common.Hash{}, err
+	}
+	if sendArgs.Payment != (common.Address{}) || sendArgs.Fee != nil {
+		log.Error("tx has payment or fee cannot use Resend")
+		return common.Hash{}, errors.New("tx has payment or fee cannot use Resend")
+	}
+	matchTx := sendArgs.toTransaction()
+	pending, err := s.b.GetPoolTransactions()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	for _, p := range pending {
+		var signer types.Signer = types.NewTIP1Signer(p.ChainId())
+		wantSigHash := signer.Hash(matchTx)
+
+		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p) == wantSigHash {
+			/*if pPayment, err := types.Payer(signer, p); err != nil || pPayment != sendArgs.Payment {
+				log.Error("pPayment error ", "from", sendArgs.From, "to", sendArgs.To, "payment", sendArgs.Payment)
+				continue
+			}*/
+			// Match. Re-sign and send the transaction.
+			if gasPrice != nil && (*big.Int)(gasPrice).Sign() != 0 {
+				sendArgs.GasPrice = gasPrice
+			}
+			if gasLimit != nil && *gasLimit != 0 {
+				sendArgs.Gas = gasLimit
+			}
+			signedTx, err := s.sign(sendArgs.From, sendArgs.toTransaction())
+			if err != nil {
+				return common.Hash{}, err
+			}
+			if err = s.b.SendTx(ctx, signedTx); err != nil {
+				return common.Hash{}, err
+			}
+			return signedTx.Hash(), nil
+		}
+	}
+
+	return common.Hash{}, fmt.Errorf("Transaction %#x not found", matchTx.Hash())
 }
