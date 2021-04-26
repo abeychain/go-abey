@@ -2097,19 +2097,34 @@ require = (function e(t, n, r) {
         };
 
 
-        var base58Encode = function (buffer) {
+        var base58Encode = function (buffer0) {
+            if (buffer0.length === 0) return '';
+            if (buffer0.substr(0, 2) != "0x") {
+                return buffer0;
+            }
+            var utils = require('../utils/utils');
+            var buffer00 = utils.strToBytes(buffer0)
+            buffer00.unshift(0x43, 0xe5, 0x52)
+            var buffer1 = utils.bytesToStr(buffer00)
+            var buffer2 = sha3(buffer1, {encoding: 'hex'})
+            var buffer3 = sha3(buffer2, {encoding: 'hex'})
+            var t1 = utils.bytesToStr(buffer00)
+            var t2 = buffer3.substr(0, 8)
+            var t3 = '0x' + t1 + t2
+            var buffer = utils.strToBytes(t3)
+
             var ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
             var ALPHABET_MAP = {};
             var BASE = 58;
             for (var i = 0; i < ALPHABET.length; i++) {
                 ALPHABET_MAP[ALPHABET.charAt(i)] = i;
             }
-            if (buffer.length === 0) return '';
+
             var i,
                 j,
                 digits = [0];
             for (i = 0; i < buffer.length; i++) {
-                for (j = 0; j < digits.length; j++){
+                for (j = 0; j < digits.length; j++) {
                     digits[j] <<= 8;
                 }
                 digits[0] += buffer[i];
@@ -2128,7 +2143,7 @@ require = (function e(t, n, r) {
             for (i = 0; buffer[i] === 0 && i < buffer.length - 1; i++) digits.push(0);
             return digits
                 .reverse()
-                .map(function(digit) {
+                .map(function (digit) {
                     return ALPHABET[digit];
                 })
                 .join('');
@@ -2169,22 +2184,20 @@ require = (function e(t, n, r) {
 
         }
 
-        var strToBytes = function  (str) {
+        var strToBytes = function (str) {
 
             var pos = 0;
             var len = str.length;
-            if(len %2 != 0)
-            {
+            if (len % 2 != 0) {
                 return null;
             }
             len /= 2;
             var hexA = new Array();
-            for(var i=0; i<len; i++)
-            {
+            for (var i = 0; i < len; i++) {
                 var s = str.substr(pos, 2);
                 var v = parseInt(s, 16);
                 pos += 2;
-                if (i === 0 ){
+                if (i === 0) {
                     continue
                 }
                 hexA.push(v);
@@ -2639,7 +2652,7 @@ require = (function e(t, n, r) {
             isTopic: isTopic,
         };
 
-    }, {"./sha3.js": 19, "bignumber.js": "bignumber.js", "utf8": 85}],
+    }, {"./sha3.js": 19, "../utils/utils": 20, "bignumber.js": "bignumber.js", "utf8": 85}],
     21: [function (require, module, exports) {
         module.exports = {
             "version": "0.20.1"
@@ -4039,9 +4052,7 @@ require = (function e(t, n, r) {
         };
 
         var outputCoinbaseFormatter = function (result) {
-
-            for(var i=0; i<result.members.length; i++)
-            {
+            for (var i = 0; i < result.members.length; i++) {
                 var address = utils.base58Encode(result.members[i].coinbase);
                 result.members[i].coinbaseAbey = "abey" + address;
             }
@@ -4208,9 +4219,9 @@ require = (function e(t, n, r) {
 
         var inputAddressFormatter = function (address) {
 
-            if (address.substring(4,0) === "abey") {
+            if (address.substring(4, 0) === "abey") {
 
-                address = address.substring(address.length,4)
+                address = address.substring(address.length, 4)
                 address = utils.bytesToStr(utils.base58Decode(address))
             }
 
@@ -4258,23 +4269,23 @@ require = (function e(t, n, r) {
          */
 
 
-         var outputAddressFormatter = function (result) {
-             console.log(result)
-             var address = utils.base58Encode(result)
-             // var address = utils.base58Encode(utils.strToBytes(result));
-             return "abey" + address;
-         };
+        var outputAddressFormatter = function (result) {
+            console.log(result)
+            var address = utils.base58Encode(result)
 
-         var outputAddressFormatters = function (result) {
-             var hexA = new Array();
-             for(var i=0; i<result.length; i++)
-             {
-                 var address = utils.base58Encode(result[i]);
-                 hexA.push("abey" +address);
-             }
+            // var address = utils.base58Encode(utils.strToBytes(result));
+            return address;
+        };
 
-             return hexA;
-         };
+        var outputAddressFormatters = function (result) {
+            var hexA = new Array();
+            for (var i = 0; i < result.length; i++) {
+                var address = utils.base58Encode(result[i]);
+                hexA.push(address);
+            }
+
+            return hexA;
+        };
 
 
         module.exports = {
@@ -5706,7 +5717,7 @@ require = (function e(t, n, r) {
                 name: 'getChainRewardContent',
                 call: 'abey_getChainRewardContent',
                 params: 2,
-                inputFormatter: [formatters.inputDefaultBlockNumberFormatter,formatters.inputAddressFormatter]
+                inputFormatter: [formatters.inputDefaultBlockNumberFormatter, formatters.inputAddressFormatter]
             });
 
             var getSnail = new Method({
