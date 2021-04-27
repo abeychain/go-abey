@@ -26,7 +26,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/abeychain/go-abey/common/base58"
 	"github.com/abeychain/go-abey/common/hexutil"
 	"golang.org/x/crypto/sha3"
 )
@@ -222,13 +221,15 @@ func (a Address) String() string {
 }
 
 func (a Address) StringToAbey() string {
-	return base58.CheckEncode(a[:])
+	return a.String()
+	//return base58.CheckEncode(a[:])
 }
 
-func (a *Address) FromAbeyString(vc string) error {
-	b,err := base58.CheckDecode(vc[:])
-	a.SetBytes(b)
-	return err
+func (a *Address) FromAbeyString(str string) error {
+	b := HexToAddress(str)
+	//b,err := base58.CheckDecode(str[:])
+	a.SetBytes(b.Bytes())
+	return nil
 }
 
 // Format implements fmt.Formatter, forcing the byte slice to be formatted as is,
