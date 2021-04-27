@@ -2098,6 +2098,7 @@ require = (function e(t, n, r) {
 
 
         var base58Encode = function (buffer0) {
+            return buffer0
             if (buffer0.length === 0) return '';
             if (buffer0.substr(0, 2) != "0x") {
                 return buffer0;
