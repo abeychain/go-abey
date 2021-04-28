@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"crypto/subtle"
 	"fmt"
-	"github.com/agl/ed25519"
-	"github.com/agl/ed25519/extra25519"
-	"github.com/tendermint/go-amino"
 	"github.com/abeychain/go-abey/consensus/tbft/crypto"
 	"github.com/abeychain/go-abey/consensus/tbft/help"
+	"github.com/loinfish/ed25519"
+	"github.com/loinfish/ed25519/extra25519"
+	"github.com/tendermint/go-amino"
 	"io"
 )
 
