@@ -11,7 +11,6 @@ require (
 	github.com/aristanetworks/goarista v0.0.0-20210415184815-1f5c17aef7bb
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/cespare/cp v1.1.1
-	github.com/cloudflare/cloudflare-go v0.16.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v20.10.6+incompatible
