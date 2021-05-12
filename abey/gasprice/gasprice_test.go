@@ -113,7 +113,7 @@ func TestSuggestPrice(t *testing.T) {
 	config := Config{
 		Blocks:     20,
 		Percentile: 60,
-		Default:    big.NewInt(1 * params.Babbage),
+		Default:    big.NewInt(500 * params.Shannon),
 	}
 	backend := newTestBackend(t)
 	oracle := NewOracle(backend, config)
@@ -123,7 +123,7 @@ func TestSuggestPrice(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to retrieve recommended gas price: %v", err)
 	}
-	expect := big.NewInt(params.Babbage * int64(30))
+	expect := big.NewInt(params.Shannon * int64(500))
 	if got.Cmp(expect) != 0 {
 		t.Fatalf("Gas price mismatch, want %d, got %d", expect, got)
 	}

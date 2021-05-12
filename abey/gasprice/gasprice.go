@@ -28,7 +28,7 @@ import (
 	"github.com/abeychain/go-abey/rpc"
 )
 
-var maxPrice = big.NewInt(500 * params.Shannon)
+var maxPrice = big.NewInt(1000 * params.Shannon)
 
 type Config struct {
 	Blocks     int
@@ -39,11 +39,12 @@ type Config struct {
 // Oracle recommends gas prices based on the content of recent
 // blocks. Suitable for both light and full clients.
 type Oracle struct {
-	backend   OracleBackend
-	lastHead  common.Hash
-	lastPrice *big.Int
-	cacheLock sync.RWMutex
-	fetchLock sync.Mutex
+	backend      OracleBackend
+	lastHead     common.Hash
+	lastPrice    *big.Int
+	defaultPrice *big.Int
+	cacheLock    sync.RWMutex
+	fetchLock    sync.Mutex
 
 	checkBlocks, maxEmpty, maxBlocks int
 	percentile                       int
@@ -70,12 +71,13 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		percent = 100
 	}
 	return &Oracle{
-		backend:     backend,
-		lastPrice:   params.Default,
-		checkBlocks: blocks,
-		maxEmpty:    blocks / 2,
-		maxBlocks:   blocks * 5,
-		percentile:  percent,
+		backend:      backend,
+		lastPrice:    params.Default,
+		defaultPrice: params.Default,
+		checkBlocks:  blocks,
+		maxEmpty:     blocks / 2,
+		maxBlocks:    blocks * 5,
+		percentile:   percent,
 	}
 }
 
@@ -145,6 +147,10 @@ func (gpo *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 	}
 	if price.Cmp(maxPrice) > 0 {
 		price = new(big.Int).Set(maxPrice)
+	}
+
+	if price.Cmp(gpo.defaultPrice) < 0 {
+		price = new(big.Int).Set(gpo.defaultPrice)
 	}
 
 	gpo.cacheLock.Lock()

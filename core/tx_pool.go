@@ -41,7 +41,7 @@ import (
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize     = 10
-	defaultGasPrice       = 1000000
+	defaultGasPrice       = 500000000000
 	txChanSize            = 2048
 	MinimumGasPrice_local = 0
 )

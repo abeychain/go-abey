@@ -17,6 +17,7 @@
 package abey
 
 import (
+	"github.com/abeychain/go-abey/params"
 	"math/big"
 	"os"
 	"os/user"
@@ -33,7 +34,6 @@ import (
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain"
-	"github.com/abeychain/go-abey/params"
 )
 
 // DefaultConfig contains default settings for use on the ABEY chain main net.
@@ -53,9 +53,9 @@ var DefaultConfig = Config{
 	TrieTimeout:   60 * time.Minute,
 	MinerGasFloor: 12000000,
 	MinerGasCeil:  16000000,
-	//GasPrice:      big.NewInt(18 * params.Shannon),
+	GasPrice:      big.NewInt(500 * params.Shannon),
 
-	GasPrice: big.NewInt(1 * params.Szabo),
+	//GasPrice: big.NewInt(1 * params.Szabo),
 
 	TxPool:    core.DefaultTxPoolConfig,
 	SnailPool: snailchain.DefaultSnailPoolConfig,
