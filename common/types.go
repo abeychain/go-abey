@@ -221,7 +221,8 @@ func (a Address) String() string {
 }
 
 func (a Address) StringToAbey() string {
-	return a.String()
+	str := a.String()
+	return strings.ToLower(str)
 	//return base58.CheckEncode(a[:])
 }
 
@@ -261,6 +262,7 @@ func (a *Address) UnmarshalText(input []byte) error {
 func (a *Address) UnmarshalJSON(input []byte) error {
 	return hexutil.UnmarshalFixedJSON(addressT, input, a[:])
 }
+
 //func (a *Address) MarshalText() ([]byte, error) {
 //	return []byte(a.StringToAbey()), nil
 //}
