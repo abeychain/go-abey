@@ -1387,13 +1387,13 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 		if IsAbey {
 			toaddr = tx.To().StringToAbey()
 		}else{
-			toaddr = tx.To().String()
+			toaddr = tx.To().StringToAbey()
 		}
 	}
 	if IsAbey {
 		fromaddr = from.StringToAbey()
 	}else{
-		fromaddr = from.String()
+		fromaddr = from.StringToAbey()
 	}
 	result := &RPCTransaction{
 		From:     fromaddr,
@@ -2353,14 +2353,14 @@ func (s *PublicTransactionPoolAPI2) GetTransactionReceipt(ctx context.Context, h
 	from, _ := types.Sender(signer, tx)
 	toAddr := ""
 	if tx.To() != nil {
-		toAddr = tx.To().String()
+		toAddr = tx.To().StringToAbey()
 	}
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
 		"blockNumber":       hexutil.Uint64(blockNumber),
 		"transactionHash":   hash,
 		"transactionIndex":  hexutil.Uint64(index),
-		"from":              from.String(),
+		"from":              from.StringToAbey(),
 		"to":                toAddr,
 		"gasUsed":           hexutil.Uint64(receipt.GasUsed),
 		"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
@@ -2379,7 +2379,7 @@ func (s *PublicTransactionPoolAPI2) GetTransactionReceipt(ctx context.Context, h
 	}
 	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
 	if receipt.ContractAddress != (common.Address{}) {
-		fields["contractAddress"] = receipt.ContractAddress.String()
+		fields["contractAddress"] = receipt.ContractAddress.StringToAbey()
 	}
 	return fields, nil
 }
