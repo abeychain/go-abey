@@ -18,6 +18,7 @@
 package web3ext
 
 var Modules = map[string]string{
+	//----------注解------------
 	"admin":      Admin_JS,
 	"chequebook": Chequebook_JS,
 	"clique":     Clique_JS,
