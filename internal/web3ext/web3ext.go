@@ -23,6 +23,7 @@ var Modules = map[string]string{
 	"clique":     Clique_JS,
 	"debug":      Debug_JS,
 	"abey":       Abey_JS,
+	//----新加指令----
 	"eth":        Eth_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
