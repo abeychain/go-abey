@@ -13,4 +13,4 @@ exclude:
   - Gemfile
   - Gemfile.lock
 
-theme: jekyll-theme-minimal
+theme: jekyll-theme-time-machine
