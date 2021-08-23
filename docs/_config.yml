@@ -1,0 +1,15 @@
+title: ABEY
+lang: en
+description: ABEY chain is a truly fast, permissionless, secure and scalable public blockchain platform 
+which is supported by hybrid consensus technology called Minerva and a global developer community!
+
+remote_theme: rundocs/jekyll-rtd-theme
+
+readme_index:
+  with_frontmatter: true
+
+exclude:
+  - Makefile
+  - CNAME
+  - Gemfile
+  - Gemfile.lock
