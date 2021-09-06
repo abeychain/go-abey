@@ -4080,7 +4080,7 @@ require = (function e(t, n, r) {
 
             // transform to number
             block.gasLimit = utils.toDecimal(block.gasLimit);
-            // block.maker = outputAddressFormatter(block.maker);
+            // block.miner = outputAddressFormatter(block.miner);
             block.gasUsed = utils.toDecimal(block.gasUsed);
             block.size = utils.toDecimal(block.size);
             block.timestamp = utils.toDecimal(block.timestamp);
