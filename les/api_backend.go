@@ -18,6 +18,7 @@ package les
 
 import (
 	"context"
+	"errors"
 	"github.com/abeychain/go-abey/light/fast"
 	"math/big"
 
@@ -99,6 +100,15 @@ func (b *LesApiBackend) SnailBlockByNumber(ctx context.Context, blockNr rpc.Bloc
 	}
 	return b.GetSnailBlock(ctx, header.Hash())
 }
+func (b *LesApiBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error) {
+	if blockNr, ok := blockNrOrHash.Number(); ok {
+		return b.StateAndHeaderByNumber(ctx, blockNr)
+	}
+	if hash, ok := blockNrOrHash.Hash(); ok {
+		return b.StateAndHeaderByHash(ctx,hash)
+	}
+	return nil, nil, errors.New("invalid arguments; neither block nor hash specified")
+}
 
 func (b *LesApiBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
 	header, err := b.HeaderByNumber(ctx, blockNr)
@@ -106,6 +116,13 @@ func (b *LesApiBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 		return nil, nil, err
 	}
 	return fast.NewState(ctx, header, b.abey.odr), header, nil
+}
+func (b *LesApiBackend) StateAndHeaderByHash(ctx context.Context, hash common.Hash) (*state.StateDB, *types.Header, error) {
+	header, err := b.HeaderByHash(ctx, hash)
+	if header == nil || err != nil {
+		return nil, nil, err
+	}
+	return fast.NewState(ctx, header, b.etrue.odr), header, nil
 }
 
 func (b *LesApiBackend) GetBlock(ctx context.Context, blockHash common.Hash) (*types.Block, error) {

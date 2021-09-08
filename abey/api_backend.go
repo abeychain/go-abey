@@ -18,6 +18,7 @@ package abey
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"github.com/abeychain/go-abey/accounts"
@@ -132,7 +133,15 @@ func (b *ABEYAPIBackend) SnailBlockByNumber(ctx context.Context, blockNr rpc.Blo
 	}
 	return b.abey.snailblockchain.GetBlockByNumber(uint64(blockNr)), nil
 }
-
+func (b *TrueAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error) {
+	if blockNr, ok := blockNrOrHash.Number(); ok {
+		return b.StateAndHeaderByNumber(ctx, blockNr)
+	}
+	if hash, ok := blockNrOrHash.Hash(); ok {
+		return b.StateAndHeaderByHash(ctx,hash)
+	}
+	return nil, nil, errors.New("invalid arguments; neither block nor hash specified")
+}
 // StateAndHeaderByNumber returns the state of block by the number
 func (b *ABEYAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
 	// Pending state is only known by the miner
@@ -147,6 +156,17 @@ func (b *ABEYAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc
 		return nil, nil, err
 	}
 	stateDb, err := b.abey.BlockChain().StateAt(header.Root)
+	return stateDb, header, err
+}
+func (b *TrueAPIBackend) StateAndHeaderByHash(ctx context.Context, hash common.Hash) (*state.StateDB, *types.Header, error) {
+	header, err := b.HeaderByHash(ctx, hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	if header == nil {
+		return nil, nil, errors.New("header for hash not found")
+	}
+	stateDb, err := b.etrue.BlockChain().StateAt(header.Root)
 	return stateDb, header, err
 }
 
