@@ -1426,44 +1426,6 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 	return result
 }
 
-// newRPCTransaction returns a transaction that will serialize to the RPC
-// representation, with the given location metadata set (if available).
-func newRPCTransaction2(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction2 {
-	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
-	from, _ := types.Sender(signer, tx)
-	v, r, s := tx.RawSignatureValues()
-
-	result := &RPCTransaction2{
-		From:     from,
-		Gas:      hexutil.Uint64(tx.Gas()),
-		GasPrice: (*hexutil.Big)(tx.GasPrice()),
-		Hash:     tx.Hash(),
-		Input:    hexutil.Bytes(tx.Data()),
-		Nonce:    hexutil.Uint64(tx.Nonce()),
-		To:       tx.To(),
-		Value:    (*hexutil.Big)(tx.Value()),
-		V:        (*hexutil.Big)(v),
-		R:        (*hexutil.Big)(r),
-		S:        (*hexutil.Big)(s),
-	}
-	if tx.Payer() != nil {
-		result.Payer = tx.Payer()
-		pv, pr, ps := tx.TrueRawSignatureValues()
-		result.PV = (*hexutil.Big)(pv)
-		result.PR = (*hexutil.Big)(pr)
-		result.PS = (*hexutil.Big)(ps)
-	}
-	if tx.Fee() != nil {
-		result.Fee = (*hexutil.Big)(tx.Fee())
-	}
-	if blockHash != (common.Hash{}) {
-		result.BlockHash = blockHash
-		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
-		result.TransactionIndex = hexutil.Uint(index)
-	}
-	return result
-}
-
 // newRPCPendingTransaction returns a pending transaction that will serialize to the RPC representation
 func newRPCPendingTransaction(tx *types.Transaction) *RPCTransaction {
 	return newRPCTransaction(tx, common.Hash{}, 0, 0,true)
