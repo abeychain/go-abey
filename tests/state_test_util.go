@@ -137,11 +137,11 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
 	snapshot := statedb.Snapshot()
-	_, gasUsed, _, err := core.ApplyMessage(evm, msg, gaspool)
+	res,err := core.ApplyMessage(evm, msg, gaspool)
 	if  err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}
-	statedb.AddBalance(t.json.Env.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gasUsed), msg.GasPrice()))
+	statedb.AddBalance(t.json.Env.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(res.UsedGas), msg.GasPrice()))
 	// Commit block
 	statedb.Commit(true)
 	statedb.AddBalance(t.json.Env.Coinbase, new(big.Int))
