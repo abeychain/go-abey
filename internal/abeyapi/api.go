@@ -49,7 +49,7 @@ import (
 )
 
 const (
-	defaultGasPrice = 50 * params.Shannon
+	defaultGasPrice = 10 * params.GWei
 )
 
 var (

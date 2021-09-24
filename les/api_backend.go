@@ -122,7 +122,7 @@ func (b *LesApiBackend) StateAndHeaderByHash(ctx context.Context, hash common.Ha
 	if header == nil || err != nil {
 		return nil, nil, err
 	}
-	return fast.NewState(ctx, header, b.etrue.odr), header, nil
+	return fast.NewState(ctx, header, b.abey.odr), header, nil
 }
 
 func (b *LesApiBackend) GetBlock(ctx context.Context, blockHash common.Hash) (*types.Block, error) {
