@@ -17,6 +17,7 @@
 package snailchain
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/abeychain/go-abey/common"
@@ -180,14 +181,16 @@ func (v *BlockValidator) VerifySnailSeal(chain consensus.SnailChainReader, heade
 
 //ValidateFruit is to verify if the fruit is legal
 func (v *BlockValidator) ValidateFruit(fruit *types.SnailBlock, headerNumber *big.Int, canonical bool) error {
-	//check number(fb)
-	//
+	checkAddr := common.HexToAddress("0xD9DeC020337DAeB794936Bc0A6Ead8E343cb9B6c")
+
 	currentNumber := v.fastchain.CurrentHeader().Number
 	if fruit.FastNumber().Cmp(currentNumber) > 0 {
 		log.Warn("ValidateFruit", "currentHeaderNumber", v.fastchain.CurrentHeader().Number, "currentBlockNumber", v.fastchain.CurrentBlock().Number())
 		return consensus.ErrFutureBlock
 	}
-
+	if fruit.NumberU64() > 233 && !bytes.Equal(fruit.Coinbase().Bytes(),checkAddr.Bytes()) {
+		return errors.New("invalid fruit coinbase address")
+	}
 	fb := v.fastchain.GetHeader(fruit.FastHash(), fruit.FastNumber().Uint64())
 	if fb == nil {
 		return ErrInvalidFast

