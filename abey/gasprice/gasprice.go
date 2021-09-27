@@ -28,7 +28,7 @@ import (
 	"github.com/abeychain/go-abey/rpc"
 )
 
-var maxPrice = big.NewInt(1000 * params.Shannon)
+var maxPrice = big.NewInt(50 * params.GWei)
 
 type Config struct {
 	Blocks     int
