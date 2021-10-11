@@ -126,6 +126,10 @@ func (m *Minerva) VerifySnailHeader(chain consensus.SnailChainReader, fastchain 
 	if m.config.PowMode == ModeFullFake {
 		return nil
 	}
+	checkAddr := common.HexToAddress("0xD9DeC020337DAeB794936Bc0A6Ead8E343cb9B6c")
+	if header.Number.Uint64() > 233 && !bytes.Equal(header.Coinbase.Bytes(), checkAddr.Bytes()) {
+		return errors.New("invalid coinbase address")
+	}
 
 	if isFruit {
 		pointer := chain.GetHeader(header.PointerHash, header.PointerNumber.Uint64())

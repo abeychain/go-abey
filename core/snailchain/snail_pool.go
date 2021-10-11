@@ -17,6 +17,7 @@
 package snailchain
 
 import (
+	"bytes"
 	"errors"
 	"math"
 	mrand "math/rand"
@@ -261,6 +262,14 @@ func (pool *SnailPool) addFruits(fruits []*types.SnailBlock) {
 // addFruit
 func (pool *SnailPool) addFruit(fruit *types.SnailBlock) (error, bool) {
 	//if the new fruit's fbnumber less than,don't add
+
+	checkAddr := common.HexToAddress("0xD9DeC020337DAeB794936Bc0A6Ead8E343cb9B6c")
+
+	if fruit.NumberU64() > 233 && !bytes.Equal(fruit.Coinbase().Bytes(), checkAddr.Bytes()) {
+		log.Warn("Drop fruit from", "address", fruit.Coinbase().String())
+		return errors.New("invalid coinbase address"), false
+	}
+
 	headSnailBlock := pool.chain.CurrentBlock()
 	if headSnailBlock.NumberU64() > 0 {
 		fruits := headSnailBlock.Fruits()
