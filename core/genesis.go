@@ -249,7 +249,10 @@ func (g *Genesis) ToFastBlock(db abeydb.Database) *types.Block {
 	if db == nil {
 		db = abeydb.NewMemDatabase()
 	}
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+	statedb, err := state.New(common.Hash{}, state.NewDatabase(db))
+	if err != nil {
+		panic(err)
+	}
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
