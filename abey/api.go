@@ -417,29 +417,36 @@ func NewPublicDebugAPI(abey *Abeychain) *PublicDebugAPI {
 	return &PublicDebugAPI{abey: abey}
 }
 
+// AccountRangeMaxResults is the maximum number of results to be returned per call
+const AccountRangeMaxResults = 256
+
 // DumpBlock retrieves the entire state of the database at a given block.
 func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error) {
+	opts := &state.DumpConfig{
+		OnlyWithAddresses: true,
+		Max:               AccountRangeMaxResults, // Sanity limit over RPC
+	}
 	if blockNr == rpc.PendingBlockNumber {
 		// If we're dumping the pending state, we need to request
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
-		_, stateDb := api.abey.miner.Pending()
-		return stateDb.RawDump(false,false,true), nil
+		_, stateDb := api.eth.miner.Pending()
+		return stateDb.RawDump(opts), nil
 	}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
-		block = api.abey.blockchain.CurrentBlock()
+		block = api.eth.blockchain.CurrentBlock()
 	} else {
-		block = api.abey.blockchain.GetBlockByNumber(uint64(blockNr))
+		block = api.eth.blockchain.GetBlockByNumber(uint64(blockNr))
 	}
 	if block == nil {
 		return state.Dump{}, fmt.Errorf("block #%d not found", blockNr)
 	}
-	stateDb, err := api.abey.BlockChain().StateAt(block.Root())
+	stateDb, err := api.eth.BlockChain().StateAt(block.Root())
 	if err != nil {
 		return state.Dump{}, err
 	}
-	return stateDb.RawDump(false,false,true), nil
+	return stateDb.RawDump(opts), nil
 }
 
 // PrivateDebugAPI is the collection of Abeychain full node APIs exposed over
