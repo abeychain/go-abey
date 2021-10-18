@@ -23,6 +23,7 @@ import (
 
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
+	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/rlp"
 	"github.com/abeychain/go-abey/trie"
@@ -140,7 +141,7 @@ func (s *StateDB) DumpToCollector(c DumpCollector, conf *DumpConfig) (nextKey []
 
 	it := trie.NewIterator(s.trie.NodeIterator(conf.Start))
 	for it.Next() {
-		var data Account
+		var data types.StateAccount
 		if err := rlp.DecodeBytes(it.Value, &data); err != nil {
 			panic(err)
 		}
