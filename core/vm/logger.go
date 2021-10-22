@@ -67,7 +67,6 @@ type StructLog struct {
 	Memory        []byte                      `json:"memory"`
 	MemorySize    int                         `json:"memSize"`
 	Stack         []*big.Int                  `json:"stack"`
-	ReturnStack   []uint32                    `json:"returnStack"`
 	ReturnData    []byte                      `json:"returnData"`
 	Storage       map[common.Hash]common.Hash `json:"-"`
 	Depth         int                         `json:"depth"`
@@ -78,7 +77,6 @@ type StructLog struct {
 // overrides for gencodec
 type structLogMarshaling struct {
 	Stack       []*math.HexOrDecimal256
-	ReturnStack []math.HexOrDecimal64
 	Gas         math.HexOrDecimal64
 	GasCost     math.HexOrDecimal64
 	Memory      hexutil.Bytes
@@ -106,8 +104,8 @@ func (s *StructLog) ErrorString() string {
 // if you need to retain them beyond the current call.
 type Tracer interface {
 	CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error
-	CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) error
-	CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error
+	CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rData []byte, contract *Contract, depth int, err error) error
+	CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error
 	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error
 }
 
@@ -144,7 +142,7 @@ func (l *StructLogger) CaptureStart(from common.Address, to common.Address, crea
 // CaptureState logs a new structured log message and pushes it out to the environment
 //
 // CaptureState also tracks SLOAD/SSTORE ops to track storage change.
-func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) error {
+func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rData []byte, contract *Contract, depth int, err error) error {
 	// check if already accumulated the specified number of logs
 	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.logs) {
 		return errTraceLimitReached
@@ -163,11 +161,7 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost ui
 			stck[i] = new(big.Int).Set(item.ToBig())
 		}
 	}
-	var rstack []uint32
-	if !l.cfg.DisableStack && rStack != nil {
-		rstck := make([]uint32, len(rStack.data))
-		copy(rstck, rStack.data)
-	}
+
 	// Copy a snapshot of the current storage to a new container
 	var storage Storage
 	if !l.cfg.DisableStorage {
@@ -200,14 +194,14 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost ui
 		copy(rdata, rData)
 	}
 	// create a new snapshot of the EVM.
-	log := StructLog{pc, op, gas, cost, mem, memory.Len(), stck, rstack, rdata, storage, depth, env.StateDB.GetRefund(), err}
+	log := StructLog{pc, op, gas, cost, mem, memory.Len(), stck, rdata, storage, depth, env.StateDB.GetRefund(), err}
 	l.logs = append(l.logs, log)
 	return nil
 }
 
 // CaptureFault implements the Tracer interface to trace an execution fault
 // while running an opcode.
-func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error {
+func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error {
 	return nil
 }
 

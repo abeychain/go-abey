@@ -98,9 +98,3 @@ func (st *Stack) Print() {
 	}
 	fmt.Println("#############")
 }
-
-var rStackPool = sync.Pool{
-	New: func() interface{} {
-		return &ReturnStack{data: make([]uint32, 0, 10)}
-	},
-}
