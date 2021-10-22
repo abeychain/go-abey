@@ -242,12 +242,6 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 				fmt.Fprintf(writer, "%08d  %x\n", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
 			}
 		}
-		if len(log.ReturnStack) > 0 {
-			fmt.Fprintln(writer, "ReturnStack:")
-			for i := len(log.Stack) - 1; i >= 0; i-- {
-				fmt.Fprintf(writer, "%08d  0x%x (%d)\n", len(log.Stack)-i-1, log.ReturnStack[i], log.ReturnStack[i])
-			}
-		}
 		if len(log.Memory) > 0 {
 			fmt.Fprintln(writer, "Memory:")
 			fmt.Fprint(writer, hex.Dump(log.Memory))
@@ -313,21 +307,13 @@ func (t *mdLogger) CaptureStart(from common.Address, to common.Address, create b
 	return nil
 }
 
-func (t *mdLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, rData []byte, contract *Contract, depth int, err error) error {
+func (t *mdLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rData []byte, contract *Contract, depth int, err error) error {
 	fmt.Fprintf(t.out, "| %4d  | %10v  |  %3d |", pc, op, cost)
 
 	if !t.cfg.DisableStack { // format stack
 		var a []string
 		for _, elem := range stack.data {
 			a = append(a, fmt.Sprintf("%d", elem))
-		}
-		b := fmt.Sprintf("[%v]", strings.Join(a, ","))
-		fmt.Fprintf(t.out, "%10v |", b)
-	}
-	if !t.cfg.DisableStack { // format return stack
-		var a []string
-		for _, elem := range rStack.data {
-			a = append(a, fmt.Sprintf("%2d", elem))
 		}
 		b := fmt.Sprintf("[%v]", strings.Join(a, ","))
 		fmt.Fprintf(t.out, "%10v |", b)
@@ -339,7 +325,7 @@ func (t *mdLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64
 	return nil
 }
 
-func (t *mdLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, rStack *ReturnStack, contract *Contract, depth int, err error) error {
+func (t *mdLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error {
 
 	fmt.Fprintf(t.out, "\nError: at pc=%d, op=%v: %v\n", pc, op, err)
 
