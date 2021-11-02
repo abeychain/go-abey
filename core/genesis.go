@@ -615,7 +615,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 
 	// seed4
 	//coinbase := common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779")
-	amount1, _ := new(big.Int).SetString("24000000000000000000000000", 10)
+	amount1 := new(big.Int).Mul(big.NewInt(900000000000000000),big.NewInt(1e18))
 	return &Genesis{
 		Config:     params.TestnetChainConfig,
 		Nonce:      0,
