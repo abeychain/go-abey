@@ -33,7 +33,7 @@ var (
 	MainnetGenesisHash      = common.HexToHash("0x7815e4b9d8424c222d004e09ba42b98c50675f5b97333cf1abc1e09ec131652e")
 	MainnetSnailGenesisHash = common.HexToHash("0xa8e3aa3eedb4a8264773ee5f68ba90c5b260f8e0baa0f78a5cebb594a3d6dc81")
 
-	TestnetGenesisHash      = common.HexToHash("0xb7810b0b3a2ee2301a8ee46d3714e6ee6f654983922fab2551743f7cfdfd3939")
+	TestnetGenesisHash      = common.HexToHash("0x5dbb2f3e7700de01bf3236a1d18df429771fcf737ffc7c04f9f224cf62a995ff")
 	TestnetSnailGenesisHash = common.HexToHash("0x4da60af319dd178c440c33f230f54b9c2537b9ff43d0ac051bc503ee773f223b")
 
 	DevnetSnailGenesisHash = common.HexToHash("0xfd5f70dd4b70763c0fe9d5238d6ce1c5e86712813775fe6b1654ce0f8129587f")

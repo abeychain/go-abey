@@ -612,7 +612,8 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	seedkey3 := hexutil.MustDecode("0x049e0a67955d69e28faabe654b4a8f85e7d32b32fd2687a080e6357b53ec9413ad4f472d979bdccfe21cb135c7e144ca90f2beeb728b06e59f80918c7e52fbc6ff")
 	// priv4: 229ca04fb83ec698296037c7d2b04a731905df53b96c260555cbeed9e4c64036
 	seedkey4 := hexutil.MustDecode("0x04718502f879a949ca5fa29f78f1d3cef362ecdc36ee42a3023cca80371c2e1936d1f632a0ec5bf5edb2af228a5ba1669d31ea55df87548de172e5767b9201097d")
-
+	// priv:  e162820ca35b8753b0495243fb5e54ed47d2f53319a149d7750da2ccb135d249
+	// addr: 0x37C229201a1d05b7326a2A8c64D8c7966F795a3B
 	// seed4
 	//coinbase := common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779")
 	amount1 := new(big.Int).Mul(big.NewInt(900000000000000000),big.NewInt(1e18))
@@ -627,7 +628,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		Alloc: map[common.Address]types.GenesisAccount{
-			common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"): {Balance: amount1},
+			common.HexToAddress("0x37C229201a1d05b7326a2A8c64D8c7966F795a3B"): {Balance: amount1},
 			common.HexToAddress("0x3e3429F72450A39CE227026E8DdeF331E9973E4d"): {Balance: amount1},
 			common.HexToAddress("0xf353ab1417177F766497bF716D7aAd4ECd5f36C8"): {Balance: amount1},
 			common.HexToAddress("0x8fF345746C3d3435a105538E4c024Af5FE700598"): {Balance: amount1},
