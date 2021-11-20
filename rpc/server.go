@@ -308,6 +308,15 @@ func (s *Server) handle(ctx context.Context, codec ServerCodec, req *serverReque
 		arguments = append(arguments, req.args...)
 	}
 
+	for i, _ := range arguments {
+		fmt.Printf("====== args %d  %s\n", i, arguments[i])
+	}
+
+	if (len(req.args) > 0) {
+		for i, _ := range req.args {
+			fmt.Printf("====== reqargs %d  %s\n", i, req.args[i])
+		}
+	}
 	// execute RPC method and return result
 	reply := req.callb.method.Func.Call(arguments)
 	if len(reply) == 0 {
