@@ -1135,7 +1135,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		}
 		if fullTx {
 			formatTx = func(tx *types.Transaction) (interface{}, error) {
-				return newRPCTransactionFromBlockHash(b, tx.Hash()), nil
+				return newRPCTransactionFromBlockHash2(b, tx.Hash()), nil
 			}
 		}
 		txs := b.Transactions()
@@ -1375,6 +1375,42 @@ type RPCTransaction2 struct {
 	PS               *hexutil.Big    `json:"ps"`
 }
 
+func newRPCTransaction2(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64,IsAbey bool) *RPCTransaction2 {
+	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
+	from, _ := types.Sender(signer, tx)
+	v, r, s := tx.RawSignatureValues()
+
+	result := &RPCTransaction2{
+		From:     from,
+		Gas:      hexutil.Uint64(tx.Gas()),
+		GasPrice: (*hexutil.Big)(tx.GasPrice()),
+		Hash:     tx.Hash(),
+		Input:    hexutil.Bytes(tx.Data()),
+		Nonce:    hexutil.Uint64(tx.Nonce()),
+		To:       tx.To(),
+		Value:    (*hexutil.Big)(tx.Value()),
+		V:        (*hexutil.Big)(v),
+		R:        (*hexutil.Big)(r),
+		S:        (*hexutil.Big)(s),
+	}
+	if tx.Payer() != nil {
+		result.Payer = tx.Payer()
+		pv, pr, ps := tx.TrueRawSignatureValues()
+		result.PV = (*hexutil.Big)(pv)
+		result.PR = (*hexutil.Big)(pr)
+		result.PS = (*hexutil.Big)(ps)
+	}
+	if tx.Fee() != nil {
+		result.Fee = (*hexutil.Big)(tx.Fee())
+	}
+	if blockHash != (common.Hash{}) {
+		result.BlockHash = blockHash
+		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
+		result.TransactionIndex = hexutil.Uint(index)
+	}
+	return result
+}
+
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64,IsAbey bool) *RPCTransaction {
@@ -1439,7 +1475,13 @@ func newRPCTransactionFromBlockIndex(b *types.Block, index uint64,IsAbey bool) *
 	}
 	return newRPCTransaction(txs[index], b.Hash(), b.NumberU64(), index,IsAbey)
 }
-
+func newRPCTransactionFromBlockIndex2(b *types.Block, index uint64,IsAbey bool) *RPCTransaction2 {
+	txs := b.Transactions()
+	if index >= uint64(len(txs)) {
+		return nil
+	}
+	return newRPCTransaction2(txs[index], b.Hash(), b.NumberU64(), index,IsAbey)
+}
 // newRPCFruitFromBlockIndex returns a fruit that will serialize to the RPC representation.
 func (s *PublicBlockChainAPI) newRPCFruitFromBlockIndex(ctx context.Context, b *types.SnailBlock, index uint64, fullSigns bool) (map[string]interface{}, error) {
 	fts := b.Fruits()
@@ -1468,7 +1510,14 @@ func newRPCTransactionFromBlockHash(b *types.Block, hash common.Hash) *RPCTransa
 	}
 	return nil
 }
-
+func newRPCTransactionFromBlockHash2(b *types.Block, hash common.Hash) *RPCTransaction2 {
+	for idx, tx := range b.Transactions() {
+		if tx.Hash() == hash {
+			return newRPCTransactionFromBlockIndex2(b, uint64(idx),true)
+		}
+	}
+	return nil
+}
 // PublicTransactionPoolAPI exposes methods for the RPC interface
 type PublicTransactionPoolAPI struct {
 	b         Backend

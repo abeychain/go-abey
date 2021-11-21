@@ -327,6 +327,7 @@ func (c *jsonCodec) CreateResponse(id interface{}, reply interface{}) interface{
 
 // CreateErrorResponse will create a JSON-RPC error response with the given id and error.
 func (c *jsonCodec) CreateErrorResponse(id interface{}, err Error) interface{} {
+	fmt.Println("-------------CreateErrorResponse",err.Error())
 	return &jsonErrResponse{Version: jsonrpcVersion, Id: id, Error: jsonError{Code: err.ErrorCode(), Message: err.Error()}}
 }
 
