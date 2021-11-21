@@ -18,7 +18,6 @@ package rpc
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -290,7 +289,7 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 	if tok, _ := dec.Token(); tok != json.Delim('[') {
 		return nil, &invalidParamsError{"non-array args"}
 	}
-	fmt.Printf("++++++ rawargs  %s\n\n", hex.EncodeToString(rawArgs))
+	//fmt.Printf("++++++ rawargs  %s\n\n", hex.EncodeToString(rawArgs))
 	// Read args.
 	args := make([]reflect.Value, 0, len(types))
 	for i := 0; dec.More(); i++ {
@@ -327,7 +326,7 @@ func (c *jsonCodec) CreateResponse(id interface{}, reply interface{}) interface{
 
 // CreateErrorResponse will create a JSON-RPC error response with the given id and error.
 func (c *jsonCodec) CreateErrorResponse(id interface{}, err Error) interface{} {
-	fmt.Println("-------------CreateErrorResponse",err.Error())
+	//fmt.Println("-------------CreateErrorResponse",err.Error())
 	return &jsonErrResponse{Version: jsonrpcVersion, Id: id, Error: jsonError{Code: err.ErrorCode(), Message: err.Error()}}
 }
 
