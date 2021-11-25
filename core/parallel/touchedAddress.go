@@ -45,4 +45,21 @@ func (self *TouchedAddressObject) AddStorageOp(add StorageAddress, op bool) {
 		}
 	}
 }
+func (self *TouchedAddressObject) Merge(another *TouchedAddressObject) {
+	for address, op := range another.accountOp {
+		if op || self.accountOp[address] == true {
+			self.accountOp[address] = true
+		} else {
+			self.accountOp[address] = false
+		}
+	}
+
+	for address, op := range another.storageOp {
+		if op || self.storageOp[address] == true {
+			self.storageOp[address] = true
+		} else {
+			self.storageOp[address] = false
+		}
+	}
+}
 
