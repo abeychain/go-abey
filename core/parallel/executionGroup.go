@@ -52,4 +52,32 @@ func NewExecutionGroup() *ExecutionGroup {
 	return &ExecutionGroup{}
 }
 
+func (e *ExecutionGroup) sortTrxByIndex(trxHashToIndexMap map[common.Hash]int) {
 
+}
+
+func (e *ExecutionGroup) setId(groupId int) {
+	e.id = groupId
+}
+
+func (e *ExecutionGroup) setStartTrxPos(hash common.Hash, index int) {
+	e.startTrxHash = hash
+	e.startTrxIndex = index
+}
+
+func (e *ExecutionGroup) addTrxHashToGetPartResult(oldGroup int, trxHash common.Hash) {
+	e.updateMap(oldGroup, trxHash, e.trxesToGetResultFromOtherGroup)
+}
+
+func (e *ExecutionGroup) addTrxToRollbackInOtherGroup(groupId int, trxHash common.Hash) {
+	e.updateMap(groupId, trxHash, e.trxesToRollBackInOtherGroup)
+}
+
+func (e *ExecutionGroup) updateMap(oldGroup int, trxHash common.Hash, integerSetMap map[int]map[common.Hash]struct{}) {
+	trxHashes, ok := integerSetMap[oldGroup]
+	if !ok {
+		trxHashes = make(map[common.Hash]struct{})
+	}
+	trxHashes[trxHash] = struct{}{}
+	integerSetMap[oldGroup] = trxHashes
+}
