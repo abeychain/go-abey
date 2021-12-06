@@ -1333,19 +1333,19 @@ func (s *PublicBlockChainAPI) GetChainRewardContent(blockNr rpc.BlockNumber, add
 type RPCTransaction struct {
 	BlockHash        common.Hash    `json:"blockHash"`
 	BlockNumber      *hexutil.Big   `json:"blockNumber"`
-	From             string         `json:"from"`
+	From             common.Address         `json:"from"`
 	Gas              hexutil.Uint64 `json:"gas"`
 	GasPrice         *hexutil.Big   `json:"gasPrice"`
 	Hash             common.Hash    `json:"hash"`
 	Input            hexutil.Bytes  `json:"input"`
 	Nonce            hexutil.Uint64 `json:"nonce"`
-	To               string         `json:"to"`
+	To               *common.Address `json:"to"`
 	TransactionIndex hexutil.Uint   `json:"transactionIndex"`
 	Value            *hexutil.Big   `json:"value"`
 	V                *hexutil.Big   `json:"v"`
 	R                *hexutil.Big   `json:"r"`
 	S                *hexutil.Big   `json:"s"`
-	Payer            string         `json:"payer"`
+	Payer            *common.Address         `json:"payer"`
 	Fee              *hexutil.Big   `json:"fee"`
 	PV               *hexutil.Big   `json:"pv"`
 	PR               *hexutil.Big   `json:"pr"`
@@ -1417,35 +1417,22 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
-	fromaddr := ""
-	toaddr := ""
-	if tx.To() != nil {
-		if IsAbey {
-			toaddr = tx.To().StringToAbey()
-		}else{
-			toaddr = tx.To().StringToAbey()
-		}
-	}
-	if IsAbey {
-		fromaddr = from.StringToAbey()
-	}else{
-		fromaddr = from.StringToAbey()
-	}
+
 	result := &RPCTransaction{
-		From:     fromaddr,
+		From:     from,
 		Gas:      hexutil.Uint64(tx.Gas()),
 		GasPrice: (*hexutil.Big)(tx.GasPrice()),
 		Hash:     tx.Hash(),
 		Input:    hexutil.Bytes(tx.Data()),
 		Nonce:    hexutil.Uint64(tx.Nonce()),
-		To:       toaddr,
+		To:       tx.To(),
 		Value:    (*hexutil.Big)(tx.Value()),
 		V:        (*hexutil.Big)(v),
 		R:        (*hexutil.Big)(r),
 		S:        (*hexutil.Big)(s),
 	}
 	if tx.Payer() != nil {
-		result.Payer = tx.Payer().StringToAbey()
+		result.Payer = tx.Payer()
 		pv, pr, ps := tx.TrueRawSignatureValues()
 		result.PV = (*hexutil.Big)(pv)
 		result.PR = (*hexutil.Big)(pr)
@@ -1674,17 +1661,14 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 
 	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
-	toAddr := ""
-	if tx.To() != nil {
-		toAddr = tx.To().StringToAbey()
-	}
+
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
 		"blockNumber":       hexutil.Uint64(blockNumber),
 		"transactionHash":   hash,
 		"transactionIndex":  hexutil.Uint64(index),
 		"from":              from.StringToAbey(),
-		"to":                toAddr,
+		"to":                tx.To(),
 		"gasUsed":           hexutil.Uint64(receipt.GasUsed),
 		"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
 		"contractAddress":   nil,
@@ -2362,17 +2346,14 @@ func (s *PublicTransactionPoolAPI2) GetTransactionReceipt(ctx context.Context, h
 
 	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
-	toAddr := ""
-	if tx.To() != nil {
-		toAddr = tx.To().StringToAbey()
-	}
+
 	fields := map[string]interface{}{
 		"blockHash":         blockHash,
 		"blockNumber":       hexutil.Uint64(blockNumber),
 		"transactionHash":   hash,
 		"transactionIndex":  hexutil.Uint64(index),
 		"from":              from.StringToAbey(),
-		"to":                toAddr,
+		"to":                tx.To(),
 		"gasUsed":           hexutil.Uint64(receipt.GasUsed),
 		"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
 		"contractAddress":   nil,
