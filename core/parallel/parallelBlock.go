@@ -26,6 +26,7 @@ type ParallelBlock struct {
 func NewParallelBlock(block *types.Block, statedb *state.StateDB) *ParallelBlock {
 	return &ParallelBlock{header: block.Header(), transactions: block.Transactions(), statedb: statedb}
 }
+
 func (pb *ParallelBlock) Group() map[int]*ExecutionGroup {
 	pb.newGroups = make(map[int]*ExecutionGroup)
 	tmpExecutionGroupMap := pb.groupTransactions(pb.transactions, false)
@@ -150,4 +151,18 @@ func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regr
 	}
 
 	return executionGroupMap
+}
+func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *TouchedAddressObject {
+	var touchedAddressObj *TouchedAddressObject = nil
+	msg := pb.trxHashToMsgMap[hash]
+
+	if regroup {
+		touchedAddressObj = pb.trxHashToTouchedAddressMap[hash]
+	} else {
+		touchedAddressObj = NewTouchedAddressObject()
+		touchedAddressObj.AddAccountOp(msg.From(), true)
+		touchedAddressObj.AddAccountOp(msg.Payment(), true)
+	}
+
+	return touchedAddressObj
 }
