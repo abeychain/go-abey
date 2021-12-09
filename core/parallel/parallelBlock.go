@@ -162,7 +162,30 @@ func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *T
 		touchedAddressObj = NewTouchedAddressObject()
 		touchedAddressObj.AddAccountOp(msg.From(), true)
 		touchedAddressObj.AddAccountOp(msg.Payment(), true)
+		if msg.To() != nil {
+			if associatedAddressObj, ok := pb.associatedAddressMap[*msg.To()]; ok {
+				touchedAddressObj.Merge(associatedAddressObj)
+			} else {
+				touchedAddressObj.AddAccountOp(*msg.To(), true)
+			}
+		}
 	}
-
 	return touchedAddressObj
+}
+
+func setsOverlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
+	for k, _ := range set0 {
+		if _, ok := set1[k]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (pb *ParallelBlock) Process() {
+
+}
+
+func (pb *ParallelBlock) Rollback() {
+
 }
