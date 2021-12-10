@@ -172,6 +172,73 @@ func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *T
 	}
 	return touchedAddressObj
 }
+func (pb *ParallelBlock) CheckConflict() bool {
+	pb.conflictIdsGroups = make([]map[int]struct{}, 10)
+	addrGroupIdsMap := make(map[common.Address]map[int]struct{})
+	storageGroupIdsMap := make(map[StorageAddress]map[int]struct{})
+
+	for _, trx := range pb.transactions {
+		trxHash := trx.Hash()
+		touchedAddressObj := pb.trxHashToTouchedAddressMap[trxHash]
+
+		for addr, op := range touchedAddressObj.AccountOp() {
+			curTrxGroup := pb.trxHashToGroupIdMap[trxHash]
+
+			if groupIds, ok := addrGroupIdsMap[addr]; ok {
+				if _, ok := groupIds[curTrxGroup]; !ok {
+					groupIds[curTrxGroup] = struct{}{}
+					pb.conflictTrxPos[pb.trxHashToIndexMap[trxHash]] = true
+				}
+			} else if op {
+				groupSet := make(map[int]struct{})
+				groupSet[curTrxGroup] = struct{}{}
+				addrGroupIdsMap[addr] = groupSet
+			}
+		}
+		for storage, op := range touchedAddressObj.StorageOp() {
+			curTrxGroup := pb.trxHashToGroupIdMap[trxHash]
+
+			if groupIds, ok := storageGroupIdsMap[storage]; ok {
+				if _, ok := groupIds[curTrxGroup]; !ok {
+					groupIds[curTrxGroup] = struct{}{}
+					pb.conflictTrxPos[pb.trxHashToIndexMap[trxHash]] = true
+				}
+			} else if op {
+				groupSet := make(map[int]struct{})
+				groupSet[curTrxGroup] = struct{}{}
+				storageGroupIdsMap[storage] = groupSet
+			}
+		}
+	}
+
+	groupsList := list.New()
+	for _, groups := range addrGroupIdsMap {
+		groupsList.PushBack(groups)
+	}
+	for _, groups := range storageGroupIdsMap {
+		groupsList.PushBack(groups)
+	}
+	for i := groupsList.Front(); i != nil; i = i.Next() {
+		groups := i.Value.(map[int]struct{})
+		if len(groups) <= 1 {
+			continue
+		}
+
+		for i := len(pb.conflictIdsGroups) - 1; i >= 0; i-- {
+			conflictGroupId := pb.conflictIdsGroups[i]
+			if setsOverlapped(conflictGroupId, groups) {
+				for k, _ := range conflictGroupId {
+					groups[k] = struct{}{}
+				}
+				pb.conflictIdsGroups = append(pb.conflictIdsGroups[:i], pb.conflictIdsGroups[i+1:]...)
+			}
+		}
+
+		pb.conflictIdsGroups = append(pb.conflictIdsGroups, groups)
+	}
+
+	return len(pb.conflictIdsGroups) != 0
+}
 
 func setsOverlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
 	for k, _ := range set0 {
