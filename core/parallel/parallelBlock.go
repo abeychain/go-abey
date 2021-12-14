@@ -143,6 +143,18 @@ func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regr
 		tmpExecutionGroup := NewExecutionGroup()
 		tmpExecutionGroup.AddTransaction(trx)
 		tmpExecutionGroup.SetHeader(pb.header)
+		for gId := range groupsToMerge {
+			tmpExecutionGroup.AddTransactions(executionGroupMap[gId].Transactions())
+			delete(executionGroupMap, gId)
+			for k, v := range groupTouchedAccountMap[gId] {
+				groupTouchedAccount[k] = v
+			}
+			delete(groupTouchedAccountMap, gId)
+			for k, v := range groupTouchedStorageMap[gId] {
+				groupTouchedStorage[k] = v
+			}
+			delete(groupTouchedStorageMap, gId)
+		}
 
 		groupId++
 		groupTouchedAccountMap[groupId] = groupTouchedAccount
