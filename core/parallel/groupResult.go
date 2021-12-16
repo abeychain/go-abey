@@ -19,6 +19,23 @@ type AccountRecord struct {
 	index    int
 	balance  *big.Int
 	codeHash []byte
+	nonce    uint64
+}
+
+func (a AccountRecord) Index() int {
+	return a.index
+}
+
+func (a AccountRecord) Balance() *big.Int {
+	return a.balance
+}
+
+func (a AccountRecord) CodeHash() []byte {
+	return a.codeHash
+}
+
+func (a AccountRecord) Nonce() uint64 {
+	return a.nonce
 }
 
 type StorageRecord struct {
