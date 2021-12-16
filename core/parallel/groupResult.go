@@ -8,11 +8,21 @@ import (
 )
 
 type GroupResult struct {
-	accountRecords          map[common.Address][]*AccountRecord
-	storageRecords          map[StorageAddress][]*StorageRecord
-	hashToCode              map[common.Hash]state.Code
-	receipt                 map[common.Hash]*types.Receipt
-	trxHashToTouchedAddress map[common.Hash]*TouchedAddressObject
+	accountRecords   map[common.Address][]*AccountRecord
+	storageRecords   map[StorageAddress][]*StorageRecord
+	trxHashToResult  map[common.Hash]*TrxResult
+	trxIndexToResult map[int]*TrxResult
+	usedGas          uint64
+	err              error
+}
+type TrxResult struct {
+	accountRecord    map[common.Address]*AccountRecord
+	storageRecord    map[StorageAddress]*StorageRecord
+	hashToCode       map[common.Hash]state.Code
+	receipt          *types.Receipt
+	logs             []*types.Log
+	touchedAddresses *TouchedAddressObject
+	usedGas          uint64
 }
 
 type AccountRecord struct {
