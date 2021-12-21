@@ -3,8 +3,13 @@ package parallel
 import (
 	"container/list"
 	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/core/vm"
+	"github.com/abeychain/go-abey/params"
+	"math/big"
+	"sync"
 )
 
 type ParallelBlock struct {
@@ -265,6 +270,11 @@ func (pb *ParallelBlock) CheckConflict() bool {
 	return len(pb.conflictIdsGroups) != 0
 }
 
+func (pb *ParallelBlock) CheckGas() bool {
+	// TODO: check gas after all transactions are executed
+	return true
+}
+
 func setsOverlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
 	for k, _ := range set0 {
 		if _, ok := set1[k]; ok {
@@ -274,10 +284,89 @@ func setsOverlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
 	return false
 }
 
-func (pb *ParallelBlock) Process() {
+func (pb *ParallelBlock) executeGroup(group *ExecutionGroup, wg sync.WaitGroup) {
+	defer wg.Done()
 
+	var (
+		usedGas   = new(uint64)
+		feeAmount = big.NewInt(0)
+		gp        = new(core.GasPool).AddGas(pb.block.GasLimit())
+		statedb   = pb.statedb.Copy()
+	)
+	group.result = NewGroupResult()
+
+	// Iterate over and process the individual transactions
+	for _, tx := range group.Transactions() {
+		ti := pb.trxHashToIndexMap[tx.Hash()]
+		statedb.Prepare(tx.Hash(), pb.block.Hash(), ti)
+		receipt, trxUsedGas, err := core.ApplyTransaction(pb.config, pb.context, gp, statedb, pb.block.Header(), tx, usedGas, feeAmount, pb.vmConfig)
+		group.result.usedGas = *usedGas
+		if err != nil {
+			group.result.err = err
+			group.result.trxIndexToResult[ti] = NewTrxResult(nil, nil, statedb.GetTouchedAddress(), trxUsedGas)
+			return
+		}
+		group.result.trxIndexToResult[ti] = NewTrxResult(receipt, receipt.Logs, statedb.GetTouchedAddress(), trxUsedGas)
+	}
 }
 
-func (pb *ParallelBlock) Rollback() {
+func (pb *ParallelBlock) executeInParallel() (types.Receipts, []*types.Log, uint64, error) {
+	receipts := make([]*types.Receipt, pb.transactions.Len())
+	var allLogs []*types.Log
+	usedGas := uint64(0)
+	wg := sync.WaitGroup{}
 
+	for _, group := range pb.newGroups {
+		wg.Add(1)
+		go pb.executeGroup(group, wg)
+	}
+
+	wg.Wait()
+
+	for _, group := range pb.newGroups {
+		if err := group.result.err; err != nil {
+			return nil, nil, 0, err
+		}
+
+		for i, trxResult := range group.result.trxIndexToResult {
+			receipts[i] = trxResult.receipt
+		}
+		usedGas += group.result.usedGas
+	}
+
+	return receipts, allLogs, 0, nil
+}
+
+func (pb *ParallelBlock) convertTrxToMsg() error {
+	for ti, trx := range pb.block.Transactions() {
+		msg, err := trx.AsMessage(types.MakeSigner(pb.config, pb.block.Header().Number))
+		if err != nil {
+			return err
+		}
+		pb.trxHashToMsgMap[trx.Hash()] = &msg
+		pb.trxHashToIndexMap[trx.Hash()] = ti
+	}
+
+	return nil
+}
+
+func (pb *ParallelBlock) Process() (types.Receipts, []*types.Log, uint64, error) {
+	if err := pb.convertTrxToMsg(); err != nil {
+		return nil, nil, 0, nil
+	}
+
+	pb.group()
+
+	for {
+		pb.executeInParallel()
+
+		if pb.CheckConflict() {
+			pb.reGroup()
+		} else {
+			break
+		}
+	}
+
+	// TODO
+	return nil, nil, 0, nil
 }
