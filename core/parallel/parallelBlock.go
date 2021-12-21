@@ -8,7 +8,7 @@ import (
 )
 
 type ParallelBlock struct {
-	header                     *types.Header
+	block                      *types.Block
 	transactions               types.Transactions
 	executionGroups            map[int]*ExecutionGroup
 	associatedAddressMap       map[common.Address]*TouchedAddressObject
@@ -21,6 +21,9 @@ type ParallelBlock struct {
 	trxHashToGroupIdMap        map[common.Hash]int
 	nextGroupId                int
 	statedb                    *state.StateDB
+	config                     *params.ChainConfig
+	context                    core.ChainContext
+	vmConfig                   vm.Config
 }
 
 func NewParallelBlock(block *types.Block, statedb *state.StateDB) *ParallelBlock {
