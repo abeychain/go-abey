@@ -26,11 +26,11 @@ type ParallelBlock struct {
 	vmConfig                   vm.Config
 }
 
-func NewParallelBlock(block *types.Block, statedb *state.StateDB) *ParallelBlock {
-	return &ParallelBlock{header: block.Header(), transactions: block.Transactions(), statedb: statedb}
+func NewParallelBlock(block *types.Block, statedb *state.StateDB, config *params.ChainConfig, bc core.ChainContext, cfg vm.Config) *ParallelBlock {
+	return &ParallelBlock{block: block, transactions: block.Transactions(), statedb: statedb, config: config, vmConfig: cfg}
 }
 
-func (pb *ParallelBlock) Group() map[int]*ExecutionGroup {
+func (pb *ParallelBlock) group() map[int]*ExecutionGroup {
 	pb.newGroups = make(map[int]*ExecutionGroup)
 	tmpExecutionGroupMap := pb.groupTransactions(pb.transactions, false)
 
@@ -45,18 +45,23 @@ func (pb *ParallelBlock) Group() map[int]*ExecutionGroup {
 	return pb.newGroups
 }
 
-func (pb *ParallelBlock) ReGroup() {
+func (pb *ParallelBlock) reGroup() {
 	pb.newGroups = make(map[int]*ExecutionGroup)
 
-	for _, conflictGroups := range pb.conflictIdsGroups {
+	for _, conflictGroupIds := range pb.conflictIdsGroups {
 		executionGroup := NewExecutionGroup()
 		originTrxHashToGroupMap := make(map[common.Hash]int)
-		for groupId, _ := range conflictGroups {
+		conflictGroups := make(map[int]*ExecutionGroup)
+
+		for groupId, _ := range conflictGroupIds {
 			executionGroup.AddTransactions(pb.executionGroups[groupId].Transactions())
 
 			for _, trx := range pb.executionGroups[groupId].Transactions() {
 				originTrxHashToGroupMap[trx.Hash()] = groupId
 			}
+
+			conflictGroups[groupId] = pb.executionGroups[groupId]
+			delete(pb.executionGroups, groupId)
 		}
 		executionGroup.sortTrxByIndex(pb.trxHashToIndexMap)
 
@@ -74,21 +79,22 @@ func (pb *ParallelBlock) ReGroup() {
 						conflict = true
 						group.setStartTrxPos(trxHash, trxIndex)
 					} else {
-						group.addTrxHashToGetPartResult(oldGroupId, trxHash)
+						group.mergeTrxResultFromOtherGroup(conflictGroups[oldGroupId].result, trxHash)
 					}
 				}
-				group.addTrxToRollbackInOtherGroup(oldGroupId, trxHash)
 			}
 
+			pb.nextGroupId++
+			group.setId(pb.nextGroupId)
+			pb.executionGroups[pb.nextGroupId] = group
+
 			if conflict {
-				pb.nextGroupId++
-				group.setId(pb.nextGroupId)
-				pb.executionGroups[pb.nextGroupId] = group
 				pb.newGroups[pb.nextGroupId] = group
 			}
 		}
 	}
 }
+
 func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regroup bool) map[int]*ExecutionGroup {
 	executionGroupMap := make(map[int]*ExecutionGroup)
 	accountWrited := make(map[common.Address]bool)
@@ -101,15 +107,14 @@ func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regr
 		groupsToMerge := make(map[int]bool)
 		groupTouchedAccount := make(map[common.Address]bool)
 		groupTouchedStorage := make(map[StorageAddress]bool)
-		trxTouchedAddres := pb.getTrxTouchedAddress(trx.Hash(), regroup)
+		trxTouchedAddress := pb.getTrxTouchedAddress(trx.Hash(), regroup)
 
-		for addr, op := range trxTouchedAddres.AccountOp() {
+		for addr, op := range trxTouchedAddress.AccountOp() {
 			if _, ok := accountWrited[addr]; ok {
 				for gId, addrs := range groupTouchedAccountMap {
 					if _, ok := groupsToMerge[gId]; ok {
 						continue
 					}
-
 					if _, ok := addrs[addr]; ok {
 						groupsToMerge[gId] = true
 					}
@@ -117,19 +122,17 @@ func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regr
 			} else if op {
 				accountWrited[addr] = true
 			}
-
 			if op {
 				groupTouchedAccount[addr] = true
 			}
 		}
 
-		for storage, op := range trxTouchedAddres.StorageOp() {
+		for storage, op := range trxTouchedAddress.StorageOp() {
 			if _, ok := storageWrited[storage]; ok {
 				for gId, storages := range groupTouchedStorageMap {
 					if _, ok := groupsToMerge[gId]; ok {
 						continue
 					}
-
 					if _, ok := storages[storage]; ok {
 						groupsToMerge[gId] = true
 					}
@@ -137,7 +140,6 @@ func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regr
 			} else if op {
 				storageWrited[storage] = true
 			}
-
 			if op {
 				groupTouchedStorage[storage] = true
 			}
@@ -145,7 +147,7 @@ func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regr
 
 		tmpExecutionGroup := NewExecutionGroup()
 		tmpExecutionGroup.AddTransaction(trx)
-		tmpExecutionGroup.SetHeader(pb.header)
+		tmpExecutionGroup.SetHeader(pb.block.Header())
 		for gId := range groupsToMerge {
 			tmpExecutionGroup.AddTransactions(executionGroupMap[gId].Transactions())
 			delete(executionGroupMap, gId)
@@ -167,6 +169,7 @@ func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regr
 
 	return executionGroupMap
 }
+
 func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *TouchedAddressObject {
 	var touchedAddressObj *TouchedAddressObject = nil
 	msg := pb.trxHashToMsgMap[hash]
@@ -177,6 +180,7 @@ func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *T
 		touchedAddressObj = NewTouchedAddressObject()
 		touchedAddressObj.AddAccountOp(msg.From(), true)
 		touchedAddressObj.AddAccountOp(msg.Payment(), true)
+
 		if msg.To() != nil {
 			if associatedAddressObj, ok := pb.associatedAddressMap[*msg.To()]; ok {
 				touchedAddressObj.Merge(associatedAddressObj)
@@ -185,16 +189,22 @@ func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *T
 			}
 		}
 	}
+
 	return touchedAddressObj
 }
+
 func (pb *ParallelBlock) CheckConflict() bool {
-	pb.conflictIdsGroups = make([]map[int]struct{}, 10)
+	pb.conflictIdsGroups = pb.conflictIdsGroups[0:0]
 	addrGroupIdsMap := make(map[common.Address]map[int]struct{})
 	storageGroupIdsMap := make(map[StorageAddress]map[int]struct{})
 
 	for _, trx := range pb.transactions {
 		trxHash := trx.Hash()
-		touchedAddressObj := pb.trxHashToTouchedAddressMap[trxHash]
+		touchedAddressObj, ok := pb.trxHashToTouchedAddressMap[trxHash]
+		if !ok {
+			// The transaction is not executed because of error in previous transactions
+			touchedAddressObj = pb.getTrxTouchedAddress(trxHash, false)
+		}
 
 		for addr, op := range touchedAddressObj.AccountOp() {
 			curTrxGroup := pb.trxHashToGroupIdMap[trxHash]
