@@ -72,18 +72,23 @@ func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,
 		feeAmount = big.NewInt(0)
 		header    = block.Header()
 		allLogs   []*types.Log
-		gp        = new(GasPool).AddGas(block.GasLimit())
+		// gp        = new(GasPool).AddGas(block.GasLimit())
 	)
 	start := time.Now()
 	// Iterate over and process the individual transactions
-	for i, tx := range block.Transactions() {
-		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, err := ApplyTransaction(fp.config, fp.bc, gp, statedb, header, tx, usedGas, feeAmount, cfg)
-		if err != nil {
-			return nil, nil, 0, nil, err
-		}
-		receipts = append(receipts, receipt)
-		allLogs = append(allLogs, receipt.Logs...)
+	// for i, tx := range block.Transactions() {
+	// 	statedb.Prepare(tx.Hash(), block.Hash(), i)
+	// 	receipt, err := ApplyTransaction(fp.config, fp.bc, gp, statedb, header, tx, usedGas, feeAmount, cfg)
+	// 	if err != nil {
+	// 		return nil, nil, 0, nil, err
+	// 	}
+	// 	receipts = append(receipts, receipt)
+	// 	allLogs = append(allLogs, receipt.Logs...)
+	// }
+	parallelBlock := parallel.NewParallelBlock(block, statedb, fp.config, fp.bc, cfg)
+	receipts, allLogs, usedGas, err := parallelBlock.Process()
+	if err != nil {
+		return nil, nil, 0,nil, err
 	}
 	t1 := time.Now()
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
