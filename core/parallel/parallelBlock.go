@@ -97,95 +97,100 @@ func (pb *ParallelBlock) reGroupAndRevert(conflictGroups []map[int]struct{}, con
 
 func (pb *ParallelBlock) groupTransactions(transactions types.Transactions, regroup bool) map[int]*ExecutionGroup {
 	executionGroupMap := make(map[int]*ExecutionGroup)
-	accountWrited := make(map[common.Address]bool)
-	storageWrited := make(map[StorageAddress]bool)
-	groupTouchedAccountMap := make(map[int]map[common.Address]bool)
-	groupTouchedStorageMap := make(map[int]map[StorageAddress]bool)
+	writtenAccounts := make(map[common.Address]struct{})
+	writtenStorages := make(map[StorageAddress]struct{})
+	groupWrittenAccountMap := make(map[int]map[common.Address]struct{})
+	groupWrittenStorageMap := make(map[int]map[StorageAddress]struct{})
 	groupId := 0
+	transactions = sortTrxByIndex(transactions, pb.trxHashToIndexMap)
 
-	for _, trx := range transactions {
-		groupsToMerge := make(map[int]bool)
-		groupTouchedAccount := make(map[common.Address]bool)
-		groupTouchedStorage := make(map[StorageAddress]bool)
-		trxTouchedAddress := pb.getTrxTouchedAddress(trx.Hash(), regroup)
+	for _, tx := range transactions {
+		groupsToMerge := make(map[int]struct{})
+		groupWrittenAccount := make(map[common.Address]struct{})
+		groupWrittenStorage := make(map[StorageAddress]struct{})
+		trxTouchedAddress := pb.getTrxTouchedAddress(tx.Hash(), regroup)
 
 		for addr, op := range trxTouchedAddress.AccountOp() {
-			if _, ok := accountWrited[addr]; ok {
-				for gId, addrs := range groupTouchedAccountMap {
-					if _, ok := groupsToMerge[gId]; ok {
-						continue
-					}
+			if _, ok := writtenAccounts[addr]; ok {
+				for gId, addrs := range groupWrittenAccountMap {
 					if _, ok := addrs[addr]; ok {
-						groupsToMerge[gId] = true
+						groupsToMerge[gId] = struct{}{}
 					}
 				}
 			} else if op {
-				accountWrited[addr] = true
+				writtenAccounts[addr] = struct{}{}
 			}
 			if op {
-				groupTouchedAccount[addr] = true
+				groupWrittenAccount[addr] = struct{}{}
 			}
 		}
 
 		for storage, op := range trxTouchedAddress.StorageOp() {
-			if _, ok := storageWrited[storage]; ok {
-				for gId, storages := range groupTouchedStorageMap {
-					if _, ok := groupsToMerge[gId]; ok {
-						continue
-					}
+			if _, ok := writtenStorages[storage]; ok {
+				for gId, storages := range groupWrittenStorageMap {
 					if _, ok := storages[storage]; ok {
-						groupsToMerge[gId] = true
+						groupsToMerge[gId] = struct{}{}
 					}
 				}
 			} else if op {
-				storageWrited[storage] = true
+				writtenStorages[storage] = struct{}{}
 			}
 			if op {
-				groupTouchedStorage[storage] = true
+				groupWrittenStorage[storage] = struct{}{}
 			}
 		}
 
 		tmpExecutionGroup := NewExecutionGroup()
-		tmpExecutionGroup.AddTransaction(trx)
+		tmpExecutionGroup.AddTransaction(tx)
 		tmpExecutionGroup.SetHeader(pb.block.Header())
 		for gId := range groupsToMerge {
 			tmpExecutionGroup.AddTransactions(executionGroupMap[gId].Transactions())
 			delete(executionGroupMap, gId)
-			for k, v := range groupTouchedAccountMap[gId] {
-				groupTouchedAccount[k] = v
+			for k, v := range groupWrittenAccountMap[gId] {
+				groupWrittenAccount[k] = v
 			}
-			delete(groupTouchedAccountMap, gId)
-			for k, v := range groupTouchedStorageMap[gId] {
-				groupTouchedStorage[k] = v
+			delete(groupWrittenAccountMap, gId)
+			for k, v := range groupWrittenStorageMap[gId] {
+				groupWrittenStorage[k] = v
 			}
-			delete(groupTouchedStorageMap, gId)
+			delete(groupWrittenStorageMap, gId)
 		}
-
 		groupId++
-		groupTouchedAccountMap[groupId] = groupTouchedAccount
-		groupTouchedStorageMap[groupId] = groupTouchedStorage
+		groupWrittenAccountMap[groupId] = groupWrittenAccount
+		groupWrittenStorageMap[groupId] = groupWrittenStorage
 		executionGroupMap[groupId] = tmpExecutionGroup
+	}
+
+	for _, group := range executionGroupMap {
+		group.transactions = sortTrxByIndex(group.transactions, pb.trxHashToGroupIdMap)
 	}
 
 	return executionGroupMap
 }
 
 func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *TouchedAddressObject {
-	var touchedAddressObj *TouchedAddressObject = nil
+	if regroup {
+		if result, ok := pb.executionGroups[pb.trxHashToGroupIdMap[hash]].trxHashToResultMap[hash]; ok {
+			return result.touchedAddresses
+		}
+	}
+
+	touchedAddressObj := NewTouchedAddressObject()
 	msg := pb.trxHashToMsgMap[hash]
 
-	if regroup {
-		touchedAddressObj = pb.trxHashToTouchedAddressMap[hash]
-	} else {
-		touchedAddressObj = NewTouchedAddressObject()
-		touchedAddressObj.AddAccountOp(msg.From(), true)
+	if msg.From() != params.EmptyAddress {
 		touchedAddressObj.AddAccountOp(msg.Payment(), true)
+	}
+	touchedAddressObj.AddAccountOp(msg.From(), true)
 
-		if msg.To() != nil {
-			if associatedAddressObj, ok := pb.associatedAddressMap[*msg.To()]; ok {
-				touchedAddressObj.Merge(associatedAddressObj)
+	if to := msg.To(); to != nil {
+		if associatedAddressObj, ok := pb.associatedAddressMap[*to]; ok {
+			touchedAddressObj.Merge(associatedAddressObj)
+		} else {
+			if msg.Value().Sign() != 0 {
+				touchedAddressObj.AddAccountOp(*to, true)
 			} else {
-				touchedAddressObj.AddAccountOp(*msg.To(), true)
+				touchedAddressObj.AddAccountOp(*to, false)
 			}
 		}
 	}
@@ -193,26 +198,23 @@ func (pb *ParallelBlock) getTrxTouchedAddress(hash common.Hash, regroup bool) *T
 	return touchedAddressObj
 }
 
-func (pb *ParallelBlock) CheckConflict() bool {
-	pb.conflictIdsGroups = pb.conflictIdsGroups[0:0]
+func (pb *ParallelBlock) checkConflict() ([]map[int]struct{}, map[common.Hash]struct{}) {
+	var conflictGroups []map[int]struct{}
+	conflictTxs := make(map[common.Hash]struct{})
 	addrGroupIdsMap := make(map[common.Address]map[int]struct{})
 	storageGroupIdsMap := make(map[StorageAddress]map[int]struct{})
 
 	for _, trx := range pb.transactions {
+		var touchedAddressObj *TouchedAddressObject = nil
 		trxHash := trx.Hash()
-		touchedAddressObj, ok := pb.trxHashToTouchedAddressMap[trxHash]
-		if !ok {
-			// The transaction is not executed because of error in previous transactions
-			touchedAddressObj = pb.getTrxTouchedAddress(trxHash, false)
-		}
+		curTrxGroup := pb.trxHashToGroupIdMap[trxHash]
+		touchedAddressObj = pb.getTrxTouchedAddress(trxHash, true)
 
 		for addr, op := range touchedAddressObj.AccountOp() {
-			curTrxGroup := pb.trxHashToGroupIdMap[trxHash]
-
 			if groupIds, ok := addrGroupIdsMap[addr]; ok {
 				if _, ok := groupIds[curTrxGroup]; !ok {
 					groupIds[curTrxGroup] = struct{}{}
-					pb.conflictTrxPos[pb.trxHashToIndexMap[trxHash]] = true
+					conflictTxs[trxHash] = struct{}{}
 				}
 			} else if op {
 				groupSet := make(map[int]struct{})
@@ -221,12 +223,10 @@ func (pb *ParallelBlock) CheckConflict() bool {
 			}
 		}
 		for storage, op := range touchedAddressObj.StorageOp() {
-			curTrxGroup := pb.trxHashToGroupIdMap[trxHash]
-
 			if groupIds, ok := storageGroupIdsMap[storage]; ok {
 				if _, ok := groupIds[curTrxGroup]; !ok {
 					groupIds[curTrxGroup] = struct{}{}
-					pb.conflictTrxPos[pb.trxHashToIndexMap[trxHash]] = true
+					conflictTxs[trxHash] = struct{}{}
 				}
 			} else if op {
 				groupSet := make(map[int]struct{})
@@ -249,28 +249,28 @@ func (pb *ParallelBlock) CheckConflict() bool {
 			continue
 		}
 
-		for i := len(pb.conflictIdsGroups) - 1; i >= 0; i-- {
-			conflictGroupId := pb.conflictIdsGroups[i]
-			if setsOverlapped(conflictGroupId, groups) {
+		for i := len(conflictGroups) - 1; i >= 0; i-- {
+			conflictGroupId := conflictGroups[i]
+			if overlapped(conflictGroupId, groups) {
 				for k, _ := range conflictGroupId {
 					groups[k] = struct{}{}
 				}
-				pb.conflictIdsGroups = append(pb.conflictIdsGroups[:i], pb.conflictIdsGroups[i+1:]...)
+				conflictGroups = append(conflictGroups[:i], conflictGroups[i+1:]...)
 			}
 		}
 
-		pb.conflictIdsGroups = append(pb.conflictIdsGroups, groups)
+		conflictGroups = append(conflictGroups, groups)
 	}
 
-	return len(pb.conflictIdsGroups) != 0
+	return conflictGroups, conflictTxs
 }
 
-func (pb *ParallelBlock) CheckGas() bool {
+func (pb *ParallelBlock) checkGas(txIndex int) (error, int) {
 	// TODO: check gas after all transactions are executed
-	return true
+	return nil, -1
 }
 
-func setsOverlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
+func overlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
 	for k, _ := range set0 {
 		if _, ok := set1[k]; ok {
 			return true
