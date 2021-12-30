@@ -12,15 +12,13 @@ import (
 	"sync"
 )
 
+var associatedAddressMngr = NewAssociatedAddressMngr()
+
 type ParallelBlock struct {
 	block                      *types.Block
 	transactions               types.Transactions
 	executionGroups            map[int]*ExecutionGroup
 	associatedAddressMap       map[common.Address]*TouchedAddressObject
-	conflictIdsGroups          []map[int]struct{}
-	conflictTrxPos             map[int]bool
-	newGroups                  map[int]*ExecutionGroup
-	trxHashToTouchedAddressMap map[common.Hash]*TouchedAddressObject
 	trxHashToIndexMap          map[common.Hash]int
 	trxHashToMsgMap            map[common.Hash]*types.Message
 	trxHashToGroupIdMap        map[common.Hash]int
@@ -35,68 +33,65 @@ func NewParallelBlock(block *types.Block, statedb *state.StateDB, config *params
 	return &ParallelBlock{block: block, transactions: block.Transactions(), statedb: statedb, config: config, vmConfig: cfg}
 }
 
-func (pb *ParallelBlock) group() map[int]*ExecutionGroup {
-	pb.newGroups = make(map[int]*ExecutionGroup)
+func (pb *ParallelBlock) group() {
+	//pb.newGroups = make(map[int]*ExecutionGroup)
 	tmpExecutionGroupMap := pb.groupTransactions(pb.transactions, false)
 
 	for _, execGroup := range tmpExecutionGroupMap {
-		execGroup.sortTrxByIndex(pb.trxHashToIndexMap)
-		pb.nextGroupId++
 		execGroup.setId(pb.nextGroupId)
 		pb.executionGroups[pb.nextGroupId] = execGroup
-		pb.newGroups[pb.nextGroupId] = execGroup
-	}
 
-	return pb.newGroups
+		for _, tx := range execGroup.transactions {
+			pb.trxHashToGroupIdMap[tx.Hash()] = pb.nextGroupId
+		}
+
+		pb.nextGroupId++
+	}
 }
 
-func (pb *ParallelBlock) reGroup() {
-	pb.newGroups = make(map[int]*ExecutionGroup)
+func (pb *ParallelBlock) reGroupAndRevert(conflictGroups []map[int]struct{}, conflictTxs map[common.Hash]struct{}) {
+	var txsToRevert []int
 
-	for _, conflictGroupIds := range pb.conflictIdsGroups {
-		executionGroup := NewExecutionGroup()
-		originTrxHashToGroupMap := make(map[common.Hash]int)
+	for _, conflictGroupIds := range conflictGroups {
+		var txs types.Transactions
 		conflictGroups := make(map[int]*ExecutionGroup)
 
-		for groupId, _ := range conflictGroupIds {
-			executionGroup.AddTransactions(pb.executionGroups[groupId].Transactions())
-
-			for _, trx := range pb.executionGroups[groupId].Transactions() {
-				originTrxHashToGroupMap[trx.Hash()] = groupId
-			}
-
+		for groupId := range conflictGroupIds {
+			txs = append(txs, pb.executionGroups[groupId].Transactions()...)
 			conflictGroups[groupId] = pb.executionGroups[groupId]
 			delete(pb.executionGroups, groupId)
 		}
-		executionGroup.sortTrxByIndex(pb.trxHashToIndexMap)
 
-		tmpExecGroupMap := pb.groupTransactions(executionGroup.Transactions(), true)
+		tmpExecGroupMap := pb.groupTransactions(txs, true)
 
 		for _, group := range tmpExecGroupMap {
 			conflict := false
-			group.sortTrxByIndex(pb.trxHashToIndexMap)
-			for _, trx := range group.transactions {
-				trxHash := trx.Hash()
-				oldGroupId := originTrxHashToGroupMap[trxHash]
+			for index, trx := range group.transactions {
+				txHash := trx.Hash()
+				oldGroupId := pb.trxHashToGroupIdMap[txHash]
 				if !conflict {
-					trxIndex := pb.trxHashToIndexMap[trxHash]
-					if _, ok := pb.conflictTrxPos[trxIndex]; ok {
+					if _, ok := conflictTxs[txHash]; ok {
 						conflict = true
-						group.setStartTrxPos(trxHash, trxIndex)
+						group.setStartTrxPos(index)
 					} else {
-						group.mergeTrxResultFromOtherGroup(conflictGroups[oldGroupId].result, trxHash)
+						group.trxHashToResultMap[txHash] = conflictGroups[oldGroupId].trxHashToResultMap[txHash]
 					}
+				} else {
+					txsToRevert = append(txsToRevert, pb.trxHashToIndexMap[txHash])
 				}
+				pb.trxHashToGroupIdMap[txHash] = pb.nextGroupId
 			}
 
-			pb.nextGroupId++
 			group.setId(pb.nextGroupId)
 			pb.executionGroups[pb.nextGroupId] = group
-
-			if conflict {
-				pb.newGroups[pb.nextGroupId] = group
-			}
+			pb.nextGroupId++
 		}
+	}
+
+	sort.Ints(txsToRevert)
+
+	for i := len(txsToRevert) - 1; i >= 0; i-- {
+		pb.statedb.RevertTrxResultByIndex(i)
 	}
 }
 
