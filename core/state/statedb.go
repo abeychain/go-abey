@@ -92,8 +92,9 @@ type StateDB struct {
 	preimages      map[common.Hash][]byte
 	balancesChange map[common.Address]*types.BalanceInfo
 
-	// Journal of state modifications. This is the backbone of
-	// Snapshot and RevertToSnapshot.
+	// Journal of state modifications for each transaction. This is the backbone of
+	// Snapshot, RevertToSnapshot and RevertTx
+	journals       map[common.Hash]*journal
 	journal        *journal
 	validRevisions []revision
 	nextRevisionId int
@@ -121,6 +122,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		balancesChange:    make(map[common.Address]*types.BalanceInfo),
+		journals:          make(map[common.Hash]*journal),
 		journal:           newJournal(),
 		lastAccountRec:    make(map[common.Address]*Account),
 		currAccountRec:    make(map[common.Address]*Account),
@@ -692,15 +694,9 @@ func (self *StateDB) RevertToSnapshot(revid int) {
 	self.validRevisions = self.validRevisions[:idx]
 }
 
-func (self *StateDB) RevertTrxResultByIndex(trxIndex int) {
-	self.journal.revertTrxByIndex(self, trxIndex)
-}
-
-// Revert transaction results between  index from start(include) to end(exclude)
-func (self *StateDB) RevertTrxResultsBetween(start int, end int) {
-	for index := end - 1; index >= start; index-- {
-		self.journal.revertTrxByIndex(self, index)
-	}
+func (self *StateDB) RevertTrxResultByHash(txHash common.Hash) {
+	self.journals[txHash].revert(self, 0)
+	delete(self.journals, txHash)
 }
 
 // GetRefund returns the current value of the refund counter.
@@ -748,7 +744,9 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	}
 
 	// Invalidate journal because reverting across transactions is not allowed.
-	s.clearJournalAndRefund()
+	//s.clearJournalAndRefund()
+	s.validRevisions = s.validRevisions[:0]
+	s.refund = 0
 }
 
 // IntermediateRoot computes the current root hash of the state trie.
@@ -767,11 +765,13 @@ func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
 	self.bhash = bhash
 	self.txIndex = ti
 	self.prepareAccountAndStorageRecords()
-	self.journal.SetTxIndex(ti)
+	self.journal = newJournal()
+	self.journals[thash] = self.journal
 	self.touchedAddress = parallel.NewTouchedAddressObject()
 }
 
 func (s *StateDB) clearJournalAndRefund() {
+	s.journals = make(map[common.Hash]*journal)
 	s.journal = newJournal()
 	s.validRevisions = s.validRevisions[:0]
 	s.refund = 0
