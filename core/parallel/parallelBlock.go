@@ -272,9 +272,9 @@ func (pb *ParallelBlock) checkConflict() ([]map[int]struct{}, map[common.Hash]st
 	return conflictGroups, conflictTxs
 }
 
-func (pb *ParallelBlock) checkGas(txIndex int) (error, int) {
+func (pb *ParallelBlock) checkGas(txIndex int) error {
 	// TODO: check gas after all transactions are executed
-	return nil, -1
+	return nil
 }
 
 func overlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
@@ -293,7 +293,7 @@ func (pb *ParallelBlock) executeGroup(group *ExecutionGroup, wg sync.WaitGroup) 
 		usedGas   = new(uint64)
 		feeAmount = big.NewInt(0)
 		gp        = new(core.GasPool).AddGas(pb.block.GasLimit())
-		statedb   = pb.statedb.Copy()
+		statedb   = group.statedb
 	)
 
 	// Iterate over and process the individual transactions
@@ -306,18 +306,20 @@ func (pb *ParallelBlock) executeGroup(group *ExecutionGroup, wg sync.WaitGroup) 
 		if err != nil {
 			group.err = err
 			group.trxHashToResultMap[txHash] = NewTrxResult(nil, nil, statedb.GetTouchedAddress(), trxUsedGas)
+			group.startTrxIndex = -1
 			return
 		}
 		group.trxHashToResultMap[txHash] = NewTrxResult(receipt, receipt.Logs, statedb.GetTouchedAddress(), trxUsedGas)
 	}
 	group.usedGas = *usedGas
+	group.startTrxIndex = -1
 }
 
 func (pb *ParallelBlock) executeInParallel() {
 	wg := sync.WaitGroup{}
 
 	for _, group := range pb.executionGroups {
-		if !group.finished {
+		if group.startTrxIndex != -1 {
 			wg.Add(1)
 			go pb.executeGroup(group, wg)
 		}
@@ -393,28 +395,26 @@ func (pb *ParallelBlock) Process() (types.Receipts, []*types.Log, uint64, error)
 	}
 
 	receipts, allLogs, usedGas, err, ti := pb.collectResult()
+
 	if err != nil {
-		err2, ti2 := pb.checkGas(ti)
-
+		err2 := pb.checkGas(ti)
 		if err2 != nil {
-			pb.statedb.RevertTrxResultsBetween(ti2, pb.transactions.Len())
 			return nil, nil, 0, err2
 		}
-
-		pb.statedb.RevertTrxResultsBetween(ti+1, pb.transactions.Len())
 		return nil, nil, 0, err
-	} else {
-		err2, ti2 := pb.checkGas(pb.transactions.Len() - 1)
+	}
 
-		if err2 != nil {
-			pb.statedb.RevertTrxResultsBetween(ti2, pb.transactions.Len())
-			return nil, nil, 0, err2
-		}
+	err = pb.checkGas(pb.transactions.Len() - 1)
+	if err != nil {
+		return nil, nil, 0, err
 	}
 
 	return receipts, allLogs, usedGas, nil
 }
 
 func sortTrxByIndex(txs types.Transactions, trxHashToIndexMap map[common.Hash]int) types.Transactions {
-	return nil
+	sort.Slice(txs, func(i, j int) bool {
+		return trxHashToIndexMap[txs[i].Hash()] < trxHashToIndexMap[txs[j].Hash()]
+	})
+	return txs
 }
