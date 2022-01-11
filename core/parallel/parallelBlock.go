@@ -16,18 +16,23 @@ import (
 var associatedAddressMngr = NewAssociatedAddressMngr()
 
 type ParallelBlock struct {
-	block                      *types.Block
-	transactions               types.Transactions
-	executionGroups            map[int]*ExecutionGroup
-	associatedAddressMap       map[common.Address]*TouchedAddressObject
-	trxHashToIndexMap          map[common.Hash]int
-	trxHashToMsgMap            map[common.Hash]*types.Message
-	trxHashToGroupIdMap        map[common.Hash]int
-	nextGroupId                int
-	statedb                    *state.StateDB
-	config                     *params.ChainConfig
-	context                    core.ChainContext
-	vmConfig                   vm.Config
+	block                *types.Block
+	transactions         types.Transactions
+	executionGroups      map[int]*ExecutionGroup
+	associatedAddressMap map[common.Address]*TouchedAddressObject
+	trxHashToIndexMap    map[common.Hash]int
+	trxHashToMsgMap      map[common.Hash]*types.Message
+	trxHashToGroupIdMap  map[common.Hash]int
+	nextGroupId          int
+	statedb              *state.StateDB
+	config               *params.ChainConfig
+	context              core.ChainContext
+	vmConfig             vm.Config
+}
+
+type TxWithOldGroup struct {
+	txHash     common.Hash
+	oldGroupId int
 }
 
 func NewParallelBlock(block *types.Block, statedb *state.StateDB, config *params.ChainConfig, bc core.ChainContext, cfg vm.Config) *ParallelBlock {
@@ -39,7 +44,8 @@ func (pb *ParallelBlock) group() {
 	tmpExecutionGroupMap := pb.groupTransactions(pb.transactions, false)
 
 	for _, execGroup := range tmpExecutionGroupMap {
-		execGroup.setId(pb.nextGroupId)
+		execGroup.SetId(pb.nextGroupId)
+		execGroup.SetStatedb(pb.statedb.Copy())
 		pb.executionGroups[pb.nextGroupId] = execGroup
 
 		for _, tx := range execGroup.transactions {
@@ -51,8 +57,6 @@ func (pb *ParallelBlock) group() {
 }
 
 func (pb *ParallelBlock) reGroupAndRevert(conflictGroups []map[int]struct{}, conflictTxs map[common.Hash]struct{}) {
-	var txsToRevert []int
-
 	for _, conflictGroupIds := range conflictGroups {
 		var txs types.Transactions
 		conflictGroups := make(map[int]*ExecutionGroup)
@@ -66,33 +70,35 @@ func (pb *ParallelBlock) reGroupAndRevert(conflictGroups []map[int]struct{}, con
 		tmpExecGroupMap := pb.groupTransactions(txs, true)
 
 		for _, group := range tmpExecGroupMap {
-			conflict := false
+			var (
+				txsToReuse []TxWithOldGroup
+				conflict   = false
+			)
 			for index, trx := range group.transactions {
 				txHash := trx.Hash()
 				oldGroupId := pb.trxHashToGroupIdMap[txHash]
 				if !conflict {
 					if _, ok := conflictTxs[txHash]; ok {
 						conflict = true
-						group.setStartTrxPos(index)
+						group.SetStartTrxPos(index)
 					} else {
-						group.trxHashToResultMap[txHash] = conflictGroups[oldGroupId].trxHashToResultMap[txHash]
+						txsToReuse = append(txsToReuse, TxWithOldGroup{txHash, oldGroupId})
 					}
-				} else {
-					txsToRevert = append(txsToRevert, pb.trxHashToIndexMap[txHash])
+				}
+
+				if conflict {
+					// revert transactions which will be re-executed in reversed order
+					conflictGroups[oldGroupId].statedb.RevertTrxResultByHash(txHash)
 				}
 				pb.trxHashToGroupIdMap[txHash] = pb.nextGroupId
 			}
 
-			group.setId(pb.nextGroupId)
+			// copy transaction results and state changes from old group which can be reused
+			group.reuseTxResults(txsToReuse, conflictGroups)
+			group.SetId(pb.nextGroupId)
 			pb.executionGroups[pb.nextGroupId] = group
 			pb.nextGroupId++
 		}
-	}
-
-	sort.Ints(txsToRevert)
-
-	for i := len(txsToRevert) - 1; i >= 0; i-- {
-		pb.statedb.RevertTrxResultByIndex(i)
 	}
 }
 
