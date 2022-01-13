@@ -840,14 +840,17 @@ func (s *StateDB) appendReadAccount(addr common.Address, account *Account) {
 
 func (s *StateDB) appendWriteAccount(addr common.Address, currRec *Account) {
 	if lastRec, exist := s.lastAccountRec[addr]; !exist {
-		panic(fmt.Errorf("lastAccountRec should be exist for address %x", addr))
+		panic(fmt.Errorf("lastAccountRec should exist for address %x", addr))
 	} else {
-		if !Compare(lastRec, currRec) {
+		if currRec == nil {
+			s.currAccountRec[addr] = nil
+		} else {
 			account2 := *currRec
 			s.currAccountRec[addr] = &account2
+		}
+		if !Compare(lastRec, currRec) {
 			s.touchedAddress.SetAccountOp(addr, true)
 		} else {
-			delete(s.currAccountRec, addr)
 			s.touchedAddress.SetAccountOp(addr, false)
 		}
 	}
@@ -869,11 +872,10 @@ func (s *StateDB) appendWriteStorage(addr common.Address, key common.Hash, val c
 	if lastRec, exist := s.lastStorageRec[storageAddr]; !exist {
 		panic(fmt.Errorf("lastStorageRec should be exist for address %x and key %x", addr, key))
 	} else {
+		s.currStorageRec[storageAddr] = val
 		if lastRec != val {
-			s.currStorageRec[storageAddr] = val
 			s.touchedAddress.SetStorageOp(storageAddr, true)
 		} else {
-			delete(s.currStorageRec, storageAddr)
 			s.touchedAddress.SetStorageOp(storageAddr, false)
 		}
 	}
