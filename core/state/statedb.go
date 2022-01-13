@@ -898,3 +898,41 @@ func (s *StateDB) prepareAccountAndStorageRecords() {
 func (s *StateDB) GetTouchedAddress() *parallel.TouchedAddressObject {
 	return s.touchedAddress
 }
+
+func (self *StateDB) CopyStateObjFromOtherDB(other *StateDB, stateObjAddrs []*parallel.StateObjectToReuse) {
+	for _, stateObjAddr := range stateObjAddrs {
+		addr := stateObjAddr.Address
+		obj0 := self.getStateObject(addr)
+		obj1 := other.getStateObject(addr)
+
+		if obj0 != nil {
+			if obj1 == nil {
+				self.Suicide(addr)
+			} else {
+				if stateObjAddr.ReuseData {
+					obj0.data = obj1.data
+				}
+				for _, key := range stateObjAddr.Keys {
+					obj0.setState(key, obj1.GetState(other.db, key))
+				}
+			}
+		} else {
+			if obj1 != nil {
+				if stateObjAddr.ReuseData || len(stateObjAddr.Keys) != 0 {
+					obj0 = newObject(self, addr, Account{})
+
+					if stateObjAddr.ReuseData {
+						obj0.data = obj1.data
+					}
+					for _, key := range stateObjAddr.Keys {
+						obj0.setState(key, obj1.GetState(other.db, key))
+					}
+				}
+			}
+		}
+	}
+}
+
+func (self *StateDB) CopyTxJournalFromOtherDB(other *StateDB, txHash common.Hash) {
+	self.journals[txHash] = other.journals[txHash]
+}
