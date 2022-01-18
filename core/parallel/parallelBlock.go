@@ -365,12 +365,14 @@ func (pb *ParallelBlock) prepare() error {
 
 func (pb *ParallelBlock) collectResult() (types.Receipts, []*types.Log, uint64, error, int) {
 	var (
-		err      error
-		txIndex  = -1
-		receipts = make(types.Receipts, pb.transactions.Len())
-		usedGas  = uint64(0)
-		allLogs  []*types.Log
+		err             error
+		txIndex         = -1
+		receipts        = make(types.Receipts, pb.transactions.Len())
+		usedGas         = uint64(0)
+		allLogs         []*types.Log
+		associatedAddrs = make(map[common.Address]*TouchedAddressObject)
 	)
+
 	for _, group := range pb.executionGroups {
 		if group.err != nil && (group.errTxIndex < txIndex || txIndex == -1) {
 			err = group.err
@@ -378,11 +380,32 @@ func (pb *ParallelBlock) collectResult() (types.Receipts, []*types.Log, uint64, 
 		}
 		usedGas += group.usedGas
 
+		stateObjsToReuse := make(map[common.Address]*StateObjectToReuse)
+
 		for _, tx := range group.transactions {
 			txHash := tx.Hash()
-			receipts[pb.trxHashToIndexMap[txHash]] = group.trxHashToResultMap[txHash].receipt
+
+			if result, ok := group.trxHashToResultMap[txHash]; ok {
+				appendStateObjToReuse(stateObjsToReuse, result.touchedAddresses)
+				receipts[pb.trxHashToIndexMap[txHash]] = group.trxHashToResultMap[txHash].receipt
+
+				// collect associated address of contract
+				if to := tx.To(); to != nil {
+					touchedAddr := group.trxHashToResultMap[txHash].touchedAddresses
+					touchedAddr.RemoveAccount(pb.trxHashToMsgMap[txHash].From())
+
+					if len(touchedAddr.accountOp) > 1 && len(touchedAddr.storageOp) > 0 {
+						associatedAddrs[*to] = touchedAddr
+					}
+				}
+			}
 		}
+
+		// merge statedb changes
+		pb.statedb.CopyStateObjFromOtherDB(group.statedb, stateObjsToReuse)
 	}
+
+	associatedAddressMngr.UpdateAssociatedAddresses(associatedAddrs)
 
 	for _, receipt := range receipts {
 		allLogs = append(allLogs, receipt.Logs...)
