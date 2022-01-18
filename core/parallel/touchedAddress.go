@@ -76,3 +76,7 @@ func (self *TouchedAddressObject) Merge(another *TouchedAddressObject) bool {
 
 	return changed
 }
+
+func (self *TouchedAddressObject) RemoveAccount(address common.Address) {
+	delete(self.accountOp, address)
+}
