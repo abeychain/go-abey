@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core"
+	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
@@ -13,6 +14,7 @@ import (
 	"sync"
 )
 
+var emptyCodeHash = crypto.Keccak256Hash(nil)
 var associatedAddressMngr = NewAssociatedAddressMngr()
 
 type ParallelBlock struct {
@@ -40,7 +42,6 @@ func NewParallelBlock(block *types.Block, statedb *state.StateDB, config *params
 }
 
 func (pb *ParallelBlock) group() {
-	//pb.newGroups = make(map[int]*ExecutionGroup)
 	tmpExecutionGroupMap := pb.groupTransactions(pb.transactions, false)
 
 	for _, execGroup := range tmpExecutionGroupMap {
@@ -339,7 +340,7 @@ func (pb *ParallelBlock) executeInParallel() {
 }
 
 func (pb *ParallelBlock) prepare() error {
-	var toAddresses []common.Address
+	var contractAddrs []common.Address
 
 	for ti, trx := range pb.block.Transactions() {
 		msg, err := trx.AsMessage(types.MakeSigner(pb.config, pb.block.Header().Number))
@@ -350,11 +351,14 @@ func (pb *ParallelBlock) prepare() error {
 		pb.trxHashToIndexMap[trx.Hash()] = ti
 
 		if to := trx.To(); to != nil {
-			toAddresses = append(toAddresses, *to)
+			codeHash := pb.statedb.GetCodeHash(*to)
+			if codeHash != (common.Hash{}) && codeHash != emptyCodeHash {
+				contractAddrs = append(contractAddrs, *to)
+			}
 		}
 	}
 
-	pb.associatedAddressMap = associatedAddressMngr.LoadAssociatedAddresses(toAddresses)
+	pb.associatedAddressMap = associatedAddressMngr.LoadAssociatedAddresses(contractAddrs)
 
 	return nil
 }
