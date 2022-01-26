@@ -633,6 +633,7 @@ func (self *StateDB) Copy() *StateDB {
 		logs:              make(map[common.Hash][]*types.Log, len(self.logs)),
 		logSize:           self.logSize,
 		preimages:         make(map[common.Hash][]byte, len(self.preimages)),
+		journals:          make(map[common.Hash]*journal),
 		journal:           newJournal(),
 	}
 	// Copy the dirty states, logs, and preimages
@@ -744,6 +745,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 
 	// Invalidate journal because reverting across transactions is not allowed.
 	//s.clearJournalAndRefund()
+	s.journal = newJournal()
 	s.validRevisions = s.validRevisions[:0]
 	s.refund = 0
 }
@@ -910,22 +912,22 @@ func (self *StateDB) CopyStateObjFromOtherDB(other *StateDB, stateObjAddrs map[c
 				self.Suicide(addr)
 			} else {
 				if stateObjAddr.ReuseData {
-					obj0.data = obj1.data
+					obj0.CopyAccount(obj1)
 				}
 				for _, key := range stateObjAddr.Keys {
-					obj0.setState(key, obj1.GetState(other.db, key))
+					obj0.SetState(self.db, key, obj1.GetState(other.db, key))
 				}
 			}
 		} else {
 			if obj1 != nil {
 				if stateObjAddr.ReuseData || len(stateObjAddr.Keys) != 0 {
-					obj0 = newObject(self, addr, Account{})
+					obj0, _ = self.createObject(addr)
 
 					if stateObjAddr.ReuseData {
-						obj0.data = obj1.data
+						obj0.CopyAccount(obj1)
 					}
 					for _, key := range stateObjAddr.Keys {
-						obj0.setState(key, obj1.GetState(other.db, key))
+						obj0.SetState(self.db, key, obj1.GetState(other.db, key))
 					}
 				}
 			}
