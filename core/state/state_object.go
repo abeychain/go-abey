@@ -467,23 +467,3 @@ func Compare(obj0 *Account, obj1 *Account) bool {
 		return true
 	}
 }
-
-func (self *stateObject) CopyAccount(other *stateObject) {
-	if self.data.Balance.Cmp(other.data.Balance) != 0 {
-		self.setBalance(other.data.Balance)
-	}
-	if self.data.Nonce != other.data.Nonce {
-		self.setNonce(other.data.Nonce)
-	}
-	if bytes.Compare(self.data.CodeHash, other.data.CodeHash) != 0 {
-		self.setCode(common.BytesToHash(other.data.CodeHash), other.Code(other.db.db))
-	}
-}
-
-func (self *stateObject) isContract() bool {
-	if codeHash := self.CodeHash(); bytes.Equal(codeHash, emptyCodeHash) || bytes.Equal(codeHash, (common.Hash{}).Bytes()) {
-		return false
-	}
-
-	return true
-}
