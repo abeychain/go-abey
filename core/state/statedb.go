@@ -340,7 +340,6 @@ func (self *StateDB) GetCommittedState(addr common.Address, hash common.Hash) co
 	if stateObject != nil {
 		return stateObject.GetCommittedState(self.db, hash)
 	}
-	self.appendReadStorage(addr, hash, common.Hash{})
 	return common.Hash{}
 }
 
@@ -381,7 +380,6 @@ func (self *StateDB) AddBalanceWithoutLog(addr common.Address, amount *big.Int, 
 			return
 		}
 		stateObject.setBalance(new(big.Int).Add(stateObject.Balance(), amount))
-		//self.appendWriteAccount(addr, &stateObject.data)
 	}
 }
 
@@ -458,7 +456,6 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 	})
 	stateObject.markSuicided()
 	stateObject.data.Balance = new(big.Int)
-	self.appendWriteAccount(addr, nil)
 
 	return true
 }
