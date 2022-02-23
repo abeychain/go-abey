@@ -789,7 +789,7 @@ func (w *worker) CommitFruits(fruits []*types.SnailBlock, bc *chain.SnailBlockCh
 			w.current.fruits = fruitset
 			return nil
 		}
-		if len(fruitset) >= params.MinimumFruits {
+		if len(fruitset) >= 111 {
 			// need add the time interval
 			startFb := fc.GetHeaderByNumber(fruitset[0].FastNumber().Uint64())
 			endFb := fc.GetHeaderByNumber(fruitset[len(fruitset)-1].FastNumber().Uint64())
