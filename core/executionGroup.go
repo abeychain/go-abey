@@ -92,12 +92,13 @@ func (e *ExecutionGroup) reuseTxResults(txsToReuse []*txInfo, conflictGroups map
 	for _, txInfo := range txsToReuse {
 		txHash := txInfo.hash
 		oldGroupId := txInfo.groupId
-		result := txInfo.result
 
-		appendStateObjToReuse(stateObjsFromOtherGroup[oldGroupId], result.touchedAddresses)
-		e.statedb.CopyJournalLogPreImageFromOtherDB(conflictGroups[oldGroupId].statedb, txHash)
-		e.AddUsedGas(result.usedGas)
-		e.AddFeeAmount(result.feeAmount)
+		if result := txInfo.result; result != nil {
+			appendStateObjToReuse(stateObjsFromOtherGroup[oldGroupId], result.touchedAddresses)
+			e.statedb.CopyJournalLogPreImageFromOtherDB(conflictGroups[oldGroupId].statedb, txHash)
+			e.AddUsedGas(result.usedGas)
+			e.AddFeeAmount(result.feeAmount)
+		}
 		txInfo.groupId = e.id
 	}
 
