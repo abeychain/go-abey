@@ -79,22 +79,23 @@ func main() {
 		if contract {
 			// deploy one contract for each private key
 			contracts := deployContractsInBatch(rpcClient, client, privKeys)
+			time.Sleep(time.Duration(4) * time.Second)
 
 			// recharge the receiver accounts
 			for i := 0; i < 15; i++ {
-				time.Sleep(time.Duration(4) * time.Second)
 				rechargeToAccountsByContract(rpcClient, client, privKeys, contracts, receivers,
 					nonce, step, randomReceiver)
 				nonce += uint64(step)
+				time.Sleep(time.Duration(4) * time.Second)
 			}
 		}
 
 		if raw {
 			// send raw transactions
 			for i := 0; i < 15; i++ {
-				time.Sleep(time.Duration(4) * time.Second)
 				rechargeToAccountsByTx(rpcClient, privKeys, receivers, nonce, 1)
 				nonce++
+				time.Sleep(time.Duration(4) * time.Second)
 			}
 		}
 	}
@@ -184,12 +185,6 @@ func rechargeToAccountsByContract(rpcClient *rpc.Client, client *abeyclient.Clie
 				Args:   []interface{}{hexutil.Encode(data)},
 				Result: new(string),
 			}
-			//log.Println("tx", tx.Hash().String(),
-			//	"from", crypto.PubkeyToAddress(key.PublicKey).String(),
-			//	"contract", contracts[i].String(),
-			//	"value", value.String(),
-			//	"receiver0", receivers[receiverIndex0].String(),
-			//	"receiver1", receivers[receiverIndex1].String())
 		}
 	}
 
