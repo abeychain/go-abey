@@ -1081,7 +1081,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		bc.currentReward.Store(br)
 	}
 
-	root, err := state.Commit(true)
+	root, err := state.CommitAfterFinalize(true)
 	if err != nil {
 		return NonStatTy, err
 	}
