@@ -17,8 +17,10 @@
 package core
 
 import (
+	"github.com/abeychain/go-abey/common"
 	//"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/crypto"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/metrics"
 	"math"
 	"time"
@@ -114,7 +116,8 @@ func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
-	statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, feeAmount *big.Int, cfg vm.Config) (*types.Receipt, error) {
+	statedb *state.StateDB, header *types.Header, tx *types.Transaction,
+	usedGas *uint64, feeAmount *big.Int, cfg vm.Config) (*types.Receipt, error) {
 	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
 	if err != nil {
 		return nil, err
@@ -162,6 +165,58 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 
 	return receipt, err
+}
+// ApplyTransactionMsg attempts to apply a transaction to the given state database
+// and uses the input parameters for its environment. It returns the receipt
+// for the transaction, gas used and an error if the transaction failed,
+// indicating the block was invalid.
+func ApplyTransactionMsg(config *params.ChainConfig, bc ChainContext, gp *GasPool,
+	statedb *state.StateDB, header *types.Header, msg *types.Message, tx *types.Transaction,
+	usedGas *uint64, feeAmount *big.Int, cfg vm.Config) (*types.Receipt, uint64, error) {
+
+	if err := types.ForbidAddress(msg.From()); err != nil {
+		return nil,0, err
+	}
+
+	// Create a new context to be used in the EVM environment
+	context := NewEVMContext(msg, header, bc, nil, nil)
+	// Create a new environment which holds all relevant information
+	// about the transaction and calling mechanisms.
+	vmenv := vm.NewEVM(context, statedb, config, cfg)
+	// Apply the transaction to the current state (included in the env)
+	result, err := ApplyMessage(vmenv, msg, gp)
+	if err != nil {
+		return nil, 0, err
+	}
+	// Update the state with pending changes
+	var root []byte
+
+	//statedb.Finalise(true)
+	statedb.FinaliseEmptyObjects()
+
+	*usedGas += result.UsedGas
+	gasFee := new(big.Int).Mul(new(big.Int).SetUint64(result.UsedGas), msg.GasPrice())
+	feeAmount.Add(gasFee, feeAmount)
+	if msg.Fee() != nil {
+		feeAmount.Add(msg.Fee(), feeAmount) //add fee
+	}
+
+	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
+	// based on the eip phase, we're passing wether the root touch-delete accounts.
+	receipt := types.NewReceipt(root, result.Failed(), *usedGas)
+	receipt.TxHash = tx.Hash()
+	receipt.GasUsed = result.UsedGas
+	// if the transaction created a contract, store the creation address in the receipt.
+	if msg.To() == nil {
+		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
+	}
+	// Set the receipt logs and create a bloom for filtering
+	receipt.Logs = statedb.GetLogs(tx.Hash())
+	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	receipt.BlockHash = statedb.BlockHash()
+	receipt.BlockNumber = header.Number
+	receipt.TransactionIndex = uint(statedb.TxIndex())
+	return receipt, result.UsedGas, err
 }
 
 // ReadTransaction attempts to apply a transaction to the given state database
