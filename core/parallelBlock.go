@@ -65,7 +65,7 @@ type addressRlpDataPair struct {
 }
 
 func newGrouper(totalTxToGroup int, startGroupId int, regroup bool) *grouper {
-	maxGroupCount := cpuNum * 8
+	maxGroupCount := cpuNum * 2
 
 	avgTxCountInGroup := (totalTxToGroup + maxGroupCount - 1) / (maxGroupCount)
 	return &grouper{
@@ -300,32 +300,44 @@ func (pb *ParallelBlock) getTrxTouchedAddress(txInfo *txInfo, regroup bool) *sta
 	return touchedAddressObj
 }
 
-func (pb *ParallelBlock) checkConflict() ([]map[int]struct{}, map[common.Hash]struct{}) {
+type conflictInfo struct {
+	conflictGroups []map[int]struct{}
+	conflictTxs    map[common.Hash]struct{}
+}
+
+func (pb *ParallelBlock) checkGroupsConflict(ch0 chan *txInfo, ch1 chan *conflictInfo) {
 	var conflictGroups []map[int]struct{}
 	conflictTxs := make(map[common.Hash]struct{})
 	addrGroupIdsMap := make(map[common.Address]map[int]struct{})
+	txInfos := make([]*txInfo, len(pb.txInfos))
+	nextIndex := 0
 
-	if len(pb.executionGroups) == 1 {
-		return conflictGroups, conflictTxs
-	}
+	for tx := range ch0 {
+		txInfos[tx.index] = tx
+		if tx.index == nextIndex {
+			for ; nextIndex < len(txInfos) && txInfos[nextIndex] != nil; nextIndex++ {
+				txInfo := txInfos[nextIndex]
+				var touchedAddressObj *state.TouchedAddressObject = nil
+				trxHash := txInfo.hash
+				curTrxGroup := txInfo.groupId
+				touchedAddressObj = pb.getTrxTouchedAddress(txInfo, true)
 
-	for _, txInfo := range pb.txInfos {
-		var touchedAddressObj *state.TouchedAddressObject = nil
-		trxHash := txInfo.hash
-		curTrxGroup := txInfo.groupId
-		touchedAddressObj = pb.getTrxTouchedAddress(txInfo, true)
-
-		for addr, op := range touchedAddressObj.AccountOp() {
-			if groupIds, ok := addrGroupIdsMap[addr]; ok {
-				if _, ok := groupIds[curTrxGroup]; !ok {
-					groupIds[curTrxGroup] = struct{}{}
-					conflictTxs[trxHash] = struct{}{}
+				for addr, op := range touchedAddressObj.AccountOp() {
+					if groupIds, ok := addrGroupIdsMap[addr]; ok {
+						if _, ok := groupIds[curTrxGroup]; !ok {
+							groupIds[curTrxGroup] = struct{}{}
+							conflictTxs[trxHash] = struct{}{}
+						}
+					} else if op {
+						groupSet := make(map[int]struct{})
+						groupSet[curTrxGroup] = struct{}{}
+						addrGroupIdsMap[addr] = groupSet
+					}
 				}
-			} else if op {
-				groupSet := make(map[int]struct{})
-				groupSet[curTrxGroup] = struct{}{}
-				addrGroupIdsMap[addr] = groupSet
 			}
+		}
+		if nextIndex == len(txInfos) {
+			break
 		}
 	}
 
@@ -342,7 +354,7 @@ func (pb *ParallelBlock) checkConflict() ([]map[int]struct{}, map[common.Hash]st
 		for i := len(conflictGroups) - 1; i >= 0; i-- {
 			conflictGroupId := conflictGroups[i]
 			if overlapped(conflictGroupId, groups) {
-				for k, _ := range conflictGroupId {
+				for k := range conflictGroupId {
 					groups[k] = struct{}{}
 				}
 				conflictGroups = append(conflictGroups[:i], conflictGroups[i+1:]...)
@@ -356,7 +368,10 @@ func (pb *ParallelBlock) checkConflict() ([]map[int]struct{}, map[common.Hash]st
 		log.Debug("checkConflict", "conflictGroups", conflictGroups)
 	}
 
-	return conflictGroups, conflictTxs
+	ch1 <- &conflictInfo{
+		conflictGroups: conflictGroups,
+		conflictTxs:    conflictTxs,
+	}
 }
 
 func overlapped(set0 map[int]struct{}, set1 map[int]struct{}) bool {
