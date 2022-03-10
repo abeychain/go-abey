@@ -66,8 +66,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,
-	cfg vm.Config) (types.Receipts, []*types.Log, uint64, *types.ChainReward, error) {
+func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,cfg vm.Config) (types.Receipts, []*types.Log, uint64, *types.ChainReward, error) {
 		var (
 			receipts  types.Receipts
 			usedGas   = new(uint64)
@@ -78,17 +77,7 @@ func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,
 		)
 		t0 := time.Now()
 		start := time.Now()
-		// Iterate over and process the individual transactions
-		// for i, tx := range block.Transactions() {
-		// 	statedb.Prepare(tx.Hash(), block.Hash(), i)
-		// 	receipt, err := ApplyTransaction(fp.config, fp.bc, gp, statedb, header, tx, usedGas, feeAmount, cfg)
-		// 	if err != nil {
-		// 		return nil, nil, 0, nil, err
-		// 	}
-		// 	receipts = append(receipts, receipt)
-		// 	allLogs = append(allLogs, receipt.Logs...)
-		// }
-		parallelBlock := parallel.NewParallelBlock(block, statedb, fp.config, fp.bc, cfg)
+		parallelBlock := NewParallelBlock(block, statedb, fp.config, fp.bc, cfg, feeAmount)
 		receipts, allLogs, usedGas, err := parallelBlock.Process()
 		if err != nil {
 			return nil, nil, 0,nil, err
@@ -116,8 +105,7 @@ func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
-	statedb *state.StateDB, header *types.Header, tx *types.Transaction,
-	usedGas *uint64, feeAmount *big.Int, cfg vm.Config) (*types.Receipt, error) {
+	statedb *state.StateDB, header *types.Header, tx *types.Transaction,usedGas *uint64, feeAmount *big.Int, cfg vm.Config) (*types.Receipt, error) {
 	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
 	if err != nil {
 		return nil, err
