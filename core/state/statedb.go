@@ -732,10 +732,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	}
 
 	// Invalidate journal because reverting across transactions is not allowed.
-	//s.clearJournalAndRefund()
-	s.journal = newJournal()
-	s.validRevisions = s.validRevisions[:0]
-	s.refund = 0
+	s.clearJournalAndRefund()
 }
 
 // IntermediateRoot computes the current root hash of the state trie.
