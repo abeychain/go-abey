@@ -789,8 +789,6 @@ func (s *StateDB) FinaliseGroup(deleteEmptyObjects bool) {
 	}
 	// Invalidate journal.
 	s.clearJournalAndRefund()
-	s.validRevisions = s.validRevisions[:0]
-	s.refund = 0
 }
 // IntermediateRoot computes the current root hash of the state trie.
 // It is called in between transactions to get the root hash that
