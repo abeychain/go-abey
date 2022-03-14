@@ -44,7 +44,7 @@ type journal struct {
 func newJournal() *journal {
 	return &journal{
 		dirties:    make(map[common.Address]int),
-		entries: make(map[int][]journalEntry),
+		entries: make([]journalEntry,0,0),
 	}
 }
 
