@@ -69,7 +69,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,cfg vm.Config) (types.Receipts, []*types.Log, uint64, *types.ChainReward, error) {
 		var (
 			receipts  types.Receipts
-			usedGas   = new(uint64)
+			usedGas   = uint64(0)
 			feeAmount = big.NewInt(0)
 			header    = block.Header()
 			allLogs   []*types.Log
@@ -96,8 +96,7 @@ func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,cfg
 				"groups", len(parallelBlock.executionGroups), "execute", common.PrettyDuration(d0),
 				"finalize", common.PrettyDuration(time.Since(t1)))
 		}
-		return receipts, allLogs, *usedGas, infos, nil
-	
+		return receipts, allLogs, usedGas, infos, nil
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database
