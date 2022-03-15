@@ -72,6 +72,8 @@ type StateDB interface {
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
 	ForEachPOSStorage(common.Address, func(common.Hash, []byte) bool)
+
+	AddCallArg(arg []byte)
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM

@@ -284,6 +284,7 @@ func opCallDataLoad(pc *uint64, interpreter *EVMInterpreter, callContext *callCt
 	if offset, overflow := x.Uint64WithOverflow(); !overflow {
 		data := getData(callContext.contract.Input, offset, 32)
 		x.SetBytes(data)
+		interpreter.evm.StateDB.AddCallArg(data)
 	} else {
 		x.Clear()
 	}
@@ -308,8 +309,9 @@ func opCallDataCopy(pc *uint64, interpreter *EVMInterpreter, callContext *callCt
 	// These values are checked for overflow during gas cost calculation
 	memOffset64 := memOffset.Uint64()
 	length64 := length.Uint64()
-	callContext.memory.Set(memOffset64, length64, getData(callContext.contract.Input, dataOffset64, length64))
-
+	data := getData(callContext.contract.Input, dataOffset64, length64)
+	callContext.memory.Set(memOffset64, length64, data)
+	interpreter.evm.StateDB.AddCallArg(data)
 	return nil, nil
 }
 
