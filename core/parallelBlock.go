@@ -311,6 +311,7 @@ func (pb *ParallelBlock) checkGroupsConflict(ch0 chan *txInfo, ch1 chan *conflic
 	txInfos := make([]*txInfo, len(pb.txInfos))
 	nextIndex := 0
 
+	// judge the tx conflict by touched address in every tx with tx index one by one
 	for tx := range ch0 {
 		txInfos[tx.index] = tx
 		if tx.index == nextIndex {
@@ -499,6 +500,7 @@ func (pb *ParallelBlock) executeInParallelAndCheckConflict() (types.Receipts, []
 				wg.Wait()
 				close(chForUpdateCache)
 				<-chForFinish
+				close(txInfoCh)
 
 				pb.reGroupAndRevert(result.conflictGroups, result.conflictTxs)
 				chForUpdateCache = make(chan *addressRlpDataPair, len(pb.txInfos)*2)
