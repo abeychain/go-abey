@@ -33,7 +33,7 @@ func (aam *AssociatedAddressMngr) LoadAssociatedAddresses(addrs []common.Address
 
 	return result
 }
-
+// update the touched address of the contract'address in cache
 func (aam *AssociatedAddressMngr) UpdateAssociatedAddresses(associatedAddrs map[common.Address]*state.TouchedAddressObject) {
 	for addr, associatedAddr := range associatedAddrs {
 		if obj, exist := aam.lruCache.Get(addr); exist {

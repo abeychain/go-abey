@@ -615,6 +615,7 @@ func (pb *ParallelBlock) prepareAndGroup() error {
 	return nil
 }
 
+/// check the to address's touchedaddress in contract on the tx
 func (pb *ParallelBlock) processAssociatedAddressOfContract(ch chan *txInfo) {
 	associatedAddrs := make(map[common.Address]*state.TouchedAddressObject)
 
@@ -627,6 +628,7 @@ func (pb *ParallelBlock) processAssociatedAddressOfContract(ch chan *txInfo) {
 			touchedAddr.RemoveAccount(msg.Payment())
 			touchedAddr.RemoveAccountsInArgs()
 			if len(touchedAddr.AccountOp()) > 1 {
+				// address of the contract
 				associatedAddrs[*to] = touchedAddr
 			}
 		}
@@ -634,7 +636,7 @@ func (pb *ParallelBlock) processAssociatedAddressOfContract(ch chan *txInfo) {
 
 	associatedAddressMngr.UpdateAssociatedAddresses(associatedAddrs)
 }
-
+/// update the statedb for every group result.
 func (pb *ParallelBlock) updateStateDB(ch chan *addressRlpDataPair, chForFinish chan *state.StateDB) {
 	if len(pb.executionGroups) != 1 {
 		db := pb.statedb.Copy()
