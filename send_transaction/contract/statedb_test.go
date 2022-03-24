@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/abeychain/go-abey/core/common"
-	"github.com/abeychain/go-abey/core/crypto"
+	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/abeydb"
 	"math/big"

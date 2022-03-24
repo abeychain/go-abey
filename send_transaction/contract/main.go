@@ -41,9 +41,9 @@ func main() {
 	}
 	client := abeyclient.NewClient(rpcClient)
 
-	err = rpcClient.Call(&accounts, "etrue_accounts")
+	err = rpcClient.Call(&accounts, "abey_accounts")
 	if err != nil {
-		log.Fatalf("etrue_accounts Error: %v", err)
+		log.Fatalf("abey_accounts Error: %v", err)
 	}
 
 	_, err = unlockAccount(rpcClient, accounts[0], "admin", 9000000, "main")

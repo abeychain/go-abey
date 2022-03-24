@@ -9,7 +9,7 @@ import (
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/etruedb"
+	"github.com/abeychain/go-abey/abeydb"
 	"math/big"
 	"os"
 	"testing"
@@ -53,7 +53,7 @@ func DefaulGenesisBlock() *core.Genesis {
 
 var (
 	engine    = minerva.NewFaker()
-	db        = etruedb.NewMemDatabase()
+	db        = abeydb.NewMemDatabase()
 	gspec     = DefaulGenesisBlock()
 	signer    = types.NewTIP1Signer(gspec.Config.ChainID)
 	priKey, _ = crypto.HexToECDSA("0260c952edc49037129d8cabbe4603d15185d83aa718291279937fb6db0fa7a2")
