@@ -185,6 +185,7 @@ func (pb *ParallelBlock) reGroupAndRevert(conflictGroupMaps []map[int]struct{}, 
 		var txInfos []*txInfo
 		conflictGroups := make(map[int]*ExecutionGroup)
 
+		// keep conflict tx in the same group
 		for groupId := range conflictGroupIds {
 			txInfos = append(txInfos, pb.executionGroups[groupId].getTxInfos()...)
 			conflictGroups[groupId] = pb.executionGroups[groupId]
@@ -414,6 +415,7 @@ func (pb *ParallelBlock) executeGroup(group *ExecutionGroup, ch chan *txInfo) {
 		txInfo.result = NewTrxResult(receipt, statedb.FinalizeTouchedAddress(), trxUsedGas, feeAmount)
 		ch <- txInfo
 	}
+	// set and stop the group execute when the tx had failed or finished.
 	group.SetStartTrxPos(-1)
 }
 
@@ -437,6 +439,8 @@ func (pb *ParallelBlock) execute(group *ExecutionGroup, ch chan *txInfo, chForUp
 		}
 	}
 
+	// get state object from the touched address by the tx's result.
+	// because this addresses was dirty in the statedb.
 	for addr := range stateObjsToReuse {
 		select {
 		case <-chForExit:
@@ -445,9 +449,9 @@ func (pb *ParallelBlock) execute(group *ExecutionGroup, ch chan *txInfo, chForUp
 			stateObj, data, changed := pb.statedb.CopyStateObjRlpDataFromOtherDB(group.statedb, addr)
 			if changed {
 				chForUpdateCache <- &addressRlpDataPair{
-					address:  addr,
-					stateObj: stateObj,
-					rlpData:  data,
+					address:  addr,				// the touched address
+					stateObj: stateObj,			// the origin state object by the address
+					rlpData:  data,				// the rlp encode data by the state object
 				}
 			}
 		}
@@ -530,6 +534,7 @@ func (pb *ParallelBlock) executeInParallelAndCheckConflict() (types.Receipts, []
 	}
 	close(chForAssociatedAddr)
 
+	// settlement the result of the groups
 	for index, tx := range pb.block.Transactions() {
 		if gasErr := gp.SubGas(tx.Gas()); gasErr != nil {
 			return nil, nil, 0, gasErr
