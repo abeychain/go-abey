@@ -720,7 +720,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	for _, v := range s.journal.entries {
 		if _, ok := v.(balanceChange); ok {
 			stateObject, exist := s.stateObjects[*v.dirtied()]
-			if !exist {
+			if !exist || stateObject == nil {
 				continue
 			}
 			b := types.BalanceInfo{}
