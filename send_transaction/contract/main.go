@@ -119,7 +119,7 @@ func deployContractsInBatch(rpcClient *rpc.Client, client *abeyclient.Client, pr
 			log.Fatalf("Failed to encode create contract tx to bytes: %v", err)
 		}
 		batch[i%50] = rpc.BatchElem{
-			Method: "etrue_sendTrueRawTransaction",
+			Method: "abey_sendAbeyRawTransaction",
 			Args:   []interface{}{hexutil.Encode(data)},
 			Result: new(string),
 		}
@@ -181,7 +181,7 @@ func rechargeToAccountsByContract(rpcClient *rpc.Client, client *abeyclient.Clie
 				log.Fatalf("Failed to encode create contract tx to bytes: %v", err)
 			}
 			batch[i%countInBatch] = rpc.BatchElem{
-				Method: "etrue_sendTrueRawTransaction",
+				Method: "abey_sendAbeyRawTransaction",
 				Args:   []interface{}{hexutil.Encode(data)},
 				Result: new(string),
 			}
@@ -231,7 +231,7 @@ func rechargeToAccountsByTx(rpcClient *rpc.Client, privKeys []*ecdsa.PrivateKey,
 				log.Fatalf("Failed to encode tx to bytes: %v", err)
 			}
 			batch[i%countInBatch] = rpc.BatchElem{
-				Method: "etrue_sendTrueRawTransaction",
+				Method: "abey_sendAbeyRawTransaction",
 				Args:   []interface{}{hexutil.Encode(data)},
 				Result: new(string),
 			}
@@ -264,7 +264,7 @@ func sendRawTransaction(client *rpc.Client, from string, to string, value string
 	mapData["value"] = value
 
 	var result string
-	err := client.Call(&result, "etrue_sendTransaction", mapData)
+	err := client.Call(&result, "abey_sendTransaction", mapData)
 	return result, err
 }
 
@@ -303,7 +303,7 @@ func unlockAccount(client *rpc.Client, account string, password string, time int
 
 func getAccountBalanceValue(client *rpc.Client, account string, print bool) (*big.Int, string) {
 	var hex string
-	err := client.Call(&hex, "etrue_getBalance", account, "latest")
+	err := client.Call(&hex, "abey_getBalance", account, "latest")
 	if err != nil {
 		log.Fatalf("Failed to get balance: %v", err)
 	}
