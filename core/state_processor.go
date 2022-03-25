@@ -17,10 +17,8 @@
 package core
 
 import (
-	"github.com/abeychain/go-abey/common"
 	//"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/metrics"
 	"math"
 	"time"
@@ -67,37 +65,42 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
 func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,cfg vm.Config) (types.Receipts, []*types.Log, uint64, *types.ChainReward, error) {
-		var (
-			receipts  types.Receipts
-			usedGas   = uint64(0)
-			feeAmount = big.NewInt(0)
-			header    = block.Header()
-			allLogs   []*types.Log
-			// gp        = new(GasPool).AddGas(block.GasLimit())
-		)
-		t0 := time.Now()
-		start := time.Now()
-		parallelBlock := NewParallelBlock(block, statedb, fp.config, fp.bc, cfg, feeAmount)
-		receipts, allLogs, usedGas, err := parallelBlock.Process()
-		if err != nil {
-			return nil, nil, 0,nil, err
-		}
-		d0 := time.Since(t0)
-		t1 := time.Now()
-		// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-		_, infos, err := fp.engine.Finalize(fp.bc, header, statedb, block.Transactions(), receipts, feeAmount,false)
+	var (
+		receipts  types.Receipts
+		usedGas   = uint64(0)
+		feeAmount = big.NewInt(0)
+		header    = block.Header()
+		allLogs   []*types.Log
+		gp        = new(GasPool).AddGas(block.GasLimit())
+	)
+	//t0 := time.Now()
+	start := time.Now()
+	// Iterate over and process the individual transactions
+	for i, tx := range block.Transactions() {
+		statedb.Prepare(tx.Hash(), block.Hash(), i)
+		receipt, err := ApplyTransaction(fp.config, fp.bc, gp, statedb, header, tx, &usedGas, feeAmount, cfg)
 		if err != nil {
 			return nil, nil, 0, nil, err
 		}
-		blockExecutionTxTimer.Update(t1.Sub(start))
-		blockFinalizeTimer.Update(time.Since(t1))
-		if block.Transactions().Len() != 0 {
-			log.Info("Process:", "block ", block.Number(), "txs", block.Transactions().Len(),
-				"groups", len(parallelBlock.executionGroups), "execute", common.PrettyDuration(d0),
-				"finalize", common.PrettyDuration(time.Since(t1)))
-		}
-		return receipts, allLogs, usedGas, infos, nil
+		receipts = append(receipts, receipt)
+		allLogs = append(allLogs, receipt.Logs...)
+	}
+	t1 := time.Now()
+	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
+	_, infos, err := fp.engine.Finalize(fp.bc, header, statedb, block.Transactions(), receipts, feeAmount,false)
+	if err != nil {
+		return nil, nil, 0, nil, err
+	}
+	blockExecutionTxTimer.Update(t1.Sub(start))
+	blockFinalizeTimer.Update(time.Since(t1))
+	if block.Transactions().Len() != 0 {
+		//log.Info("Process:", "block ", block.Number(), "txs", block.Transactions().Len(),
+		//	"groups", len(parallelBlock.executionGroups), "execute", common.PrettyDuration(d0),
+		//	"finalize", common.PrettyDuration(time.Since(t1)))
+	}
+	return receipts, allLogs, usedGas, infos, nil
 }
+
 
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
