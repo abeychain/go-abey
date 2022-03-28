@@ -48,7 +48,9 @@ type Validator interface {
 // failed.
 type Processor interface {
 	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64,*types.ChainReward, error)
+	Process2(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64,*types.ChainReward, error)
 }
+
 
 // SnailValidator is an interface which defines the standard for block validation. It
 // is only responsible for validating block contents, as the header validation is
