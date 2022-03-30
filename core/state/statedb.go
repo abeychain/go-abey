@@ -209,7 +209,7 @@ func (self *StateDB) AddRefund(gas uint64) {
 func (self *StateDB) SubRefund(gas uint64) {
 	self.journal.append(refundChange{prev: self.refund})
 	if gas > self.refund {
-		panic("Refund counter below zero")
+		panic(fmt.Sprintf("Refund counter below zero (gas: %d > refund: %d)", gas, self.refund))
 	}
 	self.refund -= gas
 }
