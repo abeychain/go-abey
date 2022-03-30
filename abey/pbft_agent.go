@@ -1145,8 +1145,15 @@ func (agent *PbftAgent) VerifyFastBlock(fb *types.Block, result bool) (*types.Pb
 		voteSign, _ := agent.GenerateSignWithVote(fb, types.VoteAgreeAgainst, result)
 		return voteSign, err
 	}
-
-	receipts, _, usedGas, _, err := bc.Processor().Process2(fb, state, agent.vmConfig) //update
+	var (
+		receipts  	types.Receipts
+		usedGas   	= uint64(0)
+	)
+	if bc.IsParallel() {
+		receipts, _, usedGas, _, err = bc.Processor().Process2(fb, state, agent.vmConfig) //update
+	} else {
+		receipts, _, usedGas, _, err = bc.Processor().Process(fb, state, agent.vmConfig) //update
+	}
 	if err != nil {
 		if err == types.ErrSnailHeightNotYet {
 			log.Warn("verifyFastBlock :Snail height not yet", "currentFastNumber", fb.NumberU64(),

@@ -174,7 +174,10 @@ var (
 		Name:  "singlenode",
 		Usage: "sing node model start",
 	}
-
+	ParallelFlag = cli.BoolFlag{
+		Name:  "parallel",
+		Usage: "parallel txs",
+	}
 	//election setting
 	EnableElectionFlag = cli.BoolFlag{
 		Name:  "election",
@@ -1155,7 +1158,9 @@ func SetAbeychainConfig(ctx *cli.Context, stack *node.Node, cfg *abey.Config) {
 	if ctx.GlobalIsSet(BFTStandbyPortFlag.Name) {
 		cfg.StandbyPort = int(ctx.GlobalUint64(BFTStandbyPortFlag.Name))
 	}
-
+	if ctx.GlobalBool(ParallelFlag.Name) {
+		cfg.Parallel = true
+	}
 	//set PrivateKey by config,file or hex
 	setBftCommitteeKey(ctx, cfg)
 	if cfg.PrivateKey == nil {

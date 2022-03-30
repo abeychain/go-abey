@@ -151,6 +151,7 @@ type BlockChain struct {
 
 	isFallback bool
 	lastBlock  atomic.Value
+	parallel   bool
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -200,6 +201,7 @@ func NewBlockChain(db abeydb.Database, cacheConfig *CacheConfig,
 		vmConfig:         vmConfig,
 		badBlocks:        badBlocks,
 		isFallback:       false,
+		parallel:		  false,
 	}
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
@@ -235,6 +237,13 @@ func NewBlockChain(db abeydb.Database, cacheConfig *CacheConfig,
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
+}
+
+func (bc *BlockChain) IsParallel() bool {
+	return bc.parallel
+}
+func (bc *BlockChain) SetParallel(b bool) {
+	bc.parallel = b
 }
 
 func (bc *BlockChain) getProcInterrupt() bool {
@@ -1318,9 +1327,19 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 		if err != nil {
 			return it.index, events, coalescedLogs, err
 		}
+		var (
+			receipts  	types.Receipts
+			usedGas   	= uint64(0)
+			infos   	*types.ChainReward
+			logs   		[]*types.Log
+		)
 		// Process block using the parent state as reference point.
 		t0 := time.Now()
-		receipts, logs, usedGas, infos, err := bc.processor.Process2(block, statedb, bc.vmConfig)
+		if bc.IsParallel() {
+			receipts, logs, usedGas, infos, err = bc.processor.Process2(block, statedb, bc.vmConfig)
+		} else {
+			receipts, logs, usedGas, infos, err = bc.processor.Process(block, statedb, bc.vmConfig)
+		}
 		t1 := time.Now()
 		if err != nil {
 			bc.reportBlock(block, receipts, err)

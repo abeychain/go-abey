@@ -68,7 +68,7 @@ var (
 		utils.SyncModeFlag,
 
 		utils.SingleNodeFlag,
-
+		utils.ParallelFlag,
 		utils.EnableElectionFlag,
 
 		utils.BFTPortFlag,

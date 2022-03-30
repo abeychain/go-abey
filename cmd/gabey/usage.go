@@ -88,6 +88,11 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.SingleNodeFlag,
 		},
 	},
+	{Name: "PARALLEL TXS",
+		Flags: []cli.Flag{
+			utils.ParallelFlag,
+		},
+	},
 	{Name: "ELECTION",
 		Flags: []cli.Flag{
 			utils.EnableElectionFlag,

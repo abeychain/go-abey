@@ -177,7 +177,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	abey.blockchain.SetParallel(config.Parallel)
 	abey.snailblockchain, err = chain.NewSnailBlockChain(chainDb, abey.chainConfig, abey.engine, abey.blockchain)
 	if err != nil {
 		return nil, err

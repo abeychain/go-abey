@@ -177,6 +177,7 @@ type Config struct {
 
 	//true indicate only remote mine
 	RemoteMine bool `toml:",omitempty"`
+	Parallel bool `toml:",omitempty"`
 }
 
 func (c *Config) GetNodeType() bool {
