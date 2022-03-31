@@ -208,10 +208,12 @@ func (self *StateDB) AddRefund(gas uint64) {
 // This method will panic if the refund counter goes below zero
 func (self *StateDB) SubRefund(gas uint64) {
 	self.journal.append(refundChange{prev: self.refund})
-	if gas > self.refund {
-		panic(fmt.Sprintf("Refund counter below zero (gas: %d > refund: %d)", gas, self.refund))
+	if self.refund >= gas {
+		self.refund -= gas
 	}
-	self.refund -= gas
+	//if gas > self.refund {
+	//	panic(fmt.Sprintf("Refund counter below zero (gas: %d > refund: %d)", gas, self.refund))
+	//}
 }
 
 // Exist reports whether the given account address exists in the state.
