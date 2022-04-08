@@ -3,20 +3,19 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
+	"github.com/abeychain/go-abey/consensus/minerva"
+	"github.com/abeychain/go-abey/core"
+	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/log"
-	"github.com/abeychain/go-abey/consensus/minerva"
-	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/params"
 	"math/big"
 	"os"
 	"testing"
-
-	"github.com/abeychain/go-abey/core"
-	"github.com/abeychain/go-abey/core/vm"
-	"github.com/abeychain/go-abey/params"
 )
 
 func init() {
@@ -106,13 +105,13 @@ func TestParallelTX(t *testing.T) {
 			}
 		}
 	})
-	params.ApplytxTime = 0
-	params.FinalizeTime = 0
-	params.ProcessTime = 0
-	params.InsertBlockTime = 0
+	//params.ApplytxTime = 0
+	//params.FinalizeTime = 0
+	//params.ProcessTime = 0
+	//params.InsertBlockTime = 0
 	repeat := int64(2)
 	for i := 0; i < int(repeat); i++ {
-		db1 := etruedb.NewMemDatabase()
+		db1 := abeydb.NewMemDatabase()
 		gspec.MustFastCommit(db1)
 
 		blockchain, err := core.NewBlockChain(db1, nil, gspec.Config, engine, vm.Config{})
@@ -123,11 +122,11 @@ func TestParallelTX(t *testing.T) {
 			panic(err)
 		}
 	}
-	log.Info("Process:",
-		"applyTxs", common.PrettyDuration(time.Duration(int64(params.ApplytxTime)/repeat)),
-		"finalize", common.PrettyDuration(time.Duration(int64(params.FinalizeTime)/repeat)),
-		"Process", common.PrettyDuration(time.Duration(int64(params.ProcessTime)/repeat)),
-		"insertblock", common.PrettyDuration(time.Duration(int64(params.InsertBlockTime)/repeat)))
+	//log.Info("Process:",
+	//	"applyTxs", common.PrettyDuration(time.Duration(int64(params.ApplytxTime)/repeat)),
+	//	"finalize", common.PrettyDuration(time.Duration(int64(params.FinalizeTime)/repeat)),
+	//	"Process", common.PrettyDuration(time.Duration(int64(params.ProcessTime)/repeat)),
+	//	"insertblock", common.PrettyDuration(time.Duration(int64(params.InsertBlockTime)/repeat)))
 }
 
 func trueToWei(trueValue uint64) *big.Int {
