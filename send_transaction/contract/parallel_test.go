@@ -154,15 +154,13 @@ func Test01(t *testing.T) {
 				nonce = nonce + 1
 			}
 		case 1:
-			// In block 2, addr1 sends some more ether to addr2.
-			//nonce := gen.TxNonce(mAccount)
-			//key, _ := crypto.GenerateKey()
-			//coinbase := crypto.PubkeyToAddress(key.PublicKey)
-			//for i := 0; i < sendNumber; i++ {
-			//	tx, _ := types.SignTx(types.NewTransaction(nonce, coinbase, abeyToWei(2), params.TxGas, nil, nil), signer, priKey)
-			//	gen.AddTx(tx)
-			//	nonce = nonce + 1
-			//}
+			//In block 2, deploy the contract.
+			for i := 0; i < sendNumber; i++ {
+				nonce := gen.TxNonce(delegateAddr[i])
+				tx, contractAddr := newContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin))
+				gen.AddTx(tx)
+				fmt.Println("from",delegateAddr[i],"contract address",contractAddr)
+			}
 		case 3:
 			for k, v := range delegateAddr {
 				key, _ := crypto.GenerateKey()
