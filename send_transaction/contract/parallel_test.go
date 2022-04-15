@@ -3,8 +3,10 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/abeychain/go-abey/accounts/abi"
 	"math/big"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/abeychain/go-abey/abeydb"
@@ -137,6 +139,8 @@ func Test01(t *testing.T) {
 	sendNumber := 100
 	delegateKey := make([]*ecdsa.PrivateKey, sendNumber)
 	delegateAddr := make([]common.Address, sendNumber)
+	contracts := make(map[common.Address]common.Address)
+
 	for i := 0; i < sendNumber; i++ {
 		delegateKey[i], _ = crypto.GenerateKey()
 		delegateAddr[i] = crypto.PubkeyToAddress(delegateKey[i].PublicKey)
@@ -158,19 +162,24 @@ func Test01(t *testing.T) {
 			for i := 0; i < sendNumber; i++ {
 				nonce := gen.TxNonce(delegateAddr[i])
 				tx, contractAddr := newContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin))
+				contracts[delegateAddr[i]] = contractAddr
+
 				gen.AddTx(tx)
 				fmt.Println("from",delegateAddr[i],"contract address",contractAddr)
 			}
-		case 3:
-			for k, v := range delegateAddr {
-				key, _ := crypto.GenerateKey()
-				coinbase := crypto.PubkeyToAddress(key.PublicKey)
-				nonce := gen.TxNonce(v)
-				for i := 0; i < 1; i++ {
-					tx, _ := types.SignTx(types.NewTransaction(nonce, coinbase, new(big.Int).SetInt64(30000), params.TxGas, nil, nil), signer, delegateKey[k])
-					gen.AddTx(tx)
-					nonce = nonce + 1
-				}
+		case 2:
+			// in block 3, call function for the contract
+			parsed, err := abi.JSON(strings.NewReader(CoinABI))
+			if err != nil {
+				panic(fmt.Sprintf("Failed to parse abi %v", err))
+			}
+			for i:=0;i<sendNumber;i++ {
+				addr1,addr2 := makeAddress(),makeAddress()
+				input, _ := parsed.Pack("rechargeToAccount", addr1, addr2)
+				value := abeyToWei(2)
+				nonce := gen.TxNonce(delegateAddr[i])
+				tx := newCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value)
+				gen.AddTx(tx)
 			}
 		}
 	})
@@ -199,4 +208,8 @@ func weiToAbey(value *big.Int) uint64 {
 	baseUnit := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 	valueT := new(big.Int).Div(value, baseUnit).Uint64()
 	return valueT
+}
+func makeAddress() common.Address {
+	key, _ := crypto.GenerateKey()
+	return  crypto.PubkeyToAddress(key.PublicKey)
 }
