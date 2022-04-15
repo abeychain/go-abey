@@ -76,10 +76,10 @@ func TestParallelTX(t *testing.T) {
 		switch i {
 		case 0:
 			// In block 1, addr1 sends addr2 some ether.
-			fmt.Println("balance ", weiToTrue(gen.GetState().GetBalance(mAccount)))
+			fmt.Println("balance ", weiToAbey(gen.GetState().GetBalance(mAccount)))
 			nonce := gen.TxNonce(mAccount)
 			for _, v := range delegateAddr {
-				tx, _ := types.SignTx(types.NewTransaction(nonce, v, trueToWei(2), params.TxGas, nil, nil), signer, priKey)
+				tx, _ := types.SignTx(types.NewTransaction(nonce, v, abeyToWei(2), params.TxGas, nil, nil), signer, priKey)
 				gen.AddTx(tx)
 				nonce = nonce + 1
 			}
@@ -89,7 +89,7 @@ func TestParallelTX(t *testing.T) {
 			key, _ := crypto.GenerateKey()
 			coinbase := crypto.PubkeyToAddress(key.PublicKey)
 			for i := 0; i < sendNumber; i++ {
-				tx, _ := types.SignTx(types.NewTransaction(nonce, coinbase, trueToWei(2), params.TxGas, nil, nil), signer, priKey)
+				tx, _ := types.SignTx(types.NewTransaction(nonce, coinbase, abeyToWei(2), params.TxGas, nil, nil), signer, priKey)
 				gen.AddTx(tx)
 				nonce = nonce + 1
 			}
@@ -130,13 +130,13 @@ func TestParallelTX(t *testing.T) {
 	//	"insertblock", common.PrettyDuration(time.Duration(int64(params.InsertBlockTime)/repeat)))
 }
 
-func trueToWei(trueValue uint64) *big.Int {
+func abeyToWei(trueValue uint64) *big.Int {
 	baseUnit := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 	value := new(big.Int).Mul(big.NewInt(int64(trueValue)), baseUnit)
 	return value
 }
 
-func weiToTrue(value *big.Int) uint64 {
+func weiToAbey(value *big.Int) uint64 {
 	baseUnit := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 	valueT := new(big.Int).Div(value, baseUnit).Uint64()
 	return valueT

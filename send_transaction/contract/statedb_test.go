@@ -35,8 +35,8 @@ func TestStateTime(t *testing.T) {
 
 	nonce := state0.GetNonce(mAccount)
 	for _, v := range delegateAddr {
-		state0.SubBalance(mAccount, trueToWei(2))
-		state0.AddBalance(v, trueToWei(2))
+		state0.SubBalance(mAccount, abeyToWei(2))
+		state0.AddBalance(v, abeyToWei(2))
 		nonce = nonce + 1
 		state0.SetNonce(mAccount, nonce)
 	}
@@ -54,8 +54,8 @@ func TestStateTime(t *testing.T) {
 	state1, _ := state.New(root, state.NewDatabase(db))
 	nonce = state1.GetNonce(mAccount)
 	for i := 0; i < sendNumber; i++ {
-		state1.SubBalance(mAccount, trueToWei(2))
-		state1.AddBalance(coinbase, trueToWei(2))
+		state1.SubBalance(mAccount, abeyToWei(2))
+		state1.AddBalance(coinbase, abeyToWei(2))
 		nonce = nonce + 1
 		state1.SetNonce(mAccount, nonce)
 	}
@@ -71,7 +71,7 @@ func TestStateTime(t *testing.T) {
 	if err := state1.Database().TrieDB().Commit(root1, false); err != nil {
 		panic(fmt.Sprintf("trie write error: %v", err))
 	}
-	fmt.Println("balance", weiToTrue(state1.GetBalance(mAccount)), "apply", common.PrettyDuration(t1.Sub(start)),
+	fmt.Println("balance", weiToAbey(state1.GetBalance(mAccount)), "apply", common.PrettyDuration(t1.Sub(start)),
 		"IntermediateRoot", common.PrettyDuration(t2.Sub(t1)),
 		"Commit", common.PrettyDuration(t3.Sub(t2)),
 		"DBCommit", common.PrettyDuration(time.Since(t3)),
@@ -82,8 +82,8 @@ func TestStateTime(t *testing.T) {
 	state1, _ = state.New(root, state.NewDatabase(db))
 	nonce = state1.GetNonce(mAccount)
 	for k, v := range delegateAddr {
-		state1.SubBalance(v, trueToWei(1))
-		state1.AddBalance(toAddr[k], trueToWei(1))
+		state1.SubBalance(v, abeyToWei(1))
+		state1.AddBalance(toAddr[k], abeyToWei(1))
 		state1.SetNonce(v, state1.GetNonce(v)+1)
 	}
 
@@ -99,7 +99,7 @@ func TestStateTime(t *testing.T) {
 	if err := state1.Database().TrieDB().Commit(root1, false); err != nil {
 		panic(fmt.Sprintf("trie write error: %v", err))
 	}
-	fmt.Println("balance", weiToTrue(state1.GetBalance(mAccount)), "apply", common.PrettyDuration(t1.Sub(start)),
+	fmt.Println("balance", weiToAbey(state1.GetBalance(mAccount)), "apply", common.PrettyDuration(t1.Sub(start)),
 		"IntermediateRoot", common.PrettyDuration(t2.Sub(t1)),
 		"Commit", common.PrettyDuration(t3.Sub(t2)),
 		"DBCommit", common.PrettyDuration(time.Since(t3)),
@@ -138,8 +138,8 @@ func TestStateTime(t *testing.T) {
 			go func() {
 				stateC := t.state
 				for k, v := range t.from {
-					stateC.SubBalance(v, trueToWei(1))
-					stateC.AddBalance(t.to[k], trueToWei(1))
+					stateC.SubBalance(v, abeyToWei(1))
+					stateC.AddBalance(t.to[k], abeyToWei(1))
 					stateC.SetNonce(v, stateC.GetNonce(v)+1)
 				}
 				taskdone <- t
