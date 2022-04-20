@@ -346,6 +346,16 @@ func Test08(t *testing.T) {
 	fmt.Println("abey-addr:",addr.StringToAbey())
 	fmt.Println("finish")
 }
+func Test09(t *testing.T) {
+	priv, _ := crypto.HexToECDSA(key1)
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+	fmt.Println(addr.String())
+
+	if err := types.ForbidAddress(addr); err != nil {
+		fmt.Println(err)
+	}
+}
+
 func generateAddr() common.Address {
 	priv, _ := crypto.GenerateKey()
 	privHex := hex.EncodeToString(crypto.FromECDSA(priv))

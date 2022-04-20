@@ -22,6 +22,10 @@ var (
 	// i.e. contractAddress = 0x000000000000000000747275657374616b696E67
 	StakingAddress    = common.BytesToAddress([]byte("truestaking"))
 	MixEpochCount     = 2
+	whitelist = []common.Address{
+		common.HexToAddress("0x8818d143773426071068C514Db25106338009363"),
+		common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
+	}
 )
 
 var (
@@ -478,7 +482,12 @@ func MinCalcRedeemHeight(eid uint64) uint64 {
 }
 func ForbidAddress(addr common.Address) error {
 	if bytes.Equal(addr[:], StakingAddress[:]) {
-		return errors.New(fmt.Sprint("addr error:", addr, ErrForbidAddress))
+		return errors.New(fmt.Sprint("addr error:", addr.String(), " ",ErrForbidAddress))
+	}
+	for _,addr0 := range whitelist {
+		if bytes.Equal(addr[:], addr0[:]) {
+			return errors.New(fmt.Sprint("addr error:", addr.String(), " ",ErrForbidAddress))
+		}
 	}
 	return nil
 }
