@@ -20,8 +20,12 @@ var (
 	InvalidFee = big.NewInt(65535)
 	// StakingAddress is defined as Address('truestaking')
 	// i.e. contractAddress = 0x000000000000000000747275657374616b696E67
-	StakingAddress    = common.BytesToAddress([]byte("truestaking"))
-	MixEpochCount     = 2
+	StakingAddress = common.BytesToAddress([]byte("truestaking"))
+	MixEpochCount  = 2
+	whitelist      = []common.Address{
+		common.HexToAddress("0x8818d143773426071068C514Db25106338009363"),
+		common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
+	}
 )
 
 var (
@@ -100,11 +104,12 @@ type RewardInfo struct {
 	Amount  *big.Int       `json:"Amount"`
 	Staking *big.Int       `json:"Staking"`
 }
+
 func (e *RewardInfo) clone() *RewardInfo {
 	return &RewardInfo{
-		Address:	e.Address,
-		Amount:		new(big.Int).Set(e.Amount),
-		Staking:	new(big.Int).Set(e.Staking),
+		Address: e.Address,
+		Amount:  new(big.Int).Set(e.Amount),
+		Staking: new(big.Int).Set(e.Staking),
 	}
 }
 func (e *RewardInfo) String() string {
@@ -140,9 +145,9 @@ func FetchOneToAbey(sas []*SARewardInfos, addr common.Address) map[string]interf
 			}
 		}
 	}
-	infos := make([]map[string]interface{},0,0)
-	for _,v := range items {
-		infos = append(infos,v.ToJson())
+	infos := make([]map[string]interface{}, 0, 0)
+	for _, v := range items {
+		infos = append(infos, v.ToJson())
 	}
 	return map[string]interface{}{
 		"committeeReward": infos,
@@ -167,10 +172,11 @@ func mergeRewardInfos(items1, itmes2 []*RewardInfo) []*RewardInfo {
 type SARewardInfos struct {
 	Items []*RewardInfo `json:"Items"`
 }
+
 func (s *SARewardInfos) clone() *SARewardInfos {
 	var res SARewardInfos
-	for _,v := range s.Items {
-		res.Items = append(res.Items,v.clone())
+	for _, v := range s.Items {
+		res.Items = append(res.Items, v.clone())
 	}
 	return &res
 }
@@ -189,14 +195,15 @@ func (s *SARewardInfos) String() string {
 	return ss
 }
 func (s *SARewardInfos) StringToAbey() map[string]interface{} {
-	ss := make([]map[string]interface{},0,0)
+	ss := make([]map[string]interface{}, 0, 0)
 	for _, v := range s.Items {
-		ss = append(ss,v.ToJson())
+		ss = append(ss, v.ToJson())
 	}
 	item := make(map[string]interface{})
 	item["SaReward"] = ss
 	return item
 }
+
 type TimedChainReward struct {
 	St     uint64
 	Number uint64
@@ -210,16 +217,17 @@ type ChainReward struct {
 	FruitBase     []*RewardInfo    `json:"fruitminer"`
 	CommitteeBase []*SARewardInfos `json:"committeeReward"`
 }
-func (s *ChainReward) CoinRewardInfo()  map[string]interface{} {
+
+func (s *ChainReward) CoinRewardInfo() map[string]interface{} {
 	feild := map[string]interface{}{
 		"blockminer": s.CoinBase.ToJson(),
 	}
 	return feild
 }
 func (s *ChainReward) FruitRewardInfo() map[string]interface{} {
-	infos := make([]map[string]interface{},0,0)
-	for _,v := range s.FruitBase {
-		infos = append(infos,v.ToJson())
+	infos := make([]map[string]interface{}, 0, 0)
+	for _, v := range s.FruitBase {
+		infos = append(infos, v.ToJson())
 	}
 	feild := map[string]interface{}{
 		"fruitminer": infos,
@@ -227,9 +235,9 @@ func (s *ChainReward) FruitRewardInfo() map[string]interface{} {
 	return feild
 }
 func (s *ChainReward) CommitteeRewardInfo() map[string]interface{} {
-	infos := make([]map[string]interface{},0,0)
-	for _,v := range s.CommitteeBase {
-		infos = append(infos,v.StringToAbey())
+	infos := make([]map[string]interface{}, 0, 0)
+	for _, v := range s.CommitteeBase {
+		infos = append(infos, v.StringToAbey())
 	}
 	feild := map[string]interface{}{
 		"committeeReward": infos,
@@ -239,13 +247,13 @@ func (s *ChainReward) CommitteeRewardInfo() map[string]interface{} {
 
 func CloneChainReward(reward *ChainReward) *ChainReward {
 	var res ChainReward
-	res.Height,res.St = reward.Height,reward.St
+	res.Height, res.St = reward.Height, reward.St
 	res.CoinBase = reward.CoinBase.clone()
-	for _,v := range reward.FruitBase {
-		res.FruitBase = append(res.FruitBase,v.clone())
+	for _, v := range reward.FruitBase {
+		res.FruitBase = append(res.FruitBase, v.clone())
 	}
-	for _,v := range reward.CommitteeBase {
-		res.CommitteeBase = append(res.CommitteeBase,v.clone())
+	for _, v := range reward.CommitteeBase {
+		res.CommitteeBase = append(res.CommitteeBase, v.clone())
 	}
 	return &res
 }
@@ -478,7 +486,12 @@ func MinCalcRedeemHeight(eid uint64) uint64 {
 }
 func ForbidAddress(addr common.Address) error {
 	if bytes.Equal(addr[:], StakingAddress[:]) {
-		return errors.New(fmt.Sprint("addr error:", addr, ErrForbidAddress))
+		return errors.New(fmt.Sprint("addr error:", addr.String(), " ", ErrForbidAddress))
+	}
+	for _, addr0 := range whitelist {
+		if bytes.Equal(addr[:], addr0[:]) {
+			return errors.New(fmt.Sprint("addr error:", addr.String(), " ", ErrForbidAddress))
+		}
 	}
 	return nil
 }
