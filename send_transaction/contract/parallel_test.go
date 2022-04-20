@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/abeychain/go-abey/accounts/abi"
+	"github.com/abeychain/go-abey/accounts/abi/bind"
 	"math/big"
 	"os"
 	"strings"
@@ -161,7 +162,7 @@ func Test01(t *testing.T) {
 			//In block 2, deploy the contract.
 			for i := 0; i < sendNumber; i++ {
 				nonce := gen.TxNonce(delegateAddr[i])
-				tx, contractAddr := newContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin))
+				tx, contractAddr := makeContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin))
 				contracts[delegateAddr[i]] = contractAddr
 
 				gen.AddTx(tx)
@@ -178,7 +179,7 @@ func Test01(t *testing.T) {
 				input, _ := parsed.Pack("rechargeToAccount", addr1, addr2)
 				value := abeyToWei(2)
 				nonce := gen.TxNonce(delegateAddr[i])
-				tx := newCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value)
+				tx := makeCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value)
 				gen.AddTx(tx)
 			}
 		}
@@ -198,12 +199,41 @@ func Test01(t *testing.T) {
 		}
 	}
 }
+
+
+
+///////////////////////////////////////////////////////////////////////
+func makeContractTransaction(key *ecdsa.PrivateKey, nonce uint64, data []byte) (*types.Transaction, common.Address) {
+	opts := bind.NewKeyedTransactor(key)
+	value := new(big.Int)
+	gasLimit := uint64(500000)
+	gasPrice := big.NewInt(10000)
+
+	rawTx := types.NewContractCreation(nonce, value, gasLimit, gasPrice, data)
+	signer := types.NewTIP1Signer(gspec.Config.ChainID)
+	signedTx, _ := opts.Signer(signer, opts.From, rawTx)
+	address := crypto.CreateAddress(opts.From, signedTx.Nonce())
+
+	return signedTx, address
+}
+
+func makeCallTransaction(key *ecdsa.PrivateKey, to common.Address, nonce uint64, input []byte, value *big.Int) *types.Transaction {
+	opts := bind.NewKeyedTransactor(key)
+	gasLimit := uint64(500000)
+	gasPrice := big.NewInt(10000)
+
+	rawTx := types.NewTransaction(nonce, to, value, gasLimit, gasPrice, input)
+	signer := types.NewTIP1Signer(gspec.Config.ChainID)
+	signedTx, _ := opts.Signer(signer, opts.From, rawTx)
+
+	return signedTx
+}
+///////////////////////////////////////////////////////////////////////
 func abeyToWei(vaule uint64) *big.Int {
 	baseUnit := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 	value := new(big.Int).Mul(big.NewInt(int64(vaule)), baseUnit)
 	return value
 }
-
 func weiToAbey(value *big.Int) uint64 {
 	baseUnit := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 	valueT := new(big.Int).Div(value, baseUnit).Uint64()
@@ -213,3 +243,5 @@ func makeAddress() common.Address {
 	key, _ := crypto.GenerateKey()
 	return  crypto.PubkeyToAddress(key.PublicKey)
 }
+
+///////////////////////////////////////////////////////////////////////
