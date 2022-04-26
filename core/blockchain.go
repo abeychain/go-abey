@@ -1347,6 +1347,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 		}
 		// Validate the state using the default validator
 		if err := bc.Validator().ValidateState(block, parent, statedb, receipts, usedGas); err != nil {
+			log.Info("validate the state failed,will retry process...")
 			if statedb,err = state.New(parent.Root(), bc.stateCache);err != nil {
 				return it.index, events, coalescedLogs, err
 			}

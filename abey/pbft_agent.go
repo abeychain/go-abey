@@ -1166,6 +1166,7 @@ func (agent *PbftAgent) VerifyFastBlock(fb *types.Block, result bool) (*types.Pb
 	}
 	err = bc.Validator().ValidateState(fb, parent, state, receipts, usedGas)
 	if err != nil {
+		log.Info("[pbft agent] validate the state failed,will retry process...")
 		receipts, _, usedGas, _, err = bc.Processor().Process(fb, state, agent.vmConfig) //update
 		if err != nil {
 			if err == types.ErrSnailHeightNotYet {
