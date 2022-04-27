@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
@@ -199,7 +200,74 @@ func Test01(t *testing.T) {
 		}
 	}
 }
+func Test02(t *testing.T) {
+	params.MinTimeGap = big.NewInt(0)
+	params.SnailRewardInterval = big.NewInt(3)
 
+	sendNumber := 50
+	delegateKey := make([]*ecdsa.PrivateKey, sendNumber)
+	delegateAddr := make([]common.Address, sendNumber)
+	contracts := make(map[common.Address]common.Address)
+
+	for i := 0; i < sendNumber; i++ {
+		delegateKey[i], _ = crypto.GenerateKey()
+		delegateAddr[i] = crypto.PubkeyToAddress(delegateKey[i].PublicKey)
+	}
+	genesis := gspec.MustFastCommit(db)
+	chain, _ := core.GenerateChain(gspec.Config, genesis, engine, db, 10, func(i int, gen *core.BlockGen) {
+		switch i {
+		case 0:
+			// In block 1, addr1 sends addr2 some ether.
+			fmt.Println("balance ", weiToAbey(gen.GetState().GetBalance(mAccount)))
+			nonce := gen.TxNonce(mAccount)
+			for _, v := range delegateAddr {
+				tx, _ := types.SignTx(types.NewTransaction(nonce, v, abeyToWei(20), params.TxGas, nil, nil), signer, priKey)
+				gen.AddTx(tx)
+				nonce = nonce + 1
+			}
+		case 1:
+			//In block 2, deploy the contract.
+			for i := 0; i < sendNumber; i++ {
+				nonce := gen.TxNonce(delegateAddr[i])
+				tx, contractAddr := makeContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin))
+				contracts[delegateAddr[i]] = contractAddr
+
+				gen.AddTx(tx)
+				fmt.Println("from",delegateAddr[i],"contract address",contractAddr)
+			}
+		case 2:
+			// in block 3, call function for the contract
+			parsed, err := abi.JSON(strings.NewReader(CoinABI))
+			if err != nil {
+				panic(fmt.Sprintf("Failed to parse abi %v", err))
+			}
+			for i:=0;i<sendNumber;i++ {
+				addr1,addr2 := makeAddress(),makeAddress()
+				input, _ := parsed.Pack("rechargeToAccount", addr1, addr2)
+				value := abeyToWei(2)
+				nonce := gen.TxNonce(delegateAddr[i])
+				tx := makeCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value)
+				gen.AddTx(tx)
+			}
+		}
+	})
+
+	repeat := int64(2)
+	for i := 0; i < int(repeat); i++ {
+		db1 := abeydb.NewMemDatabase()
+		gspec.MustFastCommit(db1)
+
+		blockchain, err := core.NewBlockChain(db1, nil, gspec.Config, engine, vm.Config{})
+		if err != nil {
+			fmt.Println("NewBlockChain ", err)
+		}
+		start := time.Now()
+		if _, err := blockchain.InsertChain(chain); err != nil {
+			panic(err)
+		}
+		fmt.Println("execute ",i," cost time",time.Now().Sub(start))
+	}
+}
 
 
 ///////////////////////////////////////////////////////////////////////
