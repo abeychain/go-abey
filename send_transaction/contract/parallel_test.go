@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
+	log.Root().SetHandler(log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
 }
 
 func DefaulGenesisBlock() *core.Genesis {
@@ -261,6 +261,23 @@ func Test02(t *testing.T) {
 		if err != nil {
 			fmt.Println("NewBlockChain ", err)
 		}
+		blockchain.SetParallel(true)
+		start := time.Now()
+		if _, err := blockchain.InsertChain(chain); err != nil {
+			panic(err)
+		}
+		fmt.Println("execute ",i," cost time",time.Now().Sub(start))
+	}
+	fmt.Println("insert block for the in direct")
+	for i := 0; i < int(repeat); i++ {
+		db1 := abeydb.NewMemDatabase()
+		gspec.MustFastCommit(db1)
+
+		blockchain, err := core.NewBlockChain(db1, nil, gspec.Config, engine, vm.Config{})
+		if err != nil {
+			fmt.Println("NewBlockChain ", err)
+		}
+		blockchain.SetParallel(false)
 		start := time.Now()
 		if _, err := blockchain.InsertChain(chain); err != nil {
 			panic(err)
