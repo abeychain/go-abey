@@ -1224,7 +1224,34 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	bc.postChainEvents(events, logs)
 	return n, err
 }
+func (bc *BlockChain) InsertChain2(chain types.Blocks) (int, error) {
+	// Sanity check that we have something meaningful to import
+	if len(chain) == 0 {
+		return 0, nil
+	}
+	bc.blockProcFeed.Send(true)
+	defer bc.blockProcFeed.Send(false)
+	// Do a sanity check that the provided chain is actually ordered and linked
+	for i := 1; i < len(chain); i++ {
+		if chain[i].NumberU64() != chain[i-1].NumberU64()+1 || chain[i].ParentHash() != chain[i-1].Hash() {
+			// Chain broke ancestry, log a message (programming error) and skip insertion
+			log.Error("Non contiguous block insert", "number", chain[i].Number(), "hash", chain[i].Hash(),
+				"parent", chain[i].ParentHash(), "prevnumber", chain[i-1].Number(), "prevhash", chain[i-1].Hash())
 
+			return 0, fmt.Errorf("non contiguous insert: item %d is #%d [%x…], item %d is #%d [%x…] (parent [%x…])", i-1, chain[i-1].NumberU64(),
+				chain[i-1].Hash().Bytes()[:4], i, chain[i].NumberU64(), chain[i].Hash().Bytes()[:4], chain[i].ParentHash().Bytes()[:4])
+		}
+	}
+	// Pre-checks passed, start the full block imports
+	bc.wg.Add(1)
+	bc.chainmu.Lock()
+	n, events, logs, err := bc.insertChain2(chain, true)
+	bc.chainmu.Unlock()
+	bc.wg.Done()
+
+	bc.postChainEvents(events, logs)
+	return n, err
+}
 // insertChain is the internal implementation of insertChain, which assumes that
 // 1) chains are contiguous, and 2) The chain mutex is held.
 //
@@ -1340,6 +1367,194 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 		} else {
 			receipts, logs, usedGas, infos, err = bc.processor.Process(block, statedb, bc.vmConfig)
 		}
+		t1 := time.Now()
+		if err != nil {
+			bc.reportBlock(block, receipts, err)
+			return it.index, events, coalescedLogs, err
+		}
+		// Validate the state using the default validator
+		if err := bc.Validator().ValidateState(block, parent, statedb, receipts, usedGas); err != nil {
+			log.Info("validate the state failed,will retry process...")
+			if statedb,err = state.New(parent.Root(), bc.stateCache);err != nil {
+				return it.index, events, coalescedLogs, err
+			}
+			t0 = time.Now()
+			receipts, logs, usedGas, infos, err = bc.processor.Process(block, statedb, bc.vmConfig)
+			t1 = time.Now()
+			if err != nil {
+				bc.reportBlock(block, receipts, err)
+				return it.index, events, coalescedLogs, err
+			}
+			if err := bc.Validator().ValidateState(block, parent, statedb, receipts, usedGas); err != nil {
+				bc.reportBlock(block, receipts, err)
+				return it.index, events, coalescedLogs, err
+			}
+		}
+
+		t2 := time.Now()
+		proctime := time.Since(start)
+
+		// Write the block to the chain and get the status.
+		status, err := bc.writeBlockWithState(block, receipts, statedb)
+		t3 := time.Now()
+		if err != nil {
+			return it.index, events, coalescedLogs, err
+		}
+		bc.engine.FinalizeCommittee(block)
+		if infos != nil {
+			bc.WriteRewardInfos(infos)
+		}
+		blockInsertTimer.UpdateSince(start)
+		blockExecutionTimer.Update(t1.Sub(t0))
+		blockValidationTimer.Update(t2.Sub(t1))
+		blockWriteTimer.Update(t3.Sub(t2))
+		switch status {
+		case CanonStatTy:
+			log.Debug("Inserted new fast block", "number", block.Number(), "hash", block.Hash(),
+				"sings", len(block.Signs()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
+				"elapsed", common.PrettyDuration(time.Since(start)),
+				"root", block.Root())
+
+			coalescedLogs = append(coalescedLogs, logs...)
+			events = append(events, types.FastChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
+			lastCanon = block
+
+			// Only count canonical blocks for GC processing time
+			bc.gcproc += proctime
+
+		}
+		blockInsertTimer.UpdateSince(start)
+		stats.processed++
+		stats.usedGas += usedGas
+
+		cache, _ := bc.stateCache.TrieDB().Size()
+		stats.report(chain, it.index, cache)
+	}
+	// Any blocks remaining here? The only ones we care about are the future ones
+	if block != nil && err == consensus.ErrFutureBlock {
+		if err := bc.addFutureBlock(block); err != nil {
+			return it.index, events, coalescedLogs, err
+		}
+		block, err = it.next()
+
+		for ; block != nil && err == consensus.ErrUnknownAncestor; block, err = it.next() {
+			if err := bc.addFutureBlock(block); err != nil {
+				return it.index, events, coalescedLogs, err
+			}
+			stats.queued++
+		}
+	}
+	stats.ignored += it.remaining()
+
+	// Append a single chain head event if we've progressed the chain
+	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
+		events = append(events, types.FastChainHeadEvent{Block: lastCanon})
+	}
+	return it.index, events, coalescedLogs, err
+}
+func (bc *BlockChain) insertChain2(chain types.Blocks, verifySeals bool) (int, []interface{}, []*types.Log, error) {
+	// If the chain is terminating, don't even bother starting u
+	if atomic.LoadInt32(&bc.procInterrupt) == 1 {
+		return 0, nil, nil, nil
+	}
+	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
+	senderCacher.recoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
+
+	// A queued approach to delivering events. This is generally
+	// faster than direct delivery and requires much less mutex
+	// acquiring.
+	var (
+		stats         = insertStats{startTime: mclock.Now()}
+		events        = make([]interface{}, 0, len(chain))
+		lastCanon     *types.Block
+		coalescedLogs []*types.Log
+	)
+	// Start the parallel header verifier
+	headers := make([]*types.Header, len(chain))
+	seals := make([]bool, len(chain))
+
+	for i, block := range chain {
+		headers[i] = block.Header()
+		seals[i] = verifySeals
+	}
+	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
+	defer close(abort)
+
+	// Peek the error for the first block to decide the directing import logic
+	it := newInsertIterator(chain, results, bc.Validator())
+
+	block, err := it.next()
+	switch {
+	// First block is pruned, insert as sidechain and reorg only if TD grows enough
+	case err == consensus.ErrPrunedAncestor:
+		return bc.insertSidechain(it)
+
+		// First block is future, shove it (and all children) to the future queue (unknown ancestor)
+	case err == consensus.ErrFutureBlock || (err == consensus.ErrUnknownAncestor && bc.futureBlocks.Contains(it.first().ParentHash())):
+		for block != nil && (it.index == 0 || err == consensus.ErrUnknownAncestor) {
+			if err := bc.addFutureBlock(block); err != nil {
+				return it.index, events, coalescedLogs, err
+			}
+			block, err = it.next()
+		}
+		stats.queued += it.processed()
+		stats.ignored += it.remaining()
+
+		// If there are any still remaining, mark as ignored
+		return it.index, events, coalescedLogs, err
+
+		// First block (and state) is known
+		//   1. We did a roll-back, and should now do a re-import
+		//   2. The block is stored as a sidechain, and is lying about it's stateroot, and passes a stateroot
+		// 	    from the canonical chain, which has not been verified.
+	case err == ErrKnownBlock:
+		// Skip all known blocks that behind us
+		current := bc.CurrentBlock().NumberU64()
+
+		for block != nil && err == ErrKnownBlock && current >= block.NumberU64() {
+			stats.ignored++
+			block, err = it.next()
+		}
+		// Falls through to the block import
+
+		// Some other error occurred, abort
+	case err != nil:
+		stats.ignored += len(it.chain)
+		bc.reportBlock(block, nil, err)
+		return it.index, events, coalescedLogs, err
+	}
+	// No validation errors for the first block (or chain prefix skipped)
+	for ; block != nil && err == nil; block, err = it.next() {
+		// If the chain is terminating, stop processing blocks
+		if atomic.LoadInt32(&bc.procInterrupt) == 1 {
+			log.Debug("Premature abort during blocks processing")
+			break
+		}
+		// If the header is a banned one, straight out abort
+		if BadHashes[block.Hash()] {
+			bc.reportBlock(block, nil, ErrBlacklistedHash)
+			return it.index, events, coalescedLogs, ErrBlacklistedHash
+		}
+		// Retrieve the parent block and it's state to execute on top
+		start := time.Now()
+
+		parent := it.previous()
+		if parent == nil {
+			parent = bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
+		}
+		statedb, err := state.New(parent.Root(), bc.stateCache)
+		if err != nil {
+			return it.index, events, coalescedLogs, err
+		}
+		var (
+			receipts  	types.Receipts
+			usedGas   	= uint64(0)
+			infos   	*types.ChainReward
+			logs   		[]*types.Log
+		)
+		// Process block using the parent state as reference point.
+		t0 := time.Now()
+		receipts, logs, usedGas, infos, err = bc.processor.Process2(block, statedb, bc.vmConfig)
 		t1 := time.Now()
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
