@@ -38,7 +38,7 @@ func DefaulGenesisBlock() *core.Genesis {
 		Config:     params.DevnetChainConfig,
 		Nonce:      928,
 		ExtraData:  nil,
-		GasLimit:   88080384,
+		GasLimit:   88080384000,
 		Difficulty: big.NewInt(20000),
 		Alloc: map[common.Address]types.GenesisAccount{
 			common.HexToAddress("0xC02f50f4F41f46b6a2f08036ae65039b2F9aCd69"): {Balance: i},
@@ -204,7 +204,7 @@ func Test02(t *testing.T) {
 	params.MinTimeGap = big.NewInt(0)
 	params.SnailRewardInterval = big.NewInt(3)
 
-	sendNumber := 50
+	sendNumber := 500
 	delegateKey := make([]*ecdsa.PrivateKey, sendNumber)
 	delegateAddr := make([]common.Address, sendNumber)
 	contracts := make(map[common.Address]common.Address)
