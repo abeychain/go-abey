@@ -266,7 +266,7 @@ func Test02(t *testing.T) {
 		if _, err := blockchain.InsertChain(chain); err != nil {
 			panic(err)
 		}
-		fmt.Println("execute ",i," cost time",time.Now().Sub(start))
+		fmt.Println("parallel execute ",i," cost time",time.Now().Sub(start))
 	}
 	fmt.Println("insert block for the in direct")
 	for i := 0; i < int(repeat); i++ {
@@ -282,7 +282,7 @@ func Test02(t *testing.T) {
 		if _, err := blockchain.InsertChain(chain); err != nil {
 			panic(err)
 		}
-		fmt.Println("execute ",i," cost time",time.Now().Sub(start))
+		fmt.Println("serial execute ",i," cost time",time.Now().Sub(start))
 	}
 }
 

@@ -1452,6 +1452,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 	}
 	return it.index, events, coalescedLogs, err
 }
+
+// execute the txs by serial for the test
 func (bc *BlockChain) insertChain2(chain types.Blocks, verifySeals bool) (int, []interface{}, []*types.Log, error) {
 	// If the chain is terminating, don't even bother starting u
 	if atomic.LoadInt32(&bc.procInterrupt) == 1 {
