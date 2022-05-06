@@ -233,7 +233,7 @@ func Test02(t *testing.T) {
 				contracts[delegateAddr[i]] = contractAddr
 
 				gen.AddTx(tx)
-				fmt.Println("from",delegateAddr[i],"contract address",contractAddr)
+				//fmt.Println("from",delegateAddr[i],"contract address",contractAddr)
 			}
 		case 2:
 			// in block 3, call function for the contract
