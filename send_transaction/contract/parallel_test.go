@@ -200,7 +200,7 @@ func Test01(t *testing.T) {
 		}
 	}
 }
-func Test02(t *testing.T) {
+func TestCmpSerialAndParallelBlock(t *testing.T) {
 	params.MinTimeGap = big.NewInt(0)
 	params.SnailRewardInterval = big.NewInt(3)
 
