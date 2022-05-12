@@ -70,7 +70,7 @@ func DefaulGenesisBlock2(allocAdrress []common.Address) *core.Genesis {
 		Nonce:      928,
 		ExtraData:  nil,
 		GasLimit:   88080384000,
-		Difficulty: big.NewInt(0),
+		Difficulty: big.NewInt(1000),
 		Alloc: 		alloc,
 		Committee: []*types.CommitteeMember{
 			{Coinbase: common.HexToAddress("0x3f9061bf173d8f096c94db95c40f3658b4c7eaad"), Publickey: key1},
@@ -189,7 +189,7 @@ func Test01(t *testing.T) {
 			//In block 2, deploy the contract.
 			for i := 0; i < sendNumber; i++ {
 				nonce := gen.TxNonce(delegateAddr[i])
-				tx, contractAddr := makeContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin))
+				tx, contractAddr := makeContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin),gspec.Config.ChainID)
 				contracts[delegateAddr[i]] = contractAddr
 
 				gen.AddTx(tx)
@@ -206,7 +206,7 @@ func Test01(t *testing.T) {
 				input, _ := parsed.Pack("rechargeToAccount", addr1, addr2)
 				value := abeyToWei(2)
 				nonce := gen.TxNonce(delegateAddr[i])
-				tx := makeCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value)
+				tx := makeCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value,gspec.Config.ChainID)
 				gen.AddTx(tx)
 			}
 		}
@@ -255,7 +255,7 @@ func TestCmpSerialAndParallelBlock(t *testing.T) {
 			//In block 2, deploy the contract.
 			for i := 0; i < sendNumber; i++ {
 				nonce := gen.TxNonce(delegateAddr[i])
-				tx, contractAddr := makeContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin))
+				tx, contractAddr := makeContractTransaction(delegateKey[i], nonce, common.FromHex(CoinBin),gspec.Config.ChainID)
 				contracts[delegateAddr[i]] = contractAddr
 
 				gen.AddTx(tx)
@@ -272,7 +272,7 @@ func TestCmpSerialAndParallelBlock(t *testing.T) {
 				input, _ := parsed.Pack("rechargeToAccount", addr1, addr2)
 				value := abeyToWei(2)
 				nonce := gen.TxNonce(delegateAddr[i])
-				tx := makeCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value)
+				tx := makeCallTransaction(delegateKey[i], contracts[delegateAddr[i]], nonce, input, value,gspec.Config.ChainID)
 				gen.AddTx(tx)
 			}
 		}
@@ -311,30 +311,112 @@ func TestCmpSerialAndParallelBlock(t *testing.T) {
 		fmt.Println("serial execute ",i," cost time",time.Now().Sub(start))
 	}
 }
+func Test03(t *testing.T) {
+	params.MinTimeGap = big.NewInt(0)
+	params.SnailRewardInterval = big.NewInt(3)
 
+	sendNumber := 10
+	delegateKey := make([]*ecdsa.PrivateKey, sendNumber)
+	delegateAddr := make([]common.Address, sendNumber)
+
+	for i := 0; i < sendNumber; i++ {
+		delegateKey[i], _ = crypto.GenerateKey()
+		delegateAddr[i] = crypto.PubkeyToAddress(delegateKey[i].PublicKey)
+	}
+
+	gspec2 := DefaulGenesisBlock2(delegateAddr)
+	genesis := gspec2.MustFastCommit(db)
+
+	chain, _ := core.GenerateChain(gspec2.Config, genesis, engine, db, 10, func(i int, gen *core.BlockGen) {
+		switch i {
+		case 1:
+			//In block 2, deploy the contract.
+			total := makeAddress()
+			for i := 0; i < sendNumber; i++ {
+				nonce := gen.TxNonce(delegateAddr[i])
+				value := abeyToWei(1)
+				tx := makeTransaction(delegateKey[i], total, nonce, value,gspec2.Config.ChainID)
+				gen.AddTx(tx)
+			}
+		case 5:
+			// in block 3, call function for the contract
+			for i:=0;i<sendNumber;i++ {
+				addr := makeAddress()
+				value := abeyToWei(1)
+				nonce := gen.TxNonce(delegateAddr[i])
+				tx := makeTransaction(delegateKey[i], addr, nonce, value,gspec2.Config.ChainID)
+				gen.AddTx(tx)
+			}
+		}
+	})
+
+	repeat := int64(2)
+	for i := 0; i < int(repeat); i++ {
+		db1 := abeydb.NewMemDatabase()
+		gspec2.MustFastCommit(db1)
+
+		blockchain, err := core.NewBlockChain(db1, nil, gspec2.Config, engine, vm.Config{})
+		if err != nil {
+			fmt.Println("NewBlockChain ", err)
+		}
+		blockchain.SetParallel(true)
+		start := time.Now()
+		if _, err := blockchain.InsertChain(chain); err != nil {
+			panic(err)
+		}
+		fmt.Println("parallel execute ",i," cost time",time.Now().Sub(start))
+	}
+	fmt.Println("insert block for the in direct")
+	for i := 0; i < int(repeat); i++ {
+		db1 := abeydb.NewMemDatabase()
+		gspec2.MustFastCommit(db1)
+
+		blockchain, err := core.NewBlockChain(db1, nil, gspec2.Config, engine, vm.Config{})
+		if err != nil {
+			fmt.Println("NewBlockChain ", err)
+		}
+		blockchain.SetParallel(false)
+		start := time.Now()
+		if _, err := blockchain.InsertChain(chain); err != nil {
+			panic(err)
+		}
+		fmt.Println("serial execute ",i," cost time",time.Now().Sub(start))
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////
-func makeContractTransaction(key *ecdsa.PrivateKey, nonce uint64, data []byte) (*types.Transaction, common.Address) {
+func makeContractTransaction(key *ecdsa.PrivateKey, nonce uint64, data []byte,chainID *big.Int) (*types.Transaction, common.Address) {
 	opts := bind.NewKeyedTransactor(key)
 	value := new(big.Int)
 	gasLimit := uint64(500000)
 	gasPrice := big.NewInt(10000)
 
 	rawTx := types.NewContractCreation(nonce, value, gasLimit, gasPrice, data)
-	signer := types.NewTIP1Signer(gspec.Config.ChainID)
+	signer := types.NewTIP1Signer(chainID)
 	signedTx, _ := opts.Signer(signer, opts.From, rawTx)
 	address := crypto.CreateAddress(opts.From, signedTx.Nonce())
 
 	return signedTx, address
 }
 
-func makeCallTransaction(key *ecdsa.PrivateKey, to common.Address, nonce uint64, input []byte, value *big.Int) *types.Transaction {
+func makeCallTransaction(key *ecdsa.PrivateKey, to common.Address, nonce uint64, input []byte, value *big.Int,chainID *big.Int) *types.Transaction {
 	opts := bind.NewKeyedTransactor(key)
 	gasLimit := uint64(500000)
 	gasPrice := big.NewInt(10000)
 
 	rawTx := types.NewTransaction(nonce, to, value, gasLimit, gasPrice, input)
-	signer := types.NewTIP1Signer(gspec.Config.ChainID)
+	signer := types.NewTIP1Signer(chainID)
+	signedTx, _ := opts.Signer(signer, opts.From, rawTx)
+
+	return signedTx
+}
+func makeTransaction(key *ecdsa.PrivateKey, to common.Address, nonce uint64,value *big.Int,chainID *big.Int) *types.Transaction {
+	opts := bind.NewKeyedTransactor(key)
+	gasLimit := uint64(500000)
+	gasPrice := big.NewInt(10000)
+
+	rawTx := types.NewTransaction(nonce, to, value, gasLimit, gasPrice, nil)
+	signer := types.NewTIP1Signer(chainID)
 	signedTx, _ := opts.Signer(signer, opts.From, rawTx)
 
 	return signedTx
