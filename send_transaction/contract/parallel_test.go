@@ -27,6 +27,9 @@ func init() {
 	log.Root().SetHandler(log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
 }
 
+func setHighLevelForLog() {
+	log.Root().SetHandler(log.LvlFilterHandler(log.LvlError, log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
+}
 func DefaulGenesisBlock() *core.Genesis {
 	i, _ := new(big.Int).SetString("90000000000000000000000000", 10)
 	key1 := hexutil.MustDecode("0x04d341c94a16b02cee86a627d0f6bc6e814741af4cab5065637aa013c9a7d9f26051bb6546030cd67e440d6df741cb65debaaba6c0835579f88a282193795ed369")
@@ -312,6 +315,7 @@ func TestCmpSerialAndParallelBlock(t *testing.T) {
 	}
 }
 func Test03(t *testing.T) {
+	setHighLevelForLog()
 	params.MinTimeGap = big.NewInt(0)
 	params.SnailRewardInterval = big.NewInt(3)
 
