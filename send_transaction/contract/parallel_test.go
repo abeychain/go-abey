@@ -314,12 +314,12 @@ func TestCmpSerialAndParallelBlock(t *testing.T) {
 		fmt.Println("serial execute ",i," cost time",time.Now().Sub(start))
 	}
 }
-func Test03(t *testing.T) {
+func TestCmpCommonTransaction(t *testing.T) {
 	setHighLevelForLog()
 	params.MinTimeGap = big.NewInt(0)
 	params.SnailRewardInterval = big.NewInt(3)
 
-	sendNumber := 10
+	sendNumber := 1000
 	delegateKey := make([]*ecdsa.PrivateKey, sendNumber)
 	delegateAddr := make([]common.Address, sendNumber)
 
@@ -334,7 +334,7 @@ func Test03(t *testing.T) {
 	chain, _ := core.GenerateChain(gspec2.Config, genesis, engine, db, 10, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 1:
-			//In block 2, deploy the contract.
+			//In block 1, all transaction to the one address.
 			total := makeAddress()
 			for i := 0; i < sendNumber; i++ {
 				nonce := gen.TxNonce(delegateAddr[i])
@@ -343,7 +343,7 @@ func Test03(t *testing.T) {
 				gen.AddTx(tx)
 			}
 		case 5:
-			// in block 3, call function for the contract
+			// in block 3, one transaction to a new address
 			for i:=0;i<sendNumber;i++ {
 				addr := makeAddress()
 				value := abeyToWei(1)
