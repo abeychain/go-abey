@@ -387,7 +387,78 @@ func TestCmpCommonTransaction(t *testing.T) {
 		fmt.Println("serial execute ",i," cost time",time.Now().Sub(start))
 	}
 }
+func TestBatchTxs(t *testing.T) {
+	setHighLevelForLog()
 
+	sendNumber := 1000
+	coinPriv,_ := crypto.GenerateKey()
+	coinAddress := crypto.PubkeyToAddress(coinPriv.PublicKey)
+	addrs := make(map[common.Address]*ecdsa.PrivateKey)
+
+	gspec2 := DefaulGenesisBlock2([]common.Address{coinAddress})
+	genesis := gspec2.MustFastCommit(db)
+
+	chain, _ := core.GenerateChain(gspec2.Config, genesis, engine, db, 10, func(i int, gen *core.BlockGen) {
+		switch i {
+		case 1:
+			//In block 1, one address transaction to a new address.
+			for i := 0; i < sendNumber; i++ {
+				priv,newAddress := makeAddress2()
+				nonce := gen.TxNonce(coinAddress)
+				value := abeyToWei(100)
+				tx := makeTransaction(coinPriv, newAddress, nonce, value,gspec2.Config.ChainID)
+				gen.AddTx(tx)
+				addrs[newAddress] = priv
+			}
+		case 5:
+			// in block 3, batch addresses transaction to a new address
+			len := 0
+			oneAddress := makeAddress()
+			for addr,priv := range addrs {
+				if len % 10 == 0 {
+					oneAddress = makeAddress()
+				}
+				value := abeyToWei(1)
+				nonce := gen.TxNonce(addr)
+				tx := makeTransaction(priv, oneAddress, nonce, value,gspec2.Config.ChainID)
+				gen.AddTx(tx)
+			}
+		}
+	})
+
+	repeat := int64(2)
+	for i := 0; i < int(repeat); i++ {
+		db1 := abeydb.NewMemDatabase()
+		gspec2.MustFastCommit(db1)
+
+		blockchain, err := core.NewBlockChain(db1, nil, gspec2.Config, engine, vm.Config{})
+		if err != nil {
+			fmt.Println("NewBlockChain ", err)
+		}
+		blockchain.SetParallel(true)
+		start := time.Now()
+		if _, err := blockchain.InsertChain(chain); err != nil {
+			panic(err)
+		}
+		fmt.Println("parallel execute ",i," cost time",time.Now().Sub(start))
+	}
+	fmt.Println("insert block for the in direct")
+	for i := 0; i < int(repeat); i++ {
+		db1 := abeydb.NewMemDatabase()
+		gspec2.MustFastCommit(db1)
+
+		blockchain, err := core.NewBlockChain(db1, nil, gspec2.Config, engine, vm.Config{})
+		if err != nil {
+			fmt.Println("NewBlockChain ", err)
+		}
+		blockchain.SetParallel(false)
+		start := time.Now()
+		if _, err := blockchain.InsertChain(chain); err != nil {
+			panic(err)
+		}
+		fmt.Println("serial execute ",i," cost time",time.Now().Sub(start))
+	}
+}
 ///////////////////////////////////////////////////////////////////////
 func makeContractTransaction(key *ecdsa.PrivateKey, nonce uint64, data []byte,chainID *big.Int) (*types.Transaction, common.Address) {
 	opts := bind.NewKeyedTransactor(key)
@@ -440,5 +511,8 @@ func makeAddress() common.Address {
 	key, _ := crypto.GenerateKey()
 	return  crypto.PubkeyToAddress(key.PublicKey)
 }
-
+func makeAddress2() (*ecdsa.PrivateKey,common.Address) {
+	key, _ := crypto.GenerateKey()
+	return  key,crypto.PubkeyToAddress(key.PublicKey)
+}
 ///////////////////////////////////////////////////////////////////////
