@@ -388,8 +388,27 @@ func TestCmpCommonTransaction(t *testing.T) {
 	}
 }
 func TestBatchTxs(t *testing.T) {
+	fmt.Println("test batch","sendcount",1000,"toBatch",10)
+	batchTxs0(1000,10)
+	fmt.Println("test batch","sendcount",1000,"toBatch",50)
+	batchTxs0(1000,50)
+	fmt.Println("test batch","sendcount",1000,"toBatch",100)
+	batchTxs0(1000,100)
 
+	fmt.Println("test batch","sendcount",5000,"toBatch",10)
+	batchTxs0(5000,10)
+	fmt.Println("test batch","sendcount",5000,"toBatch",50)
+	batchTxs0(5000,50)
+	fmt.Println("test batch","sendcount",5000,"toBatch",100)
+	batchTxs0(5000,100)
+	fmt.Println("test batch","sendcount",5000,"toBatch",200)
+	batchTxs0(5000,200)
+	fmt.Println("test batch","sendcount",5000,"toBatch",300)
+	batchTxs0(5000,300)
+	fmt.Println("test batch","sendcount",5000,"toBatch",500)
+	batchTxs0(5000,500)
 }
+
 func batchTxs0(sendCount,toBatch int) {
 	setHighLevelForLog()
 
