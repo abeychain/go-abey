@@ -410,7 +410,7 @@ func TestBatchTxs(t *testing.T) {
 				gen.AddTx(tx)
 				addrs[newAddress] = priv
 			}
-		case 5:
+		case 3:
 			// in block 3, batch addresses transaction to a new address
 			len := 0
 			oneAddress := makeAddress()
