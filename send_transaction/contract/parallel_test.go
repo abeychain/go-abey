@@ -388,9 +388,11 @@ func TestCmpCommonTransaction(t *testing.T) {
 	}
 }
 func TestBatchTxs(t *testing.T) {
+
+}
+func batchTxs0(sendCount,toBatch int) {
 	setHighLevelForLog()
 
-	sendNumber := 1000
 	coinPriv,_ := crypto.GenerateKey()
 	coinAddress := crypto.PubkeyToAddress(coinPriv.PublicKey)
 	addrs := make(map[common.Address]*ecdsa.PrivateKey)
@@ -402,7 +404,7 @@ func TestBatchTxs(t *testing.T) {
 		switch i {
 		case 1:
 			//In block 1, one address transaction to a new address.
-			for i := 0; i < sendNumber; i++ {
+			for i := 0; i < sendCount; i++ {
 				priv,newAddress := makeAddress2()
 				nonce := gen.TxNonce(coinAddress)
 				value := abeyToWei(100)
@@ -412,12 +414,13 @@ func TestBatchTxs(t *testing.T) {
 			}
 		case 3:
 			// in block 3, batch addresses transaction to a new address
-			len := 0
+			count := 0
 			oneAddress := makeAddress()
 			for addr,priv := range addrs {
-				if len % 10 == 0 {
+				if count % toBatch == 0 {
 					oneAddress = makeAddress()
 				}
+				count++
 				value := abeyToWei(1)
 				nonce := gen.TxNonce(addr)
 				tx := makeTransaction(priv, oneAddress, nonce, value,gspec2.Config.ChainID)
