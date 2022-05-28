@@ -1,4 +1,8 @@
-## ABEY chain Engineering Code
+
+## ABEY Chain
+
+
+Click to visit [ABEY developer documents](https://docs.abeychain.com)
 
 ABEY chain is a truly fast, permissionless, secure and scalable public blockchain platform 
 which is supported by hybrid consensus technology called Minerva and a global developer community. 
@@ -14,6 +18,8 @@ ABEY chain also creates a hybrid consensus incentive model and a stable gas fee 
 and operators of DApps, and provide better infrastructure for decentralized eco-system. 
 
 <a href="https://github.com/abeychain/go-abey/blob/master/COPYING"><img src="https://img.shields.io/badge/license-GPL%20%20Abeychain-lightgrey.svg"></a>
+
+
 
 ## Building the source
 
