@@ -245,7 +245,8 @@ func (miner *Miner) Start(coinbase common.Address) {
 	miner.SetEtherbase(coinbase)
 
 	if atomic.LoadInt32(&miner.canStart) == 0 && atomic.LoadInt32(&miner.commitFlag) == 0 &&
-	 atomic.LoadInt32(&miner.mining) == 0 && atomic.LoadInt32(&miner.shouldStart) == 1 {
+	 atomic.LoadInt32(&miner.mining) == 0 && atomic.LoadInt32(&miner.shouldStart) == 1 &&
+		!miner.worker.freezeMiner() {
 
 		atomic.StoreInt32(&miner.mining, 1)
 
