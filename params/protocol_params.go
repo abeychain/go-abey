@@ -183,6 +183,7 @@ var (
 	MaximumCommitteeNumber  = big.NewInt(50)
 	ProposalCommitteeNumber = 20
 	MinimumCommitteeNumber  = 4
+	StopSnailMiner = big.NewInt(2000000)
 )
 
 var (
