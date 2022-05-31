@@ -200,7 +200,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, coinbase com
 
 func (w *worker) freezeMiner() bool {
 	cur := w.chain.CurrentBlock().Number()
-	if cur.Cmp(params.StopSnailMiner) > 0 {
+	if cur.Cmp(params.StopSnailMiner) >= 0 {
 		return true
 	}
 	return false
@@ -293,11 +293,12 @@ func (self *worker) start() {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	atomic.StoreInt32(&self.mining, 1)
-
-	// spin up agents
-	for agent := range self.agents {
-		agent.Start()
+	if !self.freezeMiner() {
+		atomic.StoreInt32(&self.mining, 1)
+		// spin up agents
+		for agent := range self.agents {
+			agent.Start()
+		}
 	}
 }
 
@@ -340,6 +341,9 @@ func (w *worker) update() {
 	defer w.minedfruitSub.Unsubscribe()
 
 	for {
+		if w.freezeMiner() {
+			return
+		}
 		// A real event arrived, process interesting content
 		select {
 		// Handle ChainHeadEvent
@@ -412,13 +416,18 @@ func (w *worker) update() {
 
 func (w *worker) wait() {
 	for {
+		if w.freezeMiner() {
+			return
+		}
 		for result := range w.recv {
 			atomic.AddInt32(&w.atWork, -1)
 
 			if result == nil {
 				continue
 			}
-
+			if w.freezeMiner() {
+				return
+			}
 			block := result.Block
 			log.Debug("Worker get wait fond block or fruit")
 			if block.IsFruit() {
