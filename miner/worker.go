@@ -188,12 +188,22 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, coinbase com
 	worker.fruitSub = abey.SnailPool().SubscribeNewFruitEvent(worker.fruitCh)
 	worker.fastchainEventSub = worker.fastchain.SubscribeChainEvent(worker.fastchainEventCh)
 
-	go worker.update()
+	if worker.freezeMiner() {
+		go worker.update()
+		go worker.wait()
 
-	go worker.wait()
-	worker.commitNewWork()
+		worker.commitNewWork()
+	}
 
 	return worker
+}
+
+func (w *worker) freezeMiner() bool {
+	cur := w.chain.CurrentBlock().Number()
+	if cur.Cmp(params.StopSnailMiner) > 0 {
+		return true
+	}
+	return false
 }
 
 func (w *worker) setEtherbase(addr common.Address) {
