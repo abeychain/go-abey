@@ -17,6 +17,7 @@
 package abey
 
 import (
+	"github.com/abeychain/go-abey/params"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -295,8 +296,10 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 
 	pm.fdownloader.SetSyncStatsChainHeightLast(fastHeight)
 	currentNumber := pm.blockchain.CurrentBlock().NumberU64()
-	log.Debug("synchronise  ", "pHead", pHead, "pTd", pTd, "td", td, "fastHeight", fastHeight, "currentNumber", currentNumber, "snailHeight", currentBlock.Number())
-	if pTd.Cmp(td) <= 0 {
+	log.Debug("synchronise  ", "pHead", pHead, "pTd", pTd, "td", td, "fastHeight",
+		fastHeight, "currentNumber", currentNumber, "snailHeight", currentBlock.Number())
+
+	if pTd.Cmp(td) <= 0 && params.StopSnailMiner.Cmp(currentBlock.Number()) > 0 {
 
 		if fastHeight > currentNumber {
 			pm.eventMux.Post(downloader.StartEvent{})
