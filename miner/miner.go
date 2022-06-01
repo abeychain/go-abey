@@ -256,10 +256,11 @@ func (miner *Miner) Start(coinbase common.Address) {
 		events = append(events, types.NewMinedFruitEvent{Block: nil})
 		miner.worker.chain.PostChainEvents(events)
 	} else {
-		log.Info("start to miner fail", "canstart", miner.canStart, "commitflag", miner.commitFlag, "shout start", miner.shouldStart, "mining", miner.mining)
+		log.Info("start to miner fail", "canstart", miner.canStart, "commitflag",
+			miner.commitFlag, "shout start", miner.shouldStart, "mining", miner.mining,
+			"freezeminer:yes")
 		return
 	}
-
 }
 
 //Stop stop miner
@@ -277,7 +278,6 @@ func (miner *Miner) Stop() {
 	miner.worker.stop()
 	atomic.StoreInt32(&miner.mining, 0)
 	//atomic.StoreInt32(&miner.shouldStart, 0)
-
 }
 
 //Register is for register Agent to start or stop Agent
