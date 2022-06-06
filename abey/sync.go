@@ -290,12 +290,12 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Make sure the peer's TD is higher than our own
 	currentBlock := pm.snailchain.CurrentBlock()
 	td := pm.snailchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
-	pHead, pTd := peer.Head()
+	pHeadHash, pTd := peer.Head()
 	_, fastHeight := peer.fastHead, peer.fastHeight.Uint64()
 
 	pm.fdownloader.SetSyncStatsChainHeightLast(fastHeight)
 	currentNumber := pm.blockchain.CurrentBlock().NumberU64()
-	log.Debug("synchronise  ", "pHead", pHead, "pTd", pTd, "td", td, "fastHeight",
+	log.Debug("synchronise  ", "remoteHeadHash", pHeadHash, "pTd", pTd, "td", td, "fastHeight",
 		fastHeight, "currentNumber", currentNumber, "snailHeight", currentBlock.Number())
 
 	// sync the fast blocks
@@ -303,7 +303,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		if fastHeight > currentNumber {
 			pm.eventMux.Post(downloader.StartEvent{})
 			defer sendEvent()
-			if err := pm.downloader.SyncFast(peer.id, pHead, fastHeight, downloader.FullSync); err != nil {
+			if err := pm.downloader.SyncFast(peer.id, pHeadHash, fastHeight, downloader.FullSync); err != nil {
 				log.Error("ProtocolManager fast sync: ", "err", err)
 				return
 			}
@@ -358,14 +358,14 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	log.Debug("ProtocolManager1","mode",mode)
 	if params.StopSnailMiner.Cmp(currentBlock.Number()) > 0 {
 		// Run the sync cycle, and disable fast sync if we've went past the pivot block
-		if err = pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
+		if err = pm.downloader.Synchronise(peer.id, pHeadHash, pTd, mode); err != nil {
 			log.Error("ProtocolManager end", "err", err)
 			return
 		}
 		log.Debug("ProtocolManager2","mode",mode)
 		if atomic.LoadUint32(&pm.fastSync) == 1 ||  atomic.LoadUint32(&pm.snapSync) == 1 {
 			if pm.blockchain.CurrentBlock().NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
-				if err := pm.downloader.SyncFast(peer.id, pHead, fastHeight, downloader.FastSync); err != nil {
+				if err := pm.downloader.SyncFast(peer.id, pHeadHash, fastHeight, downloader.FastSync); err != nil {
 					log.Error("ProtocolManager fast sync: ", "err", err)
 					return
 				}

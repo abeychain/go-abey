@@ -1577,7 +1577,7 @@ func (d *Downloader) insertLightHeadChain(heads []*types.SnailHeader, fruitHeads
 	return nil
 }
 
-func (d *Downloader) SyncFast(peer string, head common.Hash, fbLastNumber uint64, mode SyncMode) (err error) {
+func (d *Downloader) SyncFast(peer string, remoteHeadHash common.Hash, remoteNumber uint64, mode SyncMode) (err error) {
 
 	currentNumber := uint64(0)
 	if d.mode == LightSync {
@@ -1595,16 +1595,16 @@ func (d *Downloader) SyncFast(peer string, head common.Hash, fbLastNumber uint64
 		log.Debug("SyncFast sync terminated", "elapsed", time.Since(start))
 	}(time.Now())
 
-	if fbLastNumber > currentNumber {
-		log.Debug("Run fast downloader ", "fbNumLast", fbLastNumber, "currentNum", currentNumber, "mode", mode)
-		if mode == SnapShotSync && fbLastNumber > d.remoteHeader.Number.Uint64() {
+	if remoteNumber > currentNumber {
+		log.Debug("Run fast downloader ", "remote fast NumLast", remoteNumber, "currentNum", currentNumber, "mode", mode)
+		if mode == SnapShotSync && remoteNumber > d.remoteHeader.Number.Uint64() {
 			mode = FastSync
 		}
 
-		errs := d.fastDown.Synchronise(peer, head, fastdownloader.SyncMode(mode), currentNumber, fbLastNumber)
+		errs := d.fastDown.Synchronise(peer, remoteHeadHash, fastdownloader.SyncMode(mode), currentNumber, remoteNumber)
 
 		if errs != nil {
-			log.Error("SyncFast failed", "err", errs, "fbNumLast", fbLastNumber, "currentNum", currentNumber)
+			log.Error("SyncFast failed", "err", errs, "remote fast NumLast", remoteNumber, "currentNum", currentNumber)
 			return errs
 		}
 	}
