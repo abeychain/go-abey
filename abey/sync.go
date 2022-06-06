@@ -298,7 +298,8 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	log.Debug("synchronise  ", "pHead", pHead, "pTd", pTd, "td", td, "fastHeight",
 		fastHeight, "currentNumber", currentNumber, "snailHeight", currentBlock.Number())
 
-	if pTd.Cmp(td) <= 0 && params.StopSnailMiner.Cmp(currentBlock.Number()) > 0 {
+	// sync the fast blocks
+	if pTd.Cmp(td) <= 0 || currentBlock.Number().Cmp(params.StopSnailMiner) >= 0 {
 		if fastHeight > currentNumber {
 			pm.eventMux.Post(downloader.StartEvent{})
 			defer sendEvent()
@@ -350,7 +351,6 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		}
 		pm.downloader.SetHeader(pivotHeader)
 		pm.fdownloader.SetHeader(pivotHeader)
-
 	}
 
 	pm.eventMux.Post(downloader.StartEvent{})
