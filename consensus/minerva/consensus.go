@@ -865,7 +865,13 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 	consensus.OnceInitImpawnState(chain.Config(),state,new(big.Int).Set(header.Number))
 
 	var infos *types.ChainReward
-	if header != nil && header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
+	if header.Number.Cmp(params.StopSnailMiner) > 0 {
+		fastNumber := header.Number
+		epoch := types.GetEpochFromHeight(fastNumber.Uint64())
+		if fastNumber.Uint64() == epoch.EndHeight {
+
+		}
+	} else if header != nil && header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
 		sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
 		if sBlockHeader == nil {
 			return nil, nil,types.ErrSnailHeightNotYet
@@ -1040,6 +1046,30 @@ func accumulateRewardsFast2(stateDB *state.StateDB, sBlock *types.SnailBlock, fa
 	// "minerFruitCoin",minerFruitCoin.String(),"developerCoin",developerCoin.String(),
 	// "Foundation:", rewardsInfos.Foundation.String(), "CoinBase", rewardsInfos.CoinBase.String(),
 	// "FruitBase",rewardsInfos.FruitBase,"CommitteeBase",rewardsInfos.CommitteeBase)
+	return rewardsInfos,nil
+}
+func accumulateRewardsFast3(stateDB *state.StateDB, sBlock *types.SnailBlock, fast uint64) (*types.ChainReward,error) {
+	committeeCoin := getBaseRewardCoinForPos(big.NewInt(0))
+	epoch := types.GetEpochFromHeight(fast)
+
+	impawn := vm.NewImpawnImpl()
+	impawn.Load(stateDB, types.StakingAddress)
+	defer impawn.Save(stateDB, types.StakingAddress)
+
+	//committee reward
+	infos, err := impawn.Reward2(epoch.BeginHeight,epoch.EndHeight,1,committeeCoin)
+	if err != nil {
+		return nil,err
+	}
+	for _, v := range infos {
+		for _, vv := range v.Items {
+			stateDB.AddBalance(vv.Address, vv.Amount)
+			LogPrint("committee:", vv.Address, vv.Amount)
+		}
+	}
+	rewardsInfos := &types.ChainReward{
+		CommitteeBase: infos,
+	}
 	return rewardsInfos,nil
 }
 
