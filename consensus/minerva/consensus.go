@@ -866,35 +866,39 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 	var infos *types.ChainReward
 	var err error
-	if header.Number.Cmp(params.StopSnailMiner) > 0 {
-		fastNumber := header.Number
-		epoch := types.GetEpochFromHeight(fastNumber.Uint64())
-		if fastNumber.Uint64() == epoch.EndHeight {
-			infos,err = accumulateRewardsFast3(state, header.Number.Uint64())
+	currentSnailHeader := m.sbc.CurrentHeader().Number
+	if header != nil {
+		if header.SnailNumber == nil && currentSnailHeader.Cmp(params.StopSnailMiner) > 0   {
+			fastNumber := header.Number
+			epoch := types.GetEpochFromHeight(fastNumber.Uint64())
+			if fastNumber.Uint64() == epoch.EndHeight {
+				infos,err = accumulateRewardsFast3(state, header.Number.Uint64())
+				if err != nil {
+					log.Error("Finalize Error", "accumulateRewardsFast3", err.Error())
+					return nil,nil, err
+				}
+			}
+		} else if header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
+			sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
+			if sBlockHeader == nil {
+				return nil, nil,types.ErrSnailHeightNotYet
+			}
+			if sBlockHeader.Hash() != header.SnailHash {
+				return nil,nil, types.ErrSnailBlockNotOnTheCain
+			}
+			sBlock := m.sbc.GetBlock(header.SnailHash, header.SnailNumber.Uint64())
+			if sBlock == nil {
+				return nil, nil,types.ErrSnailHeightNotYet
+			}
+
+			infos,err = accumulateRewardsFast2(state, sBlock, header.Number.Uint64())
 			if err != nil {
 				log.Error("Finalize Error", "accumulateRewardsFast2", err.Error())
 				return nil,nil, err
 			}
 		}
-	} else if header != nil && header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
-		sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
-		if sBlockHeader == nil {
-			return nil, nil,types.ErrSnailHeightNotYet
-		}
-		if sBlockHeader.Hash() != header.SnailHash {
-			return nil,nil, types.ErrSnailBlockNotOnTheCain
-		}
-		sBlock := m.sbc.GetBlock(header.SnailHash, header.SnailNumber.Uint64())
-		if sBlock == nil {
-			return nil, nil,types.ErrSnailHeightNotYet
-		}
-
-		infos,err = accumulateRewardsFast2(state, sBlock, header.Number.Uint64())
-		if err != nil {
-			log.Error("Finalize Error", "accumulateRewardsFast2", err.Error())
-			return nil,nil, err
-		}
 	}
+
 	if err := m.finalizeFastGas(state, header.Number, header.Hash(), feeAmount); err != nil {
 		return nil,nil, err
 	}
