@@ -861,8 +861,9 @@ func (m *Minerva) PrepareSnailWithParent(fastchain consensus.ChainReader, chain 
 // setting the final state and assembling the block.
 func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB,
 	txs []*types.Transaction, receipts []*types.Receipt, feeAmount *big.Int) (*types.Block, *types.ChainReward,error) {
-		
+
 	consensus.OnceInitImpawnState(chain.Config(),state,new(big.Int).Set(header.Number))
+	consensus.OnceUpdateWhitelist(state,new(big.Int).Set(header.Number))
 
 	var infos *types.ChainReward
 	var err error
@@ -1166,7 +1167,7 @@ func getCommitteeVoted(committeeReward map[common.Address]*big.Int, election con
 				committeeReward[v] = committeeCoinFruitMember
 			}
 		}
-	}	
+	}
 }
 
 func rewardFruitCommitteeMember(state *state.StateDB, election consensus.CommitteeElection,

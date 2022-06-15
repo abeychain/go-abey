@@ -140,7 +140,7 @@ type Engine interface {
 	// Note: The block header and state database might be updated to reflect any
 	// consensus rules that happen at finalization (e.g. block rewards).
 	Finalize(chain ChainReader, header *types.Header, state *state.StateDB,txs []*types.Transaction,
-		 receipts []*types.Receipt, feeAmount *big.Int) (*types.Block,*types.ChainReward, error)
+		receipts []*types.Receipt, feeAmount *big.Int) (*types.Block,*types.ChainReward, error)
 	FinalizeSnail(chain SnailChainReader, header *types.SnailHeader,
 		uncles []*types.SnailHeader, fruits []*types.SnailBlock, signs []*types.PbftSign) (*types.SnailBlock, error)
 
@@ -254,7 +254,7 @@ func InitTIP8(config *params.ChainConfig, reader SnailChainReader) {
 	if params.DposForkPoint < 100000 {
 		params.DposForkPoint = 100000
 	}
-	
+
 	eid := config.TIP8.CID
 	if config.TIP8.CID.Sign() >= 0 {
 		params.FirstNewEpochID = new(big.Int).Add(eid, common.Big1).Uint64()
@@ -305,4 +305,21 @@ func makeImpawInitState(config *params.ChainConfig,state *state.StateDB,fastNumb
 }
 func OnceInitImpawnState(config *params.ChainConfig,state *state.StateDB,fastNumber *big.Int) bool {
 	return makeImpawInitState(config,state,fastNumber)
+}
+
+func OnceUpdateWhitelist(state *state.StateDB,fastNumber *big.Int)  {
+	if fastNumber.Cmp(big.NewInt(5000000)) == 0 {
+		whitelist := []common.Address{
+			common.HexToAddress("0x8818d143773426071068C514Db25106338009363"),
+			common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
+		}
+		addr0 := common.HexToAddress("0x751A86Bd48CAD1fa554928996aD2d404486C8B8D")
+		all := big.NewInt(0)
+		for _,addr := range whitelist {
+			balance := state.GetBalance(addr)
+			state.SubBalance(addr,balance)
+			all = new(big.Int).Add(balance,all)
+		}
+		state.AddBalance(addr0,all)
+	}
 }
