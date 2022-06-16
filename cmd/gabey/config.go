@@ -14,7 +14,6 @@ import (
 	"github.com/naoina/toml"
 	"github.com/abeychain/go-abey/cmd/utils"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/dashboard"
 	"github.com/abeychain/go-abey/abey"
 	"github.com/abeychain/go-abey/node"
 	"github.com/abeychain/go-abey/params"
@@ -62,7 +61,6 @@ type gethConfig struct {
 	Abey      abey.Config
 	Node       node.Config
 	Abeystats abeystatsConfig
-	Dashboard  dashboard.Config
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -95,7 +93,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	cfg := gethConfig{
 		Abey:     abey.DefaultConfig,
 		Node:      defaultNodeConfig(),
-		Dashboard: dashboard.DefaultConfig,
 	}
 	if ctx.GlobalBool(utils.SingleNodeFlag.Name) {
 		// set abeyconfig
@@ -132,8 +129,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		cfg.Abeystats.URL = ctx.GlobalString(utils.AbeystatsURLFlag.Name)
 	}
 
-	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
-
 	return stack, cfg
 }
 
@@ -141,10 +136,6 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 
 	utils.RegisterAbeyService(stack, &cfg.Abey)
-
-	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
-		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
-	}
 
 	// Add the Abeychain Stats daemon if requested.
 	if cfg.Abeystats.URL != "" {

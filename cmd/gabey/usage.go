@@ -73,16 +73,6 @@ var AppHelpFlagGroups = []flagGroup{
 	//		utils.DeveloperPeriodFlag,
 	//	},
 	//},
-	//{
-	//	Name: "DASHBOARD",
-	//	Flags: []cli.Flag{
-	//		utils.DashboardEnabledFlag,
-	//		utils.DashboardAddrFlag,
-	//		utils.DashboardPortFlag,
-	//		utils.DashboardRefreshFlag,
-	//		utils.DashboardAssetsFlag,
-	//	},
-	//},
 	{Name: "SINGLE NODE MODEL START",
 		Flags: []cli.Flag{
 			utils.SingleNodeFlag,
