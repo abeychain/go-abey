@@ -346,6 +346,46 @@ func Test08(t *testing.T) {
 	fmt.Println("abey-addr:",addr.StringToAbey())
 	fmt.Println("finish")
 }
+func TestOnceUpdateWhitelist(t *testing.T) {
+	statedb := getFisrtState()
+	addr0 := common.HexToAddress("0x751A86Bd48CAD1fa554928996aD2d404486C8B8D")
+	whitelist := []common.Address{
+		common.HexToAddress("0x8818d143773426071068C514Db25106338009363"),
+		common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
+	}
+	b1 := big.NewInt(10000000)
+	for _,addr := range whitelist {
+		statedb.SetBalance(addr,b1)
+	}
+
+	consensus.OnceUpdateWhitelist(statedb, big.NewInt(1))
+	for _,addr := range whitelist {
+		b2 := statedb.GetBalance(addr)
+		fmt.Println(addr.String(),b2.String())
+	}
+	consensus.OnceUpdateWhitelist(statedb, big.NewInt(5000000))
+	for _,addr := range whitelist {
+		b2 := statedb.GetBalance(addr)
+		fmt.Println(addr.String(),b2.String())
+	}
+	consensus.OnceUpdateWhitelist(statedb, big.NewInt(5000001))
+	for _,addr := range whitelist {
+		b2 := statedb.GetBalance(addr)
+		fmt.Println(addr.String(),b2.String())
+	}
+
+	b0 := statedb.GetBalance(addr0)
+	if b0.Cmp(new(big.Int).Mul(b1,big.NewInt(2))) != 0 {
+		panic("error .....")
+	}
+	for _,addr := range whitelist {
+		b2 := statedb.GetBalance(addr)
+		if b2.Sign() != 0 {
+			panic("error2 .....")
+		}
+	}
+	fmt.Println("finish")
+}
 func generateAddr() common.Address {
 	priv, _ := crypto.GenerateKey()
 	privHex := hex.EncodeToString(crypto.FromECDSA(priv))
@@ -725,12 +765,12 @@ func dump(w io.Writer, val interface{}) error {
 
 func Test05(t *testing.T) {
 	Value := map[common.Address]*types.BalanceInfo {
-	generateAddr():&types.BalanceInfo{
-		Address: generateAddr(),
-		Valid: big.NewInt(1),
-		Lock: big.NewInt(0),
-	},
-}
+		generateAddr():&types.BalanceInfo{
+			Address: generateAddr(),
+			Valid: big.NewInt(1),
+			Lock: big.NewInt(0),
+		},
+	}
 	err := dump(os.Stdout, Value)
 	if err != nil {
 		fmt.Println(err)
