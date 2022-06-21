@@ -210,3 +210,7 @@ func TestCommitFruits(t *testing.T) {
 
 	worker.CommitFruits(fruitset, snailChainLocal, fastChainLocal, engine)
 }
+
+func TestMiner01(t *testing.T) {
+
+}
