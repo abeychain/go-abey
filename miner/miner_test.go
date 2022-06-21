@@ -47,13 +47,23 @@ func newmockBackend() *mockBackend {
 	fchain.InsertChain(fastblocks)
 
 	// make the snail chain
-	snailChainLocal, fastChainLocal = snailchain.MakeChain(fastChainHight, blockNum, genesis, minerva.NewFaker())
-	//sv := snailchain.NewBlockValidator(chainConfig, fastChainLocal, snailChainLocal, engine)
+	snailGenesis := genesis.MustSnailCommit(db)
+	schain, err := snailchain.NewSnailBlockChain(db, fastchaincfg, engine, fchain)
+	if err != nil {
+		utils.Fatalf("failed to make new snail chain %v", err)
+	}
+	if _, err := schain.InsertChain(types.SnailBlocks{snailGenesis}); err != nil {
+		utils.Fatalf("failed to insert genesis block %v", err)
+	}
+	//_, err := MakeSnailBlockBlockChain(snailChain, fastchain, snailGenesis, snailBlockNumbers, 1)
+	//if err != nil {
+	//	utils.Fatalf("failed to make new snail blocks %v", err)
+	//}
 	return &mockBackend{
 		db:        db,
-		schain:    snailChainLocal,
+		schain:    schain,
 		fchain:    fchain,
-		snailPool: snailchain.NewSnailPool(snailchain.DefaultSnailPoolConfig, fastChainLocal, snailChainLocal, engine),
+		snailPool: snailchain.NewSnailPool(snailchain.DefaultSnailPoolConfig, fchain, schain, engine),
 	}
 }
 func (b *mockBackend) SnailBlockChain() *snailchain.SnailBlockChain { return b.schain }
