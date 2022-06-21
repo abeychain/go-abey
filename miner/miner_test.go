@@ -24,7 +24,7 @@ type mockBackend struct {
 	accountManager *accounts.Manager
 }
 
-func newmockBackend() *mockBackend {
+func newMockBackend() *mockBackend {
 	var (
 		db           = abeydb.NewMemDatabase()
 		genesis      = core.DefaultDevGenesisBlock()
@@ -74,6 +74,6 @@ func (b *mockBackend) BlockChain() *core.BlockChain                 { return b.f
 func (b *mockBackend) ChainDb() abeydb.Database                     { return b.db }
 func (b *mockBackend) SnailPool() *snailchain.SnailPool             { return b.snailPool }
 
-func Test01(t *testing.T) {
+func TestMakeSnailBlock(t *testing.T) {
 
 }

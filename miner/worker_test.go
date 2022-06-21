@@ -65,9 +65,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 		db      = abeydb.NewMemDatabase()
 		genesis = core.DefaultGenesisBlock()
 	)
-	snailChainLocal, fastChainLocal = snailchain.MakeChain(fastChainHight, blockNum, genesis, minerva.NewFaker())
-	//sv := snailchain.NewBlockValidator(chainConfig, fastChainLocal, snailChainLocal, engine)
-
+	snailChainLocal, fastChainLocal = snailchain.MakeChain(fastChainHight, blockNum, genesis, engine)
 	return &testWorkerBackend{
 		db:        db,
 		chain:     snailChainLocal,
