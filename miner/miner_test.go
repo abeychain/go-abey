@@ -3,11 +3,13 @@ package miner
 import (
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
-	"github.com/abeychain/go-abey/consensus"
+	"github.com/abeychain/go-abey/cmd/utils"
+	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain"
 	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/params"
 	"testing"
 )
@@ -22,22 +24,38 @@ type mockBackend struct {
 	accountManager *accounts.Manager
 }
 
-func newmockBackend(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, n int) *mockBackend {
+func newmockBackend() *mockBackend {
 	var (
-		db      = abeydb.NewMemDatabase()
-		genesis = core.DefaultDevGenesisBlock()
+		db           = abeydb.NewMemDatabase()
+		genesis      = core.DefaultDevGenesisBlock()
+		cache        = &core.CacheConfig{}
+		vmcfg        = vm.Config{}
+		fastchaincfg = params.DevnetChainConfig
+		engine       = minerva.NewFaker()
+		fastNums     = 10 * params.MinimumFruits
 	)
+	// make fast chain
+	fchain, err := core.NewBlockChain(db, cache, fastchaincfg, engine, vmcfg)
+	if err != nil {
+		utils.Fatalf("failed to make new fast chain %v", err)
+	}
+	// make fast blocks
+	fastGenesis := genesis.MustFastCommit(db)
+	fastblocks, _ := core.GenerateChain(params.TestChainConfig, fastGenesis, engine, db, fastNums, func(i int, b *core.BlockGen) {
+		b.SetCoinbase(common.Address{0: byte(1), 19: byte(i)})
+	})
+	fchain.InsertChain(fastblocks)
+
+	// make the snail chain
 	snailChainLocal, fastChainLocal = snailchain.MakeChain(fastChainHight, blockNum, genesis, minerva.NewFaker())
 	//sv := snailchain.NewBlockValidator(chainConfig, fastChainLocal, snailChainLocal, engine)
-
 	return &mockBackend{
 		db:        db,
 		schain:    snailChainLocal,
-		fchain:    fastChainLocal,
+		fchain:    fchain,
 		snailPool: snailchain.NewSnailPool(snailchain.DefaultSnailPoolConfig, fastChainLocal, snailChainLocal, engine),
 	}
 }
-
 func (b *mockBackend) SnailBlockChain() *snailchain.SnailBlockChain { return b.schain }
 func (b *mockBackend) AccountManager() *accounts.Manager            { return b.accountManager }
 func (b *mockBackend) SnailGenesis() *types.SnailBlock              { return b.schain.GetBlockByNumber(0) }
