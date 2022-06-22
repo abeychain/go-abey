@@ -417,6 +417,7 @@ func (w *worker) update() {
 func (w *worker) wait() {
 	for {
 		if w.freezeMiner() {
+			log.Info("freeze miner in wait1.....")
 			return
 		}
 		for result := range w.recv {
@@ -426,6 +427,7 @@ func (w *worker) wait() {
 				continue
 			}
 			if w.freezeMiner() {
+				log.Info("freeze miner in wait2.....")
 				return
 			}
 			block := result.Block
@@ -508,11 +510,17 @@ func (w *worker) wait() {
 
 // push sends a new work task to currently live miner agents.
 func (w *worker) push(work *Work) {
+	if w.freezeMiner() {
+		log.Info("freeze miner in push.....")
+		return
+	}
+	
 	if atomic.LoadInt32(&w.mining) != 1 {
 		w.atCommintNewWoker = false
 		log.Info("miner was stop")
 		return
 	}
+
 	for agent := range w.agents {
 		atomic.AddInt32(&w.atWork, 1)
 		if ch := agent.Work(); ch != nil {
