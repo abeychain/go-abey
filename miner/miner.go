@@ -23,17 +23,17 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
+	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
+	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abey/downloader"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -245,13 +245,11 @@ func (miner *Miner) Start(coinbase common.Address) {
 	miner.SetEtherbase(coinbase)
 
 	if atomic.LoadInt32(&miner.canStart) == 0 && atomic.LoadInt32(&miner.commitFlag) == 0 &&
-	 atomic.LoadInt32(&miner.mining) == 0 && atomic.LoadInt32(&miner.shouldStart) == 1 &&
+		atomic.LoadInt32(&miner.mining) == 0 && atomic.LoadInt32(&miner.shouldStart) == 1 &&
 		!miner.worker.freezeMiner() {
 
 		atomic.StoreInt32(&miner.mining, 1)
-
 		miner.worker.start()
-
 		var events []interface{}
 		events = append(events, types.NewMinedFruitEvent{Block: nil})
 		miner.worker.chain.PostChainEvents(events)

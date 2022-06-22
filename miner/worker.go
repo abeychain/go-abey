@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core"
@@ -32,7 +33,6 @@ import (
 	//"github.com/abeychain/go-abey/core/vm"
 	//"crypto/rand"
 	chain "github.com/abeychain/go-abey/core/snailchain"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
@@ -121,7 +121,7 @@ type worker struct {
 	agents map[Agent]struct{}
 	recv   chan *Result
 
-	abey     Backend
+	abey      Backend
 	chain     *chain.SnailBlockChain
 	fastchain *core.BlockChain
 	proc      core.SnailValidator
@@ -160,7 +160,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, coinbase com
 	worker := &worker{
 		config:            config,
 		engine:            engine,
-		abey:             abey,
+		abey:              abey,
 		mux:               mux,
 		fruitCh:           make(chan types.NewFruitsEvent, fruitChanSize),
 		fastchainEventCh:  make(chan types.FastChainEvent, fastchainHeadChanSize),
@@ -342,6 +342,7 @@ func (w *worker) update() {
 
 	for {
 		if w.freezeMiner() {
+			log.Info("freeze miner in update.....")
 			return
 		}
 		// A real event arrived, process interesting content
@@ -354,7 +355,6 @@ func (w *worker) update() {
 					w.commitNewWork()
 				}
 			} else {
-
 				if atomic.LoadInt32(&w.mining) == 1 && !w.fruitOnly && len(w.current.Block.Fruits()) >= 60 {
 					log.Info("stop the mining and start a new mine", "need stop mining block number ", w.current.Block.Number(), "get block ev number", ev.Block.Number())
 					w.commitNewWork()
@@ -510,6 +510,7 @@ func (w *worker) wait() {
 func (w *worker) push(work *Work) {
 	if atomic.LoadInt32(&w.mining) != 1 {
 		w.atCommintNewWoker = false
+		log.Info("miner was stop")
 		return
 	}
 	for agent := range w.agents {
@@ -608,7 +609,7 @@ func (w *worker) commitNewWork() {
 			return
 		}
 	}
-
+	// check the fruits when it to be mining
 	if work.fruits != nil {
 		log.Debug("commitNewWork fruits", "first", work.fruits[0].FastNumber(), "last", work.fruits[len(work.fruits)-1].FastNumber())
 		if count := len(work.fruits); count < params.MinimumFruits {
@@ -625,7 +626,6 @@ func (w *worker) commitNewWork() {
 				work.fruits = nil
 			}
 		}
-
 	}
 
 	// Set the pointerHash
@@ -665,7 +665,6 @@ func (w *worker) commitNewWork() {
 	)
 	for hash, uncle := range w.possibleUncles {
 		if len(uncles) == 2 {
-
 			break
 		}
 		if err := w.commitUncle(work, uncle.Header()); err != nil {
@@ -950,7 +949,6 @@ func (w *worker) commitFastNumberRandom(fastBlockHight, snailFruitsLastFastNumbe
 
 	if len(w.fastBlockPool) > 0 {
 		// del alread mined fastblock
-
 		var pool []*big.Int
 		for _, fb := range w.fastBlockPool {
 			if _, ok := w.fruitPoolMap[fb.Uint64()]; !ok {
@@ -959,9 +957,7 @@ func (w *worker) commitFastNumberRandom(fastBlockHight, snailFruitsLastFastNumbe
 				}
 			}
 		}
-
 		w.fastBlockPool = pool
-
 	}
 
 	if len(w.fastBlockPool) == 0 {
@@ -1035,13 +1031,13 @@ func (w *worker) commitFastNumberRandom(fastBlockHight, snailFruitsLastFastNumbe
 // find a corect fast block to miner
 func (w *worker) CommitFastBlocksByWoker(fruits []*types.SnailBlock, bc *chain.SnailBlockChain, fc *core.BlockChain, engine consensus.Engine) error {
 	//get current snailblock block and fruits
-
+	// get the last fast number from the parent snail block
 	snailblockFruits := bc.CurrentBlock().Fruits()
-
 	snailFruitsLastFastNumber := new(big.Int).Set(common.Big0)
 	if len(snailblockFruits) > 0 {
 		snailFruitsLastFastNumber = snailblockFruits[len(snailblockFruits)-1].FastNumber()
 	}
+
 	//get current fast block hight
 	fastBlockHight := fc.CurrentBlock().Number()
 
@@ -1058,6 +1054,5 @@ func (w *worker) CommitFastBlocksByWoker(fruits []*types.SnailBlock, bc *chain.S
 			w.current.signs[i] = types.CopyPbftSign(signs[i])
 		}
 	}
-
 	return nil
 }
