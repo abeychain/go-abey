@@ -51,8 +51,8 @@ var DefaultConfig = Config{
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 12000000,
-	MinerGasCeil:  16000000,
+	MinerGasFloor: 16000000,
+	MinerGasCeil:  20000000,
 	GasPrice:      big.NewInt(10 * params.GWei),
 
 	//GasPrice: big.NewInt(1 * params.Szabo),

@@ -921,6 +921,9 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockHr r
 	if err != nil {
 		return nil, err
 	}
+	if result == nil {
+		return nil,errors.New("unknown error for Call")
+	}
 	// If the result contains a revert reason, try to unpack and return it.
 	if len(result.Revert()) > 0 {
 		return nil, newRevertError(result)

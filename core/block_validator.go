@@ -17,7 +17,9 @@
 package core
 
 import (
+	"errors"
 	"fmt"
+	"github.com/abeychain/go-abey/common"
 
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/consensus"
@@ -63,23 +65,28 @@ func (fv *BlockValidator) ValidateBody(block *types.Block, validateSign bool) er
 		return consensus.ErrPrunedAncestor
 	}
 	//validate reward snailBlock
-	if block.SnailNumber() != nil && block.SnailNumber().Uint64() != 0 {
-		snailNumber := block.SnailNumber().Uint64()
-		blockReward := fv.bc.GetBlockReward(snailNumber)
-
-		if blockReward != nil && block.NumberU64() != blockReward.FastNumber.Uint64() {
-			log.Error("validateRewardError", "rewardFastNumber", blockReward.FastNumber.Uint64(),
-				"currentNumber", block.NumberU64(), "err", ErrSnailNumberAlreadyRewarded)
-			return ErrSnailNumberAlreadyRewarded
+	if block.SnailNumber() != nil && block.SnailNumber().Cmp(params.StopSnailMiner) > 0 {
+		if block.SnailNumber().Sign() != 0 || block.SnailHash() != (common.Hash{}) {
+			return errors.New("snail number or hash not empty when stop snail mining")
 		}
-		supposedRewardedNumber := fv.bc.NextSnailNumberReward()
-		if supposedRewardedNumber.Uint64() != snailNumber {
-			log.Error("validateRewardError", "snailNumber", snailNumber,
-				"supposedRewardedNumber", supposedRewardedNumber, "err", ErrRewardSnailNumberWrong)
-			return ErrRewardSnailNumberWrong
+	} else {
+		if block.SnailNumber() != nil && block.SnailNumber().Uint64() != 0 {
+			snailNumber := block.SnailNumber().Uint64()
+			blockReward := fv.bc.GetBlockReward(snailNumber)
+
+			if blockReward != nil && block.NumberU64() != blockReward.FastNumber.Uint64() {
+				log.Error("validateRewardError", "rewardFastNumber", blockReward.FastNumber.Uint64(),
+					"currentNumber", block.NumberU64(), "err", ErrSnailNumberAlreadyRewarded)
+				return ErrSnailNumberAlreadyRewarded
+			}
+			supposedRewardedNumber := fv.bc.NextSnailNumberReward()
+			if supposedRewardedNumber.Uint64() != snailNumber {
+				log.Error("validateRewardError", "snailNumber", snailNumber,
+					"supposedRewardedNumber", supposedRewardedNumber, "err", ErrRewardSnailNumberWrong)
+				return ErrRewardSnailNumberWrong
+			}
 		}
 	}
-
 	// Header validity is known at this point, check the transactions
 	header := block.Header()
 	if hash := types.DeriveSha(block.Transactions()); hash != header.TxHash {

@@ -423,6 +423,9 @@ func (m *Minerva) verifyHeader(chain consensus.ChainReader, header, parent *type
 }
 func (m *Minerva) verifySnailHeader(chain consensus.SnailChainReader, fastchain consensus.ChainReader, header, pointer *types.SnailHeader,
 	parents []*types.SnailHeader, uncle bool, seal bool, isFruit bool) error {
+	if !isFruit && header.Number.Cmp(params.StopSnailMiner) > 0 {
+		return errors.New("snail block had disable")
+	}
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
@@ -858,29 +861,45 @@ func (m *Minerva) PrepareSnailWithParent(fastchain consensus.ChainReader, chain 
 // setting the final state and assembling the block.
 func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB,
 	txs []*types.Transaction, receipts []*types.Receipt, feeAmount *big.Int) (*types.Block, *types.ChainReward,error) {
-		
+
 	consensus.OnceInitImpawnState(chain.Config(),state,new(big.Int).Set(header.Number))
+	consensus.OnceUpdateWhitelist(state,new(big.Int).Set(header.Number))
 
 	var infos *types.ChainReward
-	if header != nil && header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
-		sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
-		if sBlockHeader == nil {
-			return nil, nil,types.ErrSnailHeightNotYet
-		}
-		if sBlockHeader.Hash() != header.SnailHash {
-			return nil,nil, types.ErrSnailBlockNotOnTheCain
-		}
-		sBlock := m.sbc.GetBlock(header.SnailHash, header.SnailNumber.Uint64())
-		if sBlock == nil {
-			return nil, nil,types.ErrSnailHeightNotYet
-		}
-		var err error
-		infos,err = accumulateRewardsFast2(state, sBlock, header.Number.Uint64())
-		if err != nil {
-			log.Error("Finalize Error", "accumulateRewardsFast2", err.Error())
-			return nil,nil, err
+	var err error
+	currentSnailHeader := m.sbc.CurrentHeader().Number
+	if header != nil {
+		if header.SnailNumber == nil && currentSnailHeader.Cmp(params.StopSnailMiner) > 0   {
+			fastNumber := header.Number
+			epoch := types.GetEpochFromHeight(fastNumber.Uint64())
+			if fastNumber.Uint64() == epoch.EndHeight {
+				infos,err = accumulateRewardsFast3(state, header.Number.Uint64())
+				if err != nil {
+					log.Error("Finalize Error", "accumulateRewardsFast3", err.Error())
+					return nil,nil, err
+				}
+			}
+		} else if header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
+			sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
+			if sBlockHeader == nil {
+				return nil, nil,types.ErrSnailHeightNotYet
+			}
+			if sBlockHeader.Hash() != header.SnailHash {
+				return nil,nil, types.ErrSnailBlockNotOnTheCain
+			}
+			sBlock := m.sbc.GetBlock(header.SnailHash, header.SnailNumber.Uint64())
+			if sBlock == nil {
+				return nil, nil,types.ErrSnailHeightNotYet
+			}
+
+			infos,err = accumulateRewardsFast2(state, sBlock, header.Number.Uint64())
+			if err != nil {
+				log.Error("Finalize Error", "accumulateRewardsFast2", err.Error())
+				return nil,nil, err
+			}
 		}
 	}
+
 	if err := m.finalizeFastGas(state, header.Number, header.Hash(), feeAmount); err != nil {
 		return nil,nil, err
 	}
@@ -1039,6 +1058,30 @@ func accumulateRewardsFast2(stateDB *state.StateDB, sBlock *types.SnailBlock, fa
 	// "FruitBase",rewardsInfos.FruitBase,"CommitteeBase",rewardsInfos.CommitteeBase)
 	return rewardsInfos,nil
 }
+func accumulateRewardsFast3(stateDB *state.StateDB, fast uint64) (*types.ChainReward,error) {
+	committeeCoin := getBaseRewardCoinForPos(big.NewInt(0))
+	epoch := types.GetEpochFromHeight(fast)
+
+	impawn := vm.NewImpawnImpl()
+	impawn.Load(stateDB, types.StakingAddress)
+	defer impawn.Save(stateDB, types.StakingAddress)
+
+	//committee reward
+	infos, err := impawn.Reward2(epoch.BeginHeight,epoch.EndHeight,1,committeeCoin)
+	if err != nil {
+		return nil,err
+	}
+	for _, v := range infos {
+		for _, vv := range v.Items {
+			stateDB.AddBalance(vv.Address, vv.Amount)
+			LogPrint("committee:", vv.Address, vv.Amount)
+		}
+	}
+	rewardsInfos := &types.ChainReward{
+		CommitteeBase: infos,
+	}
+	return rewardsInfos,nil
+}
 
 func posOfFruitsInFirstEpoch(fruits []*types.SnailBlock, min, max uint64) int {
 	first := types.GetFirstEpoch()
@@ -1124,7 +1167,7 @@ func getCommitteeVoted(committeeReward map[common.Address]*big.Int, election con
 				committeeReward[v] = committeeCoinFruitMember
 			}
 		}
-	}	
+	}
 }
 
 func rewardFruitCommitteeMember(state *state.StateDB, election consensus.CommitteeElection,

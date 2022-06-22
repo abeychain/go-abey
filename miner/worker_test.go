@@ -20,14 +20,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
+	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -45,10 +45,8 @@ var (
 )
 
 func init() {
-
 	blockNum = 10
 	fastChainHight = 700
-
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
@@ -67,9 +65,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 		db      = abeydb.NewMemDatabase()
 		genesis = core.DefaultGenesisBlock()
 	)
-	snailChainLocal, fastChainLocal = snailchain.MakeChain(fastChainHight, blockNum, genesis, minerva.NewFaker())
-	//sv := snailchain.NewBlockValidator(chainConfig, fastChainLocal, snailChainLocal, engine)
-
+	snailChainLocal, fastChainLocal = snailchain.MakeChain(fastChainHight, blockNum, genesis, engine)
 	return &testWorkerBackend{
 		db:        db,
 		chain:     snailChainLocal,
@@ -83,7 +79,7 @@ func (b *testWorkerBackend) AccountManager() *accounts.Manager            { retu
 func (b *testWorkerBackend) SnailGenesis() *types.SnailBlock              { return b.chain.GetBlockByNumber(0) }
 func (b *testWorkerBackend) TxPool() *core.TxPool                         { return b.txPool }
 func (b *testWorkerBackend) BlockChain() *core.BlockChain                 { return b.fastchain }
-func (b *testWorkerBackend) ChainDb() abeydb.Database                    { return b.db }
+func (b *testWorkerBackend) ChainDb() abeydb.Database                     { return b.db }
 func (b *testWorkerBackend) SnailPool() *snailchain.SnailPool             { return b.snailPool }
 
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
@@ -193,7 +189,7 @@ func TestCommitFruits(t *testing.T) {
 	engine := minerva.NewFaker()
 
 	chainDb := abeydb.NewMemDatabase()
-	chainConfig, _, _, _ := core.SetupGenesisBlock(chainDb, core.DefaultGenesisBlock())
+	chainConfig, _, _, _ := core.SetupGenesisBlock(chainDb, core.DefaultDevGenesisBlock())
 	//Miner := New(snailChainLocal, nil, nil, snailChainLocal.Engine(), nil, false, nil)
 	worker, _ := newTestWorker(t, chainConfig, engine, 1)
 
@@ -211,4 +207,8 @@ func TestCommitFruits(t *testing.T) {
 	fruitset = append(fruitset, fruitNofresh)
 
 	worker.CommitFruits(fruitset, snailChainLocal, fastChainLocal, engine)
+}
+
+func TestMiner01(t *testing.T) {
+
 }

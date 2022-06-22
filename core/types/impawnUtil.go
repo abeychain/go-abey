@@ -23,8 +23,18 @@ var (
 	StakingAddress = common.BytesToAddress([]byte("truestaking"))
 	MixEpochCount  = 2
 	whitelist      = []common.Address{
+		common.HexToAddress("0xA218B46345B13b0c5E3E5625a1e1bb0b025FDD13"),
+		common.HexToAddress("0xd4f226f45a4030FB060e3cDc584D2eD0d3b474FE"),
+		common.HexToAddress("0x574e7b464340787A9de1A68784a89edF616768Fe"),
+		common.HexToAddress("0x7cb1024f02394CcE5F51dCdE0bb07e6B4358489b"),
+		common.HexToAddress("0x36840bBcF8bEfE91BDCc05046D76a5ba970c9317"),
+		common.HexToAddress("0x29Cd0c9385604f39966a3D1Ac88eFEca4309272f"),
+		common.HexToAddress("0x34b73756bde8d9ba0d3efa090838f8e71ce14bca"),
+		common.HexToAddress("0x8436c9882b6dDa3df48d673a623EAd675373914c"),
 		common.HexToAddress("0x8818d143773426071068C514Db25106338009363"),
 		common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
+		common.HexToAddress("0x36939d3324bd522Baba28b3F142Fed395A9751B9"),
+		common.HexToAddress("0x76fC12940EC8022D0F6D4d570d5cd685D223B29e"),
 	}
 )
 

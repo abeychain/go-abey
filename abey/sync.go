@@ -17,6 +17,7 @@
 package abey
 
 import (
+	"github.com/abeychain/go-abey/params"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -263,7 +264,6 @@ func (pm *ProtocolManager) syncer() {
 // synchronise tries to sync up our local block chain with a remote peer.
 func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Short circuit if no peers are available
-
 	if !atomic.CompareAndSwapInt32(&pm.synchronising, 0, 1) {
 		log.Debug("synchronise snail busy")
 		return
@@ -272,11 +272,11 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	pm.lock.Lock()
 	defer pm.lock.Unlock()
 	defer log.Debug("synchronise exit")
+
 	if peer == nil {
 		log.Debug("synchronise peer nil")
 		return
 	}
-
 	var err error
 	sendEvent := func() {
 		// reset on error
@@ -290,18 +290,20 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Make sure the peer's TD is higher than our own
 	currentBlock := pm.snailchain.CurrentBlock()
 	td := pm.snailchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
-	pHead, pTd := peer.Head()
+	pHeadHash, pTd := peer.Head()
 	_, fastHeight := peer.fastHead, peer.fastHeight.Uint64()
 
 	pm.fdownloader.SetSyncStatsChainHeightLast(fastHeight)
 	currentNumber := pm.blockchain.CurrentBlock().NumberU64()
-	log.Debug("synchronise  ", "pHead", pHead, "pTd", pTd, "td", td, "fastHeight", fastHeight, "currentNumber", currentNumber, "snailHeight", currentBlock.Number())
-	if pTd.Cmp(td) <= 0 {
+	log.Debug("synchronise  ", "remoteHeadHash", pHeadHash, "pTd", pTd, "td", td, "fastHeight",
+		fastHeight, "currentNumber", currentNumber, "snailHeight", currentBlock.Number())
 
+	// sync the fast blocks
+	if pTd.Cmp(td) <= 0 || currentBlock.Number().Cmp(params.StopSnailMiner) >= 0 {
 		if fastHeight > currentNumber {
 			pm.eventMux.Post(downloader.StartEvent{})
 			defer sendEvent()
-			if err := pm.downloader.SyncFast(peer.id, pHead, fastHeight, downloader.FullSync); err != nil {
+			if err := pm.downloader.SyncFast(peer.id, pHeadHash, fastHeight, downloader.FullSync); err != nil {
 				log.Error("ProtocolManager fast sync: ", "err", err)
 				return
 			}
@@ -349,49 +351,50 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		}
 		pm.downloader.SetHeader(pivotHeader)
 		pm.fdownloader.SetHeader(pivotHeader)
-
 	}
 
 	pm.eventMux.Post(downloader.StartEvent{})
 	defer sendEvent()
 	log.Debug("ProtocolManager1","mode",mode)
-	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err = pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
-		log.Error("ProtocolManager end", "err", err)
-		return
-	}
-	log.Debug("ProtocolManager2","mode",mode)
-	if atomic.LoadUint32(&pm.fastSync) == 1 ||  atomic.LoadUint32(&pm.snapSync) == 1 {
-		if pm.blockchain.CurrentBlock().NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
-			if err := pm.downloader.SyncFast(peer.id, pHead, fastHeight, downloader.FastSync); err != nil {
-				log.Error("ProtocolManager fast sync: ", "err", err)
-				return
+	if params.StopSnailMiner.Cmp(currentBlock.Number()) > 0 {
+		// Run the sync cycle, and disable fast sync if we've went past the pivot block
+		if err = pm.downloader.Synchronise(peer.id, pHeadHash, pTd, mode); err != nil {
+			log.Error("ProtocolManager end", "err", err)
+			return
+		}
+		log.Debug("ProtocolManager2","mode",mode)
+		if atomic.LoadUint32(&pm.fastSync) == 1 ||  atomic.LoadUint32(&pm.snapSync) == 1 {
+			if pm.blockchain.CurrentBlock().NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
+				if err := pm.downloader.SyncFast(peer.id, pHeadHash, fastHeight, downloader.FastSync); err != nil {
+					log.Error("ProtocolManager fast sync: ", "err", err)
+					return
+				}
 			}
 		}
-	}
 
-	atomic.StoreUint32(&pm.fastSync, 0)
-	atomic.StoreUint32(&pm.snapSync, 0)
-	atomic.StoreUint32(&pm.acceptTxs, 1)    // Mark initial sync done
-	atomic.StoreUint32(&pm.acceptFruits, 1) // Mark initial sync done on any fetcher import
-	//atomic.StoreUint32(&pm.acceptSnailBlocks, 1) // Mark initial sync done on any fetcher import
-	if head := pm.snailchain.CurrentBlock(); head.NumberU64() > 0 {
-		// We've completed a sync cycle, notify all peers of new state. This path is
-		// essential in star-topology networks where a gateway node needs to notify
-		// all its out-of-date peers of the availability of a new block. This failure
-		// scenario will most often crop up in private and hackathon networks with
-		// degenerate connectivity, but it should be healthy for the mainnet too to
-		// more reliably update peers or the local TD state.
-		go pm.BroadcastSnailBlock(head, false)
-	}
-	if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
-		// We've completed a sync cycle, notify all peers of new state. This path is
-		// essential in star-topology networks where a gateway node needs to notify
-		// all its out-of-date peers of the availability of a new block. This failure
-		// scenario will most often crop up in private and hackathon networks with
-		// degenerate connectivity, but it should be healthy for the mainnet too to
-		// more reliably update peers or the local TD state.
-		log.Debug("synchronise", "number", head.Number(), "sign", head.GetLeaderSign() != nil)
-		go pm.BroadcastFastBlock(head, false)
+		atomic.StoreUint32(&pm.fastSync, 0)
+		atomic.StoreUint32(&pm.snapSync, 0)
+		atomic.StoreUint32(&pm.acceptTxs, 1)    // Mark initial sync done
+		atomic.StoreUint32(&pm.acceptFruits, 1) // Mark initial sync done on any fetcher import
+		//atomic.StoreUint32(&pm.acceptSnailBlocks, 1) // Mark initial sync done on any fetcher import
+		if head := pm.snailchain.CurrentBlock(); head.NumberU64() > 0 {
+			// We've completed a sync cycle, notify all peers of new state. This path is
+			// essential in star-topology networks where a gateway node needs to notify
+			// all its out-of-date peers of the availability of a new block. This failure
+			// scenario will most often crop up in private and hackathon networks with
+			// degenerate connectivity, but it should be healthy for the mainnet too to
+			// more reliably update peers or the local TD state.
+			go pm.BroadcastSnailBlock(head, false)
+		}
+		if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
+			// We've completed a sync cycle, notify all peers of new state. This path is
+			// essential in star-topology networks where a gateway node needs to notify
+			// all its out-of-date peers of the availability of a new block. This failure
+			// scenario will most often crop up in private and hackathon networks with
+			// degenerate connectivity, but it should be healthy for the mainnet too to
+			// more reliably update peers or the local TD state.
+			log.Debug("synchronise", "number", head.Number(), "sign", head.GetLeaderSign() != nil)
+			go pm.BroadcastFastBlock(head, false)
+		}
 	}
 }

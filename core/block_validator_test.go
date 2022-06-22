@@ -17,14 +17,17 @@
 package core
 
 import (
+	"fmt"
+	"github.com/abeychain/go-abey/common"
+	"math/big"
 	"runtime"
 	"testing"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -193,5 +196,22 @@ func testHeaderConcurrentAbortion(t *testing.T, threads int) {
 	// Check that abortion was honored by not processing too many POWs
 	if verified > 2*threads {
 		t.Errorf("verification count too large: have %d, want below %d", verified, 2*threads)
+	}
+}
+
+func TestSnailInfoInHeader(t *testing.T) {
+	tstamp := time.Now().Unix()
+	header := &types.Header{
+		ParentHash: common.Hash{0},
+		Number:     new(big.Int).Set(common.Big1),
+		GasLimit:   10000000000,
+		Time:       big.NewInt(tstamp),
+	}
+
+	if header.SnailNumber != nil {
+		t.Fatal("header.SnailNumber must be nil")
+	}
+	if header.SnailHash == (common.Hash{}) {
+		fmt.Println("header.SnailNumber must equal common.Hash{}")
 	}
 }
