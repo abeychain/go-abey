@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"errors"
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/cmd/utils"
@@ -12,7 +13,10 @@ import (
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/params"
+	"log"
+	"math/big"
 	"testing"
+	"time"
 )
 
 type mockBackend struct {
@@ -75,6 +79,31 @@ func (b *mockBackend) BlockChain() *core.BlockChain                 { return b.f
 func (b *mockBackend) ChainDb() abeydb.Database                     { return b.db }
 func (b *mockBackend) SnailPool() *snailchain.SnailPool             { return b.snailPool }
 
+func makeFruits(back *mockBackend, count uint64, fastchaincfg *params.ChainConfig) error {
+	fcount := back.BlockChain().CurrentBlock().Number().Uint64()
+	if count > fcount {
+		return errors.New("count is too large")
+	}
+	fruits := []*types.SnailBlock{}
+	for i := uint64(1); i < fcount; i++ {
+		fruitHead := &types.SnailHeader{
+			ParentHash: back.BlockChain().GetBlockByNumber(i - 1).Hash(),
+			Publickey:  []byte{0},
+			Number:     big.NewInt(int64(i)),
+			Extra:      []byte{0},
+			Time:       big.NewInt(time.Now().Unix()),
+		}
+		fruit := types.NewSnailBlock(fruitHead, []*types.SnailBlock{}, nil, nil, fastchaincfg)
+		fruits = append(fruits, fruit)
+	}
+	errs := back.SnailPool().AddRemoteFruits(fruits, true)
+	for _, e := range errs {
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}
 func TestMakeSnailBlock(t *testing.T) {
 	// make
 	var (
@@ -85,5 +114,10 @@ func TestMakeSnailBlock(t *testing.T) {
 	backend := newMockBackend(fastchaincfg, engine)
 	worker := newWorker(fastchaincfg, engine, coinbase, backend, nil)
 
+	// make the fruits
+	err := makeFruits(backend, 60, fastchaincfg)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	worker.commitNewWork()
 }
