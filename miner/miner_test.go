@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
-	"github.com/abeychain/go-abey/cmd/utils"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/consensus/minerva"
@@ -42,7 +41,7 @@ func newMockBackend(fastchaincfg *params.ChainConfig, engine consensus.Engine) *
 	// make fast chain
 	fchain, err := core.NewBlockChain(db, cache, fastchaincfg, engine, vmcfg)
 	if err != nil {
-		utils.Fatalf("failed to make new fast chain %v", err)
+		log.Fatalf("failed to make new fast chain %v", err)
 	}
 	// make fast blocks
 	fastGenesis := genesis.MustFastCommit(db)
@@ -55,10 +54,10 @@ func newMockBackend(fastchaincfg *params.ChainConfig, engine consensus.Engine) *
 	snailGenesis := genesis.MustSnailCommit(db)
 	schain, err := snailchain.NewSnailBlockChain(db, fastchaincfg, engine, fchain)
 	if err != nil {
-		utils.Fatalf("failed to make new snail chain %v", err)
+		log.Fatalf("failed to make new snail chain %v", err)
 	}
 	if _, err := schain.InsertChain(types.SnailBlocks{snailGenesis}); err != nil {
-		utils.Fatalf("failed to insert genesis block %v", err)
+		log.Fatalf("failed to insert genesis block %v", err)
 	}
 	//_, err := MakeSnailBlockBlockChain(snailChain, fastchain, snailGenesis, snailBlockNumbers, 1)
 	//if err != nil {
@@ -104,6 +103,7 @@ func makeFruits(back *mockBackend, count uint64, fastchaincfg *params.ChainConfi
 	}
 	return nil
 }
+
 func TestMakeSnailBlock(t *testing.T) {
 	// make
 	var (
