@@ -5,6 +5,7 @@ import (
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/cmd/utils"
 	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain"
@@ -24,15 +25,15 @@ type mockBackend struct {
 	accountManager *accounts.Manager
 }
 
-func newMockBackend() *mockBackend {
+func newMockBackend(fastchaincfg *params.ChainConfig, engine consensus.Engine) *mockBackend {
 	var (
-		db           = abeydb.NewMemDatabase()
-		genesis      = core.DefaultDevGenesisBlock()
-		cache        = &core.CacheConfig{}
-		vmcfg        = vm.Config{}
-		fastchaincfg = params.DevnetChainConfig
-		engine       = minerva.NewFaker()
-		fastNums     = 10 * params.MinimumFruits
+		db      = abeydb.NewMemDatabase()
+		genesis = core.DefaultDevGenesisBlock()
+		cache   = &core.CacheConfig{}
+		vmcfg   = vm.Config{}
+		//fastchaincfg = params.DevnetChainConfig
+		//engine       = minerva.NewFaker()
+		fastNums = 10 * params.MinimumFruits
 	)
 	// make fast chain
 	fchain, err := core.NewBlockChain(db, cache, fastchaincfg, engine, vmcfg)
@@ -76,5 +77,13 @@ func (b *mockBackend) SnailPool() *snailchain.SnailPool             { return b.s
 
 func TestMakeSnailBlock(t *testing.T) {
 	// make
+	var (
+		fastchaincfg = params.DevnetChainConfig
+		engine       = minerva.NewFaker()
+	)
 
+	backend := newMockBackend(fastchaincfg, engine)
+	worker := newWorker(fastchaincfg, engine, coinbase, backend, nil)
+
+	worker.commitNewWork()
 }

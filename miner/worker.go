@@ -514,7 +514,7 @@ func (w *worker) push(work *Work) {
 		log.Info("freeze miner in push.....")
 		return
 	}
-	
+
 	if atomic.LoadInt32(&w.mining) != 1 {
 		w.atCommintNewWoker = false
 		log.Info("miner was stop")
@@ -601,7 +601,6 @@ func (w *worker) commitNewWork() {
 	}
 	// Create the current work task and check any fork transitions needed
 	work := w.current
-
 	fruits := w.abey.SnailPool().PendingFruits()
 
 	pendingFruits := w.CopyPendingFruit(fruits, w.chain)
