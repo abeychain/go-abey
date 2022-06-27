@@ -2,6 +2,7 @@ package miner
 
 import (
 	"errors"
+	"fmt"
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/common"
@@ -107,6 +108,18 @@ func makeFruits(back *mockBackend, count uint64, fastchaincfg *params.ChainConfi
 	return nil
 }
 
+func makeSnailBlock(parent *types.SnailBlock) (*types.SnailBlock, error) {
+	head := &types.SnailHeader{
+		ParentHash: parent.Hash(),
+		Publickey:  []byte{0},
+		Number:     new(big.Int).Add(parent.Number(), big.NewInt(1)),
+		Extra:      []byte{0},
+		Time:       big.NewInt(time.Now().Unix()),
+	}
+	b := types.NewSnailBlock(head, []*types.SnailBlock{}, nil, nil, params.DevnetChainConfig)
+	return b, nil
+}
+
 func TestMakeSnailBlock(t *testing.T) {
 	// make
 	var (
@@ -123,4 +136,17 @@ func TestMakeSnailBlock(t *testing.T) {
 		log.Fatalln(err)
 	}
 	worker.commitNewWork()
+}
+
+func TestStopMiningForHeight(t *testing.T) {
+	backend := newMockBackend(params.DevnetChainConfig, minerva.NewFaker())
+	for i := 0; i < 10; i++ {
+		parent := backend.SnailBlockChain().CurrentBlock()
+		block, _ := makeSnailBlock(parent)
+		c, err := backend.SnailBlockChain().InsertChain(types.SnailBlocks{block})
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("insert snail block", c)
+	}
 }
