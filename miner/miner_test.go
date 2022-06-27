@@ -38,17 +38,13 @@ func newMockBackend(fastchaincfg *params.ChainConfig, engine consensus.Engine) *
 		//engine       = minerva.NewFaker()
 		fastNums = 10 * params.MinimumFruits
 	)
+	// make genesis block
+	fastGenesis := genesis.MustFastCommit(db)
 	// make fast chain
 	fchain, err := core.NewBlockChain(db, cache, fastchaincfg, engine, vmcfg)
 	if err != nil {
 		log.Fatalf("failed to make new fast chain %v", err)
 	}
-	// make fast blocks
-	fastGenesis := genesis.MustFastCommit(db)
-	fastblocks, _ := core.GenerateChain(params.TestChainConfig, fastGenesis, engine, db, fastNums, func(i int, b *core.BlockGen) {
-		b.SetCoinbase(common.Address{0: byte(1), 19: byte(i)})
-	})
-	fchain.InsertChain(fastblocks)
 
 	// make the snail chain
 	snailGenesis := genesis.MustSnailCommit(db)
@@ -56,6 +52,13 @@ func newMockBackend(fastchaincfg *params.ChainConfig, engine consensus.Engine) *
 	if err != nil {
 		log.Fatalf("failed to make new snail chain %v", err)
 	}
+	engine.SetSnailChainReader(schain)
+	// make fast blocks
+	fastblocks, _ := core.GenerateChain(fastchaincfg, fastGenesis, engine, db, fastNums, func(i int, b *core.BlockGen) {
+		b.SetCoinbase(common.Address{0: byte(1), 19: byte(i)})
+	})
+	fchain.InsertChain(fastblocks)
+
 	if _, err := schain.InsertChain(types.SnailBlocks{snailGenesis}); err != nil {
 		log.Fatalf("failed to insert genesis block %v", err)
 	}
