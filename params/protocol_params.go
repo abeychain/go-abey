@@ -183,12 +183,15 @@ var (
 	MaximumCommitteeNumber  = big.NewInt(50)
 	ProposalCommitteeNumber = 20
 	MinimumCommitteeNumber  = 4
-	StopSnailMiner = big.NewInt(2000000)
+	StopSnailMiner          = big.NewInt(2000000)
+	StartPosRewardHeight    = big.NewInt(1000000)
+	BlocksInOneYear         = big.NewInt(1000000)
+	InitReward              = new(big.Int).Mul(big.NewInt(200), big.NewInt(1e18))
 )
 
 var (
 	CountInEpoch                      = 20
-	MaxRedeemHeight            uint64 = 250000   // about 15 days
+	MaxRedeemHeight            uint64 = 250000 // about 15 days
 	NewEpochLength             uint64 = 25000  // about 1.5 days
 	ElectionPoint              uint64 = 200
 	FirstNewEpochID            uint64 = 1
