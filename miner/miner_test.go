@@ -141,7 +141,7 @@ func TestMakeSnailBlock(t *testing.T) {
 
 func TestStopMiningForHeight(t *testing.T) {
 	backend := newMockBackend(params.DevnetChainConfig, minerva.NewFaker())
-	params.StopSnailMiner = big.NewInt(10)
+	params.StopSnailMiner = big.NewInt(1)
 
 	for i := uint64(0); i < params.StopSnailMiner.Uint64(); i++ {
 		parent := backend.SnailBlockChain().CurrentBlock()
@@ -151,5 +151,16 @@ func TestStopMiningForHeight(t *testing.T) {
 			log.Fatal(err)
 		}
 		fmt.Println("insert snail block", c)
+	}
+
+	// make snail block after stop mining
+	snailAfterStopMining := 10
+	for i := 0; i < snailAfterStopMining; i++ {
+		parent := backend.SnailBlockChain().CurrentBlock()
+		block, _ := makeSnailBlock(parent)
+		c, err := backend.SnailBlockChain().InsertChain(types.SnailBlocks{block})
+		if err == nil || c > 0 {
+			log.Fatal("cann't insert snail block on stop miner")
+		}
 	}
 }
