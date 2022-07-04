@@ -18,17 +18,17 @@ package minerva
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/common/math"
+	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/params"
+	osMath "math"
 	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-	"fmt"
-	"github.com/abeychain/go-abey/common/math"
-	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/params"
-	osMath "math"
 )
 
 var (
@@ -225,24 +225,25 @@ func TestReward2(t *testing.T) {
 	allReward := big.NewInt(0)
 
 	for i := 0; i < 25; i++ {
-		num := big.NewInt(int64(i*snailNum))
+		num := big.NewInt(int64(i * snailNum))
 
 		cc, mm, mf := GetBlockReward(num)
 		fmt.Println("committeeAward:", cc, "minerAward:", mm,
 			"minerFruitAward:", mf)
-		fmt.Println("committeeAward:", toTrueCoin(cc).Text('f',6), "minerAward:", toTrueCoin(mm).Text('f',6),
-			"minerFruitAward:", toTrueCoin(mf).Text('f',6),
-			"all:", toTrueCoin(new(big.Int).Add(mm,mf)).Text('f',6))
-		snailReward1 := new(big.Int).Add(cc.Add(cc,mm),mf)
-		allReward = new(big.Int).Add(allReward,snailReward1)
+		fmt.Println("committeeAward:", toAbeyCoin(cc).Text('f', 6), "minerAward:", toAbeyCoin(mm).Text('f', 6),
+			"minerFruitAward:", toAbeyCoin(mf).Text('f', 6),
+			"all:", toAbeyCoin(new(big.Int).Add(mm, mf)).Text('f', 6))
+		snailReward1 := new(big.Int).Add(cc.Add(cc, mm), mf)
+		allReward = new(big.Int).Add(allReward, snailReward1)
 	}
-	fmt.Println("allReward",allReward)
-	fmt.Println("allReward",toTrueCoin(allReward).Text('f',10))
+	fmt.Println("allReward", allReward)
+	fmt.Println("allReward", toAbeyCoin(allReward).Text('f', 10))
 
 	fmt.Println("finish")
 }
-func toTrueCoin(val *big.Int) *big.Float {
-	return new(big.Float).Quo(new(big.Float).SetInt(val),new(big.Float).SetInt(BaseBig))
+
+func toAbeyCoin(val *big.Int) *big.Float {
+	return new(big.Float).Quo(new(big.Float).SetInt(val), new(big.Float).SetInt(BaseBig))
 }
 
 func TestTime(t *testing.T) {
@@ -250,9 +251,24 @@ func TestTime(t *testing.T) {
 	time.Sleep(time.Millisecond * time.Duration(600))
 	t2 := time.Now()
 	d := t2.Sub(t1)
-	fmt.Println("d:",d.Seconds())
+	fmt.Println("d:", d.Seconds())
 	if d.Seconds() > float64(0.5) {
 		fmt.Println("good")
 	}
 	fmt.Println("finish")
+}
+func TestRewardWithTimes01(t *testing.T) {
+	// update the constant of rewards
+	params.StartPosRewardHeight = big.NewInt(0)
+	params.BlocksInOneYear = big.NewInt(100)
+	fmt.Println("init reward", toAbeyCoin(params.InitReward).Text('f', 6))
+
+	count, old := int64(10000), big.NewInt(0)
+	for i := int64(0); i < count; i++ {
+		value := getBaseRewardCoinForPos2(big.NewInt(i))
+		if old.Cmp(value) != 0 {
+			old = new(big.Int).Set(value)
+			fmt.Println("block height", i, "reward", toAbeyCoin(value).Text('f', 6))
+		}
+	}
 }
