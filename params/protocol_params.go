@@ -185,7 +185,7 @@ var (
 	MinimumCommitteeNumber  = 4
 	StopSnailMiner          = big.NewInt(2000000)
 	StartPosRewardHeight    = big.NewInt(1000000)
-	BlocksInOneYear         = big.NewInt(1000000)
+	BlocksInFourYear        = big.NewInt(1000000)
 	InitReward              = new(big.Int).Mul(big.NewInt(200), big.NewInt(1e18))
 )
 

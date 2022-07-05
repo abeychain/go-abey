@@ -1255,10 +1255,8 @@ func getBaseRewardCoinForPos2(height *big.Int) *big.Int {
 	if range0.Sign() <= 0 {
 		return new(big.Int).Set(params.InitReward)
 	}
-	rate := new(big.Int).Mul(new(big.Int).Quo(range0, params.BlocksInOneYear), big.NewInt(2))
-	if rate.Sign() == 0 {
-		rate = big.NewInt(1)
-	}
+	rate := new(big.Int).Quo(range0, params.BlocksInFourYear)
+	rate = new(big.Int).Exp(big.NewInt(2), rate, nil)
 	reward0 := new(big.Int).Quo(params.InitReward, rate)
 	return reward0
 }
