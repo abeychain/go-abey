@@ -133,7 +133,7 @@ var (
 	}
 
 	SingleNodeChainConfig = &ChainConfig{
-		ChainID: big.NewInt(176),
+		ChainID: big.NewInt(1766),
 		Minerva: &(MinervaConfig{
 			MinimumDifficulty:      big.NewInt(200),
 			MinimumFruitDifficulty: big.NewInt(2),
