@@ -185,8 +185,11 @@ var (
 	MinimumCommitteeNumber  = 4
 	StopSnailMiner          = big.NewInt(2000000)
 	StartPosRewardHeight    = big.NewInt(1000000)
-	BlocksInFourYear        = big.NewInt(1000000)
-	InitReward              = new(big.Int).Mul(big.NewInt(200), big.NewInt(1e18))
+	// 365/1.5 = 243(epoch in one year),243*25000*4 = 24300000
+	BlocksInFourYear = big.NewInt(24300000)
+	// 29959200 abey of one year, about 1.5 day of one epoch
+	// 29959200/243 = 123289
+	InitReward = new(big.Int).Mul(big.NewInt(123289), big.NewInt(1e18))
 )
 
 var (
