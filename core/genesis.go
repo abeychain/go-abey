@@ -252,6 +252,7 @@ func (g *Genesis) ToFastBlock(db abeydb.Database) *types.Block {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
+		// fmt.Println(addr.String(), types.ToAbey(account.Balance).Text('f', 4))
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
@@ -582,7 +583,7 @@ func DefaultDevGenesisBlock() *Genesis {
 }
 
 func DefaultSingleNodeGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000", 10)
 	// priv: 229ca04fb83ec698296037c7d2b04a731905df53b96c260555cbeed9e4c64036
 	key1 := hexutil.MustDecode("0x04718502f879a949ca5fa29f78f1d3cef362ecdc36ee42a3023cca80371c2e1936d1f632a0ec5bf5edb2af228a5ba1669d31ea55df87548de172e5767b9201097d")
 
@@ -616,7 +617,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	// addr: 0x37C229201a1d05b7326a2A8c64D8c7966F795a3B
 	// seed4
 	//coinbase := common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779")
-	amount1 := new(big.Int).Mul(big.NewInt(900000000000000000),big.NewInt(1e18))
+	amount1 := new(big.Int).Mul(big.NewInt(900000000000000000), big.NewInt(1e18))
 	return &Genesis{
 		Config:     params.TestnetChainConfig,
 		Nonce:      0,
