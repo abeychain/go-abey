@@ -22,13 +22,13 @@ import (
 
 	"fmt"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/params"
 	//"github.com/abeychain/go-abey/abey"
 )
@@ -842,4 +842,51 @@ func makeSnailBlock(fastchain *core.BlockChain, snailchain *SnailBlockChain, blo
 	)
 
 	return block, nil
+}
+
+func MakeSnailBlocks1(fastchain *core.BlockChain, snailchain *SnailBlockChain, snailparents []*types.SnailBlock, blockCount int64, config MakechianConfig) ([]*types.SnailBlock, error) {
+
+	if blockCount <= 0 {
+		return nil, nil
+	}
+
+	if fastchain == nil {
+		return nil, fmt.Errorf(" fastchain is nill")
+	}
+	if snailchain == nil {
+		return nil, fmt.Errorf(" snailchain is nill")
+	}
+
+	var snailblocks types.SnailBlocks
+	var snailblockParent *types.SnailBlock
+	var parantsnail []*types.SnailBlock
+	for _, block := range snailparents {
+		parantsnail = append(parantsnail, block)
+	}
+
+	snailblockParent = snailparents[len(snailparents)-1]
+	startBlockNumber := snailblockParent.Number().Uint64()
+	for {
+		blockCount--
+		if blockCount > 2 {
+			blockCount = 2
+			break
+		} else if blockCount < 0 {
+			break
+		}
+		startBlockNumber++
+		block, err := makeSnailBlock(fastchain, snailchain, startBlockNumber, snailblockParent, parantsnail, config)
+		if err != nil {
+			return nil, err
+		}
+		snailblockParent = block
+		parantsnail = append(parantsnail, block)
+		snailblocks = append(snailblocks, block)
+		snailchain.SetValidator(NewBlockValidator(snailchain.Config(), fastchain, snailchain, snailchain.Engine()))
+		if _, err := snailchain.InsertChain(types.SnailBlocks{block}); err != nil {
+			panic(err)
+		}
+	}
+
+	return snailblocks, nil
 }
