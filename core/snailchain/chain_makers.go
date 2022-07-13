@@ -890,3 +890,70 @@ func MakeSnailBlocks1(fastchain *core.BlockChain, snailchain *SnailBlockChain, s
 
 	return snailblocks, nil
 }
+func MakeChainAndBlocks(fastBlockNumbers int, snailBlockNumbers int, genesis *core.Genesis, engine consensus.Engine) (*SnailBlockChain, *core.BlockChain) {
+	var (
+		testdb = abeydb.NewMemDatabase()
+	)
+	cache := &core.CacheConfig{}
+
+	if fastBlockNumbers < snailBlockNumbers*params.MinimumFruits {
+		return nil, nil
+	}
+	log.Info("Make fastchain", "number", snailBlockNumbers, "fast number", fastBlockNumbers)
+
+	fastGenesis := genesis.MustFastCommit(testdb)
+	fastchain, _ := core.NewBlockChain(testdb, cache, params.AllMinervaProtocolChanges, engine, vm.Config{})
+
+	fastblocks, _ := core.GenerateChain(params.TestChainConfig, fastGenesis, engine, testdb, fastBlockNumbers, func(i int, b *core.BlockGen) {
+		b.SetCoinbase(common.Address{0: byte(1), 19: byte(i)})
+	})
+
+	fastchain.InsertChain(fastblocks)
+	log.Info("Make SnailBlockChain", "number", fastchain.CurrentBlock().Number(), "fast number", len(fastblocks))
+
+	snailGenesis := genesis.MustSnailCommit(testdb)
+	snailChain, _ := NewSnailBlockChain(testdb, params.TestChainConfig, engine, fastchain)
+
+	log.Info("MakeChain MakeSnailBlockBlockChain", "number", snailChain.CurrentBlock().Number(), "fast number", snailChain.CurrentFastBlock().Number())
+
+	if snailBlockNumbers > 2 {
+		snailBlockNumbers = 2
+	}
+	_, err := MakeSnailBlockChain(snailChain, fastchain, snailGenesis, snailBlockNumbers, 1)
+	if err != nil {
+		panic(err)
+	}
+
+	return snailChain, fastchain
+}
+
+func MakeSnailBlockChain(chain *SnailBlockChain, fastchain *core.BlockChain, parent *types.SnailBlock, n int, DifficultyLevel int) ([]*types.SnailBlock, error) {
+
+	var blocks types.SnailBlocks
+
+	if _, error := chain.InsertChain(types.SnailBlocks{parent}); error != nil {
+		panic(error)
+	}
+
+	mconfig := MakechianConfig{
+		FruitNumber:     uint64(params.MinimumFruits),
+		FruitFresh:      int64(7),
+		DifficultyLevel: DifficultyLevel,
+	}
+
+	var parents []*types.SnailBlock
+	for i := 0; i <= int(chain.CurrentBlock().Number().Uint64()); i++ {
+		parents = append(parents, chain.GetBlockByNumber(uint64(i)))
+	}
+	blocks2, _ := MakeSnailBlocks1(fastchain, chain, parents, int64(n), mconfig)
+
+	for _, block := range blocks2 {
+		if _, error := chain.InsertChain(types.SnailBlocks{block}); error != nil {
+			panic(error)
+		}
+	}
+
+	log.Info("MakeSnailBlockBlockChain", "makeblockSize", n)
+
+	return blocks, nil
+}
