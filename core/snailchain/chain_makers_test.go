@@ -18,15 +18,15 @@ package snailchain
 
 import (
 	"fmt"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
-	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/crypto"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 
 	"math/big"
@@ -95,8 +95,8 @@ func testReward(t *testing.T, n int) {
 	//params.MinimumFruits = 1
 	params.MinTimeGap = big.NewInt(0)
 	var (
-		db      = abeydb.NewMemDatabase()
-		pow     = minerva.NewFaker()
+		db  = abeydb.NewMemDatabase()
+		pow = minerva.NewFaker()
 
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -177,7 +177,7 @@ func testReward(t *testing.T, n int) {
 	}
 
 	for i := 1; i < geneSnailBlockNumber-1; i++ {
-		committeeAward, minerAward, minerFruitAward, _ := minerva.GetBlockReward(big.NewInt(int64(i)))
+		committeeAward, minerAward, minerFruitAward := minerva.GetBlockReward(big.NewInt(int64(i)))
 		fmt.Println("committeeAward:", committeeAward, "minerAward:", minerAward, "minerFruitAward:", minerFruitAward)
 		balance_given = new(big.Int).Add(balance_given, committeeAward)
 		balance_given = new(big.Int).Add(balance_given, minerAward)
@@ -188,12 +188,11 @@ func testReward(t *testing.T, n int) {
 		log.Info("miner address", "addr", addr, "times", times)
 	}
 
-	balance := new(big.Int).Sub(balance_get,balance_given)
+	balance := new(big.Int).Sub(balance_get, balance_given)
 	log.Warn("all balance", "balance_get", balance_get, "balance_given", balance_given, "balance", balance)
 	if balance.Uint64() <= 10000 {
 		log.Info("testReward success ...")
-	}else{
+	} else {
 		log.Info("testReward fail ...")
 	}
 }
-
