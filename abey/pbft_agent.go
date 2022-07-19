@@ -997,6 +997,10 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 	fastBlock.AppendSign(voteSign)
 	return fastBlock, err
 }
+func (agent *PbftAgent) getParentSignHash() common.Hash {
+	parent := agent.fastChain.CurrentBlock()
+	return parent.GetSignHash()
+}
 
 //GetCurrentHeight return  current fastBlock number
 func (agent *PbftAgent) GetCurrentHeight() *big.Int {
@@ -1053,6 +1057,7 @@ func (agent *PbftAgent) rewardSnailBlock(header *types.Header) {
 			log.Error("cannot find snailBlock by rewardSnailHegiht.", "snailHeight", rewardSnailHegiht.Uint64())
 		}
 	}
+
 }
 
 func (agent *PbftAgent) GetSnailRewardContent(rewardSnailHegiht uint64) *types.SnailRewardContenet {
