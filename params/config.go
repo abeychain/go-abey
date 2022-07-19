@@ -60,7 +60,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
-		TIP9: &BlockConfig{FastNumber: big.NewInt(0), SnailNumber: new(big.Int).Set(StopSnailMiner)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(-1), SnailNumber: new(big.Int).Set(StopSnailMiner)},
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -96,6 +96,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
@@ -484,5 +485,8 @@ func (c *ChainConfig) IsTIP9(num *big.Int) bool {
 	if c.TIP9 == nil {
 		return false
 	}
-	return isForked(c.TIP7.FastNumber, num)
+	if c.TIP9.FastNumber.Sign() <= 0 {
+		return false
+	}
+	return isForked(c.TIP9.FastNumber, num)
 }
