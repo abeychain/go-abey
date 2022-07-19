@@ -1001,6 +1001,9 @@ func (agent *PbftAgent) getParentSignHash() common.Hash {
 	parent := agent.fastChain.CurrentBlock()
 	return parent.GetSignHash()
 }
+func (agent *PbftAgent) updateSnailHashForSignInfo(header *types.Header) {
+
+}
 
 //GetCurrentHeight return  current fastBlock number
 func (agent *PbftAgent) GetCurrentHeight() *big.Int {

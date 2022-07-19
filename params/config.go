@@ -60,6 +60,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(0), SnailNumber: new(big.Int).Set(StopSnailMiner)},
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -130,6 +131,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 	}
 
 	SingleNodeChainConfig = &ChainConfig{
@@ -143,6 +145,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
@@ -160,14 +163,14 @@ var (
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 	AllMinervaProtocolChanges = &ChainConfig{ChainID: chainId, Minerva: new(MinervaConfig), TIP3: &BlockConfig{FastNumber: big.NewInt(0)},
-		TIP5: nil, TIP7: nil, TIP8: nil,
+		TIP5: nil, TIP7: nil, TIP8: nil, TIP9: nil,
 	}
 
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 
 	TestChainConfig = &ChainConfig{ChainID: chainId, Minerva: &MinervaConfig{MinimumDifficulty, MinimumFruitDifficulty, DurationLimit}, TIP3: &BlockConfig{FastNumber: big.NewInt(0)},
-		TIP5: nil, TIP7: nil, TIP8: nil,
+		TIP5: nil, TIP7: nil, TIP8: nil, TIP9: nil,
 	}
 )
 
@@ -233,6 +236,7 @@ type ChainConfig struct {
 	TIP5 *BlockConfig `json:"tip5"`
 	TIP7 *BlockConfig `json:"tip7"`
 	TIP8 *BlockConfig `json:"tip8"`
+	TIP9 *BlockConfig `json:"tip9"`
 
 	TIPStake *BlockConfig `json:"tipstake"`
 }
@@ -475,4 +479,10 @@ func (c *ChainConfig) IsTIP8(cid, num *big.Int) bool {
 		return true
 	}
 	return false
+}
+func (c *ChainConfig) IsTIP9(num *big.Int) bool {
+	if c.TIP9 == nil {
+		return false
+	}
+	return isForked(c.TIP7.FastNumber, num)
 }
