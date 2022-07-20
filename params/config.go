@@ -485,7 +485,7 @@ func (c *ChainConfig) IsTIP9(num *big.Int) bool {
 	if c.TIP9 == nil {
 		return false
 	}
-	if c.TIP9.FastNumber.Sign() <= 0 {
+	if c.TIP9.FastNumber.Sign() < 0 {
 		return false
 	}
 	return isForked(c.TIP9.FastNumber, num)
