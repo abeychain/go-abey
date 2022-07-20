@@ -482,7 +482,7 @@ func (c *ChainConfig) IsTIP8(cid, num *big.Int) bool {
 	return false
 }
 func (c *ChainConfig) IsTIP9(num *big.Int) bool {
-	if c.TIP9 == nil {
+	if c.TIP9 == nil || num.Sign() == 0 {
 		return false
 	}
 	if c.TIP9.FastNumber.Sign() < 0 {
