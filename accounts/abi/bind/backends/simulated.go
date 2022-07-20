@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/abeychain/go-abey"
+	"github.com/abeychain/go-abey/abey/filters"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts/abi/bind"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/math"
@@ -25,8 +27,6 @@ import (
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
-	"github.com/abeychain/go-abey/abey/filters"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rpc"
@@ -47,7 +47,7 @@ var (
 // ChainReader, ChainStateReader, ContractBackend, ContractCaller, ContractFilterer, ContractTransactor,
 // DeployBackend, GasEstimator, GasPricer, LogFilterer, PendingContractCaller, TransactionReader, and TransactionSender
 type SimulatedBackend struct {
-	database   abeydb.Database // In memory database to store our testing data
+	database   abeydb.Database  // In memory database to store our testing data
 	blockchain *core.BlockChain // Ethereum blockchain to handle the consensus
 
 	mu           sync.Mutex
@@ -67,6 +67,7 @@ func NewSimulatedBackendWithDatabase(database abeydb.Database, alloc types.Genes
 	params.SnailRewardInterval = big.NewInt(3)
 	genesis.Config.TIP7 = &params.BlockConfig{FastNumber: big.NewInt(10000)}
 	genesis.Config.TIP8 = &params.BlockConfig{FastNumber: big.NewInt(1000), CID: big.NewInt(10)}
+	genesis.Config.TIP9 = &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)}
 
 	genesis.MustFastCommit(database)
 	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, ethash.NewFaker(), vm.Config{})
@@ -749,7 +750,7 @@ type filterBackend struct {
 }
 
 func (fb *filterBackend) ChainDb() abeydb.Database { return fb.db }
-func (fb *filterBackend) EventMux() *event.TypeMux  { panic("not supported") }
+func (fb *filterBackend) EventMux() *event.TypeMux { panic("not supported") }
 
 func (fb *filterBackend) HeaderByNumber(ctx context.Context, block rpc.BlockNumber) (*types.Header, error) {
 	if block == rpc.LatestBlockNumber {

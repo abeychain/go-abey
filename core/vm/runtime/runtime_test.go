@@ -28,12 +28,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts/abi"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core/asm"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/vm"
-	"github.com/abeychain/go-abey/abeydb"
 )
 
 func TestDefaults(t *testing.T) {
@@ -179,6 +179,7 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 			TIP5:    &params.BlockConfig{SnailNumber: big.NewInt(0)},
 			TIP7:    &params.BlockConfig{FastNumber: big.NewInt(0)},
 			TIP8:    &params.BlockConfig{FastNumber: big.NewInt(0)},
+			TIP9:    &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 		},
 		EVMConfig: vm.Config{},
 	}

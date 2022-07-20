@@ -989,6 +989,7 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 		}
 	}
 	log.Info("generateFastBlock", "Height:", fastBlock.Number())
+	agent.updateSnailHashForSignInfo(header)
 
 	voteSign, err := agent.GenerateSign(fastBlock)
 	if err != nil {
@@ -1002,7 +1003,9 @@ func (agent *PbftAgent) getParentSignHash() common.Hash {
 	return parent.GetSignHash()
 }
 func (agent *PbftAgent) updateSnailHashForSignInfo(header *types.Header) {
-
+	if agent.config.IsTIP9(header.Number) {
+		header.SnailHash = agent.getParentSignHash()
+	}
 }
 
 //GetCurrentHeight return  current fastBlock number
