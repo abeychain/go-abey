@@ -35,7 +35,7 @@ import (
 func TestHeaderVerification(t *testing.T) {
 	// Create a simple chain to verify
 	var (
-		engine 	  = minerva.NewFaker()
+		engine    = minerva.NewFaker()
 		testdb    = abeydb.NewMemDatabase()
 		gspec     = &Genesis{Config: params.TestChainConfig}
 		genesis   = gspec.MustFastCommit(testdb)
@@ -213,5 +213,63 @@ func TestSnailInfoInHeader(t *testing.T) {
 	}
 	if header.SnailHash == (common.Hash{}) {
 		fmt.Println("header.SnailNumber must equal common.Hash{}")
+	}
+}
+
+func TestTip9(t *testing.T) {
+	// Create a simple chain to verify
+	cfg := &params.ChainConfig{
+		ChainID: big.NewInt(100),
+		Minerva: new(params.MinervaConfig),
+		TIP3:    &params.BlockConfig{FastNumber: big.NewInt(0)},
+		TIP5:    &params.BlockConfig{SnailNumber: big.NewInt(0)},
+		TIP7:    &params.BlockConfig{FastNumber: big.NewInt(0)},
+		TIP8:    &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
+		TIP9:    &params.BlockConfig{FastNumber: big.NewInt(100), SnailNumber: big.NewInt(0)},
+	}
+	var (
+		engine    = minerva.NewFaker()
+		testdb    = abeydb.NewMemDatabase()
+		gspec     = &Genesis{Config: cfg}
+		genesis   = gspec.MustFastCommit(testdb)
+		blocks, _ = GenerateChain(gspec.Config, genesis, engine, testdb, 200, nil)
+	)
+	headers := make([]*types.Header, len(blocks))
+	for i, block := range blocks {
+		headers[i] = block.Header()
+	}
+	// Run the header checker for blocks one-by-one, checking for both valid and invalid nonces
+	blockchain, _ := NewBlockChain(testdb, nil, cfg, engine, vm.Config{})
+	defer blockchain.Stop()
+
+	for i := 0; i < len(blocks); i++ {
+		for j, valid := range []bool{true} {
+			var results <-chan error
+
+			if valid {
+				engine := minerva.NewFaker()
+				_, results = engine.VerifyHeaders(blockchain, []*types.Header{headers[i]}, []bool{true})
+			}
+
+			// Wait for the verification result
+			select {
+			case result := <-results:
+				if (result == nil) != valid {
+					t.Errorf("test %d.%d: validity mismatch: have %v, want %v", i, j, result, valid)
+				}
+			case <-time.After(time.Second):
+				t.Fatalf("test %d.%d: verification timeout", i, j)
+			}
+			// Make sure no more data is returned
+			select {
+			case result := <-results:
+				t.Fatalf("test %d.%d: unexpected result returned: %v", i, j, result)
+			case <-time.After(25 * time.Millisecond):
+			}
+		}
+		if _, err := blockchain.InsertChain(blocks[i : i+1]); err != nil {
+			t.Fatalf("failed to insert block %d: %v", i, err)
+		}
+
 	}
 }

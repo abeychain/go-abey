@@ -878,8 +878,9 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 	var infos *types.ChainReward
 	var err error
-	currentSnailHeader := m.sbc.CurrentHeader().Number
-	if header != nil {
+
+	if header != nil && m.sbc != nil {
+		currentSnailHeader := m.sbc.CurrentHeader().Number
 		if header.SnailNumber == nil && currentSnailHeader.Cmp(params.StopSnailMiner) > 0 {
 			fastNumber := header.Number
 			epoch := types.GetEpochFromHeight(fastNumber.Uint64())
