@@ -389,7 +389,7 @@ func (m *Minerva) verifyHeader(chain consensus.ChainReader, header, parent *type
 			"cmp:", big.NewInt(time.Now().Add(allowedFutureBlockTime).Unix()))
 		return consensus.ErrFutureBlock
 	}
-	if chain.Config().IsTIP9(new(big.Int).Add(header.Number, big.NewInt(1))) {
+	if chain.Config().IsTIP9(header.Number) && chain.Config().IsTIP9(new(big.Int).Sub(header.Number, big.NewInt(1))) {
 		// snail hash is sign info hash after tip9
 		parentBlock := chain.GetBlock(parent.Hash(), parent.Number.Uint64())
 		if parentBlock == nil {
