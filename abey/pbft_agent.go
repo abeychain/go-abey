@@ -989,7 +989,7 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 		}
 	}
 	log.Info("generateFastBlock", "Height:", fastBlock.Number())
-	agent.updateSnailHashForSignInfo(header)
+	agent.updateSnailHashForSignInfo(fastBlock)
 
 	voteSign, err := agent.GenerateSign(fastBlock)
 	if err != nil {
@@ -1002,9 +1002,10 @@ func (agent *PbftAgent) getParentSignHash() common.Hash {
 	parent := agent.fastChain.CurrentBlock()
 	return parent.GetSignHash()
 }
-func (agent *PbftAgent) updateSnailHashForSignInfo(header *types.Header) {
-	if agent.config.IsTIP9(header.Number) {
-		header.SnailHash = agent.getParentSignHash()
+func (agent *PbftAgent) updateSnailHashForSignInfo(fastblock *types.Block) {
+	if agent.config.IsTIP9(fastblock.Number()) {
+		SnailHash := agent.getParentSignHash()
+		fastblock.UpdateSnailHash(SnailHash)
 	}
 }
 

@@ -393,6 +393,9 @@ func (b *Block) GetSignHash() common.Hash {
 	}
 	return rlpHash(b.signs)
 }
+func (b *Block) UpdateSnailHash(h common.Hash) {
+	b.header.SnailHash = h
+}
 
 // Body returns the non-header content of the block.
 func (b *Block) Body() *Body { return &Body{b.transactions, b.signs, b.infos} }
