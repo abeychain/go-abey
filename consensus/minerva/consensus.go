@@ -891,7 +891,7 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 					return nil, nil, err
 				}
 			}
-		} else if header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
+		} else if !chain.Config().IsTIP9(header.Number) && header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
 			sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
 			if sBlockHeader == nil {
 				return nil, nil, types.ErrSnailHeightNotYet
