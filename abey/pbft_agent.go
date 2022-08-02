@@ -1026,7 +1026,7 @@ func (agent *PbftAgent) validateBlockSpace(header *types.Header) error {
 		return nil
 	}
 	snailBlock := agent.snailChain.CurrentBlock()
-	if snailBlock.Number().Cmp(params.StopSnailMiner) < 0 {
+	if snailBlock.Number().Cmp(agent.config.TIP9.SnailNumber) < 0 {
 		if snailBlock.NumberU64() == 0 {
 			space := new(big.Int).Sub(header.Number, common.Big0).Int64()
 			if space >= params.FastToFruitSpace.Int64() {
@@ -1055,7 +1055,7 @@ func (agent *PbftAgent) rewardSnailBlock(header *types.Header) {
 	space := new(big.Int).Sub(curSnailNum, rewardSnailHegiht).Int64()
 	reward0 := new(big.Int).Add(params.SnailRewardInterval, rewardSnailHegiht)
 
-	if space >= params.SnailRewardInterval.Int64() && params.StopSnailMiner.Cmp(reward0) >= 0 {
+	if space >= params.SnailRewardInterval.Int64() && agent.config.TIP9.SnailNumber.Cmp(reward0) >= 0 {
 		header.SnailNumber = rewardSnailHegiht
 		sb := agent.snailChain.GetBlockByNumber(rewardSnailHegiht.Uint64())
 		if sb != nil {

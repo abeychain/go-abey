@@ -434,7 +434,7 @@ func (m *Minerva) verifyHeader(chain consensus.ChainReader, header, parent *type
 }
 func (m *Minerva) verifySnailHeader(chain consensus.SnailChainReader, fastchain consensus.ChainReader, header, pointer *types.SnailHeader,
 	parents []*types.SnailHeader, uncle bool, seal bool, isFruit bool) error {
-	if !isFruit && header.Number.Cmp(params.StopSnailMiner) > 0 {
+	if !isFruit && m.sbc != nil && header.Number.Cmp(m.sbc.Config().TIP9.SnailNumber) > 0 {
 		return errors.New("snail block had disable")
 	}
 	// Ensure that the header's extra-data section is of a reasonable size
@@ -881,7 +881,7 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 	if header != nil && m.sbc != nil {
 		currentSnailHeader := m.sbc.CurrentHeader().Number
-		if header.SnailNumber == nil && currentSnailHeader.Cmp(params.StopSnailMiner) > 0 {
+		if header.SnailNumber == nil && currentSnailHeader.Cmp(chain.Config().TIP9.SnailNumber) > 0 {
 			fastNumber := header.Number
 			epoch := types.GetEpochFromHeight(fastNumber.Uint64())
 			if fastNumber.Uint64() == epoch.EndHeight {

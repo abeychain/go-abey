@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"github.com/abeychain/go-abey/common"
 
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -65,7 +65,7 @@ func (fv *BlockValidator) ValidateBody(block *types.Block, validateSign bool) er
 		return consensus.ErrPrunedAncestor
 	}
 	//validate reward snailBlock
-	if block.SnailNumber() != nil && block.SnailNumber().Cmp(params.StopSnailMiner) > 0 {
+	if block.SnailNumber() != nil && block.SnailNumber().Cmp(fv.config.TIP9.SnailNumber) > 0 {
 		if block.SnailNumber().Sign() != 0 || block.SnailHash() != (common.Hash{}) {
 			return errors.New("snail number or hash not empty when stop snail mining")
 		}

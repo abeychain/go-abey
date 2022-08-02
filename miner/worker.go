@@ -201,7 +201,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, coinbase com
 
 func (w *worker) freezeMiner() bool {
 	cur := w.chain.CurrentBlock().Number()
-	if cur.Cmp(params.StopSnailMiner) >= 0 {
+	if cur.Cmp(w.config.TIP9.SnailNumber) >= 0 {
 		return true
 	}
 	return false
