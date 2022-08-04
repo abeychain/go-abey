@@ -375,6 +375,7 @@ func (b *Block) Extra() []byte                   { return common.CopyBytes(b.hea
 func (b *Block) Header() *Header                 { return CopyHeader(b.header) }
 func (b *Block) CommitteeHash() common.Hash      { return b.header.CommitteeHash }
 func (b *Block) SwitchInfos() []*CommitteeMember { return b.infos }
+func (b *Block) AllSigns() []*PbftSign           { return b.signs }
 func (b *Block) Signs() []*PbftSign {
 	_, local := b.GetLocalSigns()
 	return local
