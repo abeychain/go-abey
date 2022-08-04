@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -67,8 +68,8 @@ const (
 type CommitteeMembers []*CommitteeMember
 
 type CommitteeMember struct {
-	Coinbase      common.Address		`json:"coinbase`
-	CommitteeBase common.Address		`json:"committeebase`
+	Coinbase      common.Address `json:"coinbase`
+	CommitteeBase common.Address `json:"committeebase`
 	Publickey     []byte
 	Flag          uint32
 	MType         uint32
@@ -171,6 +172,14 @@ func (c *CommitteeNode) String() string {
 
 type PbftSigns []*PbftSign
 
+func (sinfos PbftSigns) String() string {
+	str := ""
+	for _, s := range sinfos {
+		str += s.String() + "\n"
+	}
+	return str
+}
+
 //go:generate gencodec -type PbftSign -field-override pbftSignMarshaling -out gen_pbftSign_json.go
 type PbftSign struct {
 	FastHeight *big.Int
@@ -180,6 +189,11 @@ type PbftSign struct {
 
 	// caches
 	size atomic.Value
+}
+
+func (s *PbftSign) String() string {
+	return fmt.Sprintf("sign:{height:%s,hash:%s,result:%v,signdata:%s}", s.FastHeight.String(), s.FastHash.Hex(),
+		s.Result, hex.EncodeToString(s.Sign))
 }
 
 // field type overrides for gencodec
