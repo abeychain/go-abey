@@ -17,9 +17,11 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/abeychain/go-abey/common"
+	"math/big"
 
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core/state"
@@ -63,6 +65,13 @@ func (fv *BlockValidator) ValidateBody(block *types.Block, validateSign bool) er
 			return consensus.ErrUnknownAncestor
 		}
 		return consensus.ErrPrunedAncestor
+	}
+	// validate snail hash of the sign info for prev block
+	if fv.config.IsTIP9(block.Number()) && fv.config.IsTIP9(new(big.Int).Sub(block.Number(), big.NewInt(1))) {
+		pHash := block.GetSignHash()
+		if !bytes.Equal(pHash.Bytes(), block.Header().SnailHash.Bytes()) {
+			return errors.New(fmt.Sprintf("snailhash wrong in tip9,want: %v,get: %v", pHash.Hex(), block.Header().SnailHash.Hex()))
+		}
 	}
 	//validate reward snailBlock
 	if block.SnailNumber() != nil && block.SnailNumber().Cmp(fv.config.TIP9.SnailNumber) > 0 {

@@ -7,11 +7,11 @@ import (
 
 	"bytes"
 	"crypto/ecdsa"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/log"
-	"github.com/abeychain/go-abey/core"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/params"
 	"testing"
 )
@@ -190,7 +190,6 @@ func StartNodeWork(receivedCommitteeInfo *types.CommitteeInfo, isCommitteeMember
 	printNodeWork(t, nodeWork, "startSend...")
 	return cryNodeInfo
 }
-
 func StopNodeWork(t *testing.T) {
 	nodeWork := agent.getCurrentNodeWork()
 	printNodeWork(t, nodeWork, "stopSend...")
@@ -201,9 +200,16 @@ func StopNodeWork(t *testing.T) {
 	//clear nodeWork
 	nodeWork.loadNodeWork(new(types.CommitteeInfo), false)
 }
-
 func printNodeWork(t *testing.T, nodeWork *nodeInfoWork, str string) {
 	t.Log(str, " tag=", nodeWork.tag, ", isMember=", nodeWork.isCommitteeMember, ", isCurrent=", nodeWork.isCurrent,
 		", nodeWork1=", agent.nodeInfoWorks[0].isCurrent, ", nodeWork2=", agent.nodeInfoWorks[1].isCurrent,
 		", committeeId=", nodeWork.committeeInfo.Id, ", committeeInfoMembers=", len(nodeWork.committeeInfo.Members))
+}
+
+func Test01(t *testing.T) {
+	type TT1 struct {
+		num1  uint64
+		infos types.PbftSigns
+	}
+
 }

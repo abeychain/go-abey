@@ -321,7 +321,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Time:       time,
 	}
 	if chain.Config().IsTIP9(head.Number) {
-		head.SnailHash = parent.GetSignHash()
+		head.SnailHash = common.Hash{}
 	}
 	return head
 }

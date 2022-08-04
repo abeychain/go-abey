@@ -244,8 +244,6 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, signs []*
 	b := &Block{
 		header: CopyHeader(header),
 	}
-
-	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
@@ -278,14 +276,6 @@ func (b *Body) SetLeaderSign(sign *PbftSign) {
 	signP := *sign
 	b.Signs = []*PbftSign{}
 	b.Signs = append(b.Signs, &signP)
-}
-
-// GetLeaderSign get the sign for proposal
-func (b *Body) GetLeaderSign() *PbftSign {
-	if len(b.Signs) > 0 {
-		return b.Signs[0]
-	}
-	return nil
 }
 
 // GetSwitchInfo get info for shift committee
@@ -387,14 +377,35 @@ func (b *Block) Header() *Header                 { return CopyHeader(b.header) }
 func (b *Block) CommitteeHash() common.Hash      { return b.header.CommitteeHash }
 func (b *Block) SwitchInfos() []*CommitteeMember { return b.infos }
 
+func (b *Block) GetLocalSigns() (PbftSigns, PbftSigns) {
+	if b.Signs == nil {
+		return nil, nil
+	}
+	l, n := new(big.Int).Sub(b.Number(), big.NewInt(1)), b.Number()
+	other, local := []*PbftSign{}, []*PbftSign{}
+
+	for _, s := range b.signs {
+		if n.Cmp(s.FastHeight) == 0 {
+			local = append(local, CopyPbftSign(s))
+		}
+		if l.Cmp(s.FastHeight) == 0 {
+			other = append(other, CopyPbftSign(s))
+		}
+	}
+	return other, local
+}
 func (b *Block) GetSignHash() common.Hash {
-	if b.signs == nil {
+	prev, _ := b.GetLocalSigns()
+	if len(prev) == 0 {
 		return common.Hash{}
 	}
-	return rlpHash(b.signs)
+	return rlpHash(prev)
 }
 func (b *Block) UpdateSnailHash(h common.Hash) {
 	b.header.SnailHash = h
+}
+func (b *Block) SetSignInfosByPrevBlock(prev *Block) {
+	b.SetSign(prev.signs)
 }
 
 // Body returns the non-header content of the block.
@@ -406,7 +417,11 @@ func (b *Block) AppendSign(sign *PbftSign) {
 }
 
 func (b *Block) SetSign(signs []*PbftSign) {
-	b.signs = append(make([]*PbftSign, 0), signs...)
+	if b.signs == nil {
+		b.signs = append(make([]*PbftSign, 0), signs...)
+	} else {
+		b.signs = append(b.signs, signs...)
+	}
 }
 
 func (b *Block) AppendSigns(signs []*PbftSign) {
@@ -428,8 +443,9 @@ func (b *Block) AppendSigns(signs []*PbftSign) {
 }
 
 func (b *Block) GetLeaderSign() *PbftSign {
-	if len(b.signs) > 0 {
-		return b.signs[0]
+	_, local := b.GetLocalSigns()
+	if len(local) > 0 {
+		return local[0]
 	}
 	return nil
 }

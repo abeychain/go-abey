@@ -998,13 +998,13 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 	fastBlock.AppendSign(voteSign)
 	return fastBlock, err
 }
-func (agent *PbftAgent) getParentSignHash() common.Hash {
-	parent := agent.fastChain.CurrentBlock()
-	return parent.GetSignHash()
-}
+
+// mixed signinfos after tip9
 func (agent *PbftAgent) updateSnailHashForSignInfo(fastblock *types.Block) {
 	if agent.config.IsTIP9(fastblock.Number()) {
-		SnailHash := agent.getParentSignHash()
+		parent := agent.fastChain.CurrentBlock()
+		fastblock.SetSignInfosByPrevBlock(parent)
+		SnailHash := fastblock.GetSignHash()
 		fastblock.UpdateSnailHash(SnailHash)
 	}
 }
