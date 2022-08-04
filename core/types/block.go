@@ -372,13 +372,15 @@ func (b *Block) TxHash() common.Hash             { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash        { return b.header.ReceiptHash }
 func (b *Block) UncleHash() common.Hash          { return common.Hash{} }
 func (b *Block) Extra() []byte                   { return common.CopyBytes(b.header.Extra) }
-func (b *Block) Signs() []*PbftSign              { return b.signs }
 func (b *Block) Header() *Header                 { return CopyHeader(b.header) }
 func (b *Block) CommitteeHash() common.Hash      { return b.header.CommitteeHash }
 func (b *Block) SwitchInfos() []*CommitteeMember { return b.infos }
-
+func (b *Block) Signs() []*PbftSign {
+	_, local := b.GetLocalSigns()
+	return local
+}
 func (b *Block) GetLocalSigns() (PbftSigns, PbftSigns) {
-	if b.Signs == nil {
+	if len(b.signs) == 0 {
 		return nil, nil
 	}
 	l, n := new(big.Int).Sub(b.Number(), big.NewInt(1)), b.Number()
