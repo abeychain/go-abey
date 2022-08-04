@@ -25,13 +25,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey"
-	"github.com/abeychain/go-abey/core/types"
 	abey "github.com/abeychain/go-abey/abey/types"
 	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/event"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/metrics"
 	"github.com/abeychain/go-abey/params"
 )
@@ -95,8 +95,8 @@ type SDownloader interface {
 type Downloader struct {
 	mode SyncMode // Synchronisation mode defining the strategy used (per sync cycle)
 
-	genesis uint64         // Genesis block number to limit sync to (e.g. light client CHT)
-	queue   *queue         // Scheduler for selecting the hashes to download
+	genesis uint64        // Genesis block number to limit sync to (e.g. light client CHT)
+	queue   *queue        // Scheduler for selecting the hashes to download
 	peers   *abey.PeerSet // Set of active peers from which download can proceed
 	stateDB abeydb.Database
 
@@ -122,9 +122,9 @@ type Downloader struct {
 	committed       int32
 
 	// Channels
-	headerCh      chan abey.DataPack  // [eth/62] Channel receiving inbound block headers
-	bodyCh        chan abey.DataPack  // [eth/62] Channel receiving inbound block bodies
-	receiptCh     chan abey.DataPack  // [eth/63] Channel receiving inbound receipts
+	headerCh      chan abey.DataPack   // [eth/62] Channel receiving inbound block headers
+	bodyCh        chan abey.DataPack   // [eth/62] Channel receiving inbound block bodies
+	receiptCh     chan abey.DataPack   // [eth/63] Channel receiving inbound receipts
 	bodyWakeCh    chan bool            // [eth/62] Channel to signal the block body fetcher of new tasks
 	receiptWakeCh chan bool            // [eth/63] Channel to signal the receipt fetcher of new tasks
 	headerProcCh  chan []*types.Header // [eth/62] Channel to feed the header processor new tasks
@@ -140,9 +140,9 @@ type Downloader struct {
 	quitLock sync.RWMutex  // Lock to prevent double closes
 
 	// Testing hooks
-	syncInitHook     func(uint64, uint64)       // Method to call upon initiating a new sync run
-	bodyFetchHook    func([]*types.Header)      // Method to call upon starting a block body fetch
-	receiptFetchHook func([]*types.Header)      // Method to call upon starting a receipt fetch
+	syncInitHook     func(uint64, uint64)      // Method to call upon initiating a new sync run
+	bodyFetchHook    func([]*types.Header)     // Method to call upon starting a block body fetch
+	receiptFetchHook func([]*types.Header)     // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*abey.FetchResult) // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 
 	remoteHeader *types.Header
@@ -846,6 +846,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan abey.DataPack, 
 				// Deliver the received chunk of data and check chain validity
 				accepted, err := deliver(packet)
 				if err == errInvalidChain {
+					log.Info("1111111")
 					return err
 				}
 				// Unless a peer delivered something completely else than requested (usually
@@ -1088,6 +1089,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64) error {
 						if n > 0 {
 							rollback = append(rollback, chunk[:n]...)
 						}
+						log.Info("22222222")
 						log.Debug("Fast Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "err", err)
 						return errInvalidChain
 					}
@@ -1300,6 +1302,7 @@ func (d *Downloader) commitFastSyncData(results []*abey.FetchResult) error {
 	}
 	if index, err := d.blockchain.InsertReceiptChain(blocks, receipts); err != nil {
 		log.Debug("Fast Downloaded item processing failed", "number", results[index].Fheader.Number, "hash", results[index].Fheader.Hash(), "err", err)
+		log.Info("3333333")
 		return errInvalidChain
 	}
 	return nil

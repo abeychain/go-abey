@@ -25,11 +25,11 @@ import (
 	"sync"
 	"time"
 
+	abey "github.com/abeychain/go-abey/abey/types"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/prque"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/core/types"
-	abey "github.com/abeychain/go-abey/abey/types"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/metrics"
 )
 
@@ -53,26 +53,26 @@ type queue struct {
 	headerTaskPool  map[uint64]*types.Header       // [eth/62] Pending header retrieval tasks, mapping starting indexes to skeleton headers
 	headerTaskQueue *prque.Prque                   // [eth/62] Priority queue of the skeleton indexes to fetch the filling headers for
 	headerPeerMiss  map[string]map[uint64]struct{} // [eth/62] Set of per-peer header batches known to be unavailable
-	headerPendPool  map[string]*abey.FetchRequest // [eth/62] Currently pending header retrieval operations
+	headerPendPool  map[string]*abey.FetchRequest  // [eth/62] Currently pending header retrieval operations
 	headerResults   []*types.Header                // [eth/62] Result cache accumulating the completed headers
 	headerProced    int                            // [eth/62] Number of headers already processed from the results
 	headerOffset    uint64                         // [eth/62] Number of the first header in the result cache
 	headerContCh    chan bool                      // [eth/62] Channel to notify when header download finishes
 
 	// All data retrievals below are based on an already assembles header chain
-	blockTaskPool  map[common.Hash]*types.Header  // [eth/62] Pending block (body) retrieval tasks, mapping hashes to headers
-	blockTaskQueue *prque.Prque                   // [eth/62] Priority queue of the headers to fetch the blocks (bodies) for
+	blockTaskPool  map[common.Hash]*types.Header // [eth/62] Pending block (body) retrieval tasks, mapping hashes to headers
+	blockTaskQueue *prque.Prque                  // [eth/62] Priority queue of the headers to fetch the blocks (bodies) for
 	blockPendPool  map[string]*abey.FetchRequest // [eth/62] Currently pending block (body) retrieval operations
-	blockDonePool  map[common.Hash]struct{}       // [eth/62] Set of the completed block (body) fetches
+	blockDonePool  map[common.Hash]struct{}      // [eth/62] Set of the completed block (body) fetches
 
-	receiptTaskPool  map[common.Hash]*types.Header  // [eth/63] Pending receipt retrieval tasks, mapping hashes to headers
-	receiptTaskQueue *prque.Prque                   // [eth/63] Priority queue of the headers to fetch the receipts for
+	receiptTaskPool  map[common.Hash]*types.Header // [eth/63] Pending receipt retrieval tasks, mapping hashes to headers
+	receiptTaskQueue *prque.Prque                  // [eth/63] Priority queue of the headers to fetch the receipts for
 	receiptPendPool  map[string]*abey.FetchRequest // [eth/63] Currently pending receipt retrieval operations
-	receiptDonePool  map[common.Hash]struct{}       // [eth/63] Set of the completed receipt fetches
+	receiptDonePool  map[common.Hash]struct{}      // [eth/63] Set of the completed receipt fetches
 
 	resultCache  []*abey.FetchResult // Downloaded but not yet delivered fetch results
-	resultOffset uint64               // Offset of the first cached fetch result in the block chain
-	resultSize   common.StorageSize   // Approximate size of a block (exponential moving average)
+	resultOffset uint64              // Offset of the first cached fetch result in the block chain
+	resultSize   common.StorageSize  // Approximate size of a block (exponential moving average)
 
 	lock   *sync.Mutex
 	active *sync.Cond
@@ -491,6 +491,7 @@ func (q *queue) reserveHeaders(p abey.PeerConnection, count int, taskPool map[co
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 {
 			common.Report("Fast index allocation went beyond available resultCache space")
+			log.Info("4444444")
 			return nil, false, errInvalidChain
 		}
 		if q.resultCache[index] == nil {
@@ -752,15 +753,18 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, signs [
 
 	reconstruct := func(header *types.Header, index int, result *abey.FetchResult) error {
 		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash {
+			log.Info("5555555")
 			return errInvalidChain
 		}
 
 		if types.RlpHash(infos[index]) != header.CommitteeHash {
+			log.Info("666666")
 			return errInvalidChain
 		}
 
 		for _, sign := range signs[index] {
 			if sign.FastHeight.Cmp(header.Number) != 0 || sign.FastHash != header.Hash() {
+				log.Info("777777")
 				return errInvalidChain
 			}
 		}
@@ -827,6 +831,7 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 		// Reconstruct the next result if contents match up
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 || q.resultCache[index] == nil {
+			log.Info("8888")
 			failure = errInvalidChain
 			break
 		}
@@ -858,6 +863,7 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 	// If none of the data was good, it's a stale delivery
 	switch {
 	case failure == nil || failure == errInvalidChain:
+		log.Info("99999")
 		return accepted, failure
 	case useful:
 		return accepted, fmt.Errorf("Fast partial failure: %v", failure)
