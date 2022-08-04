@@ -414,8 +414,8 @@ func (b *Block) SetSignInfosByPrevBlock(prev *Block) {
 func (b *Block) Body() *Body { return &Body{b.transactions, b.signs, b.infos} }
 
 func (b *Block) AppendSign(sign *PbftSign) {
-	signP := CopyPbftSign(sign)
-	b.signs = append(b.signs, signP)
+	//signP := CopyPbftSign(sign)
+	//b.signs = append(b.signs, signP)
 }
 
 func (b *Block) SetSign(signs []*PbftSign) {
