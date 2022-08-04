@@ -763,10 +763,16 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, signs [
 		}
 
 		for _, sign := range signs[index] {
-			if sign.FastHeight.Cmp(header.Number) != 0 || sign.FastHash != header.Hash() {
+			if !(sign.FastHeight.Uint64() == header.Number.Uint64()-1 ||
+				(sign.FastHeight.Uint64() == header.Number.Uint64() && sign.FastHash == header.Hash())) {
 				log.Info("777777")
 				return errInvalidChain
 			}
+
+			//if sign.FastHeight.Cmp(header.Number) != 0 || sign.FastHash != header.Hash() {
+			//	log.Info("777777")
+			//	return errInvalidChain
+			//}
 		}
 
 		result.Transactions = txLists[index]
@@ -863,7 +869,7 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 	// If none of the data was good, it's a stale delivery
 	switch {
 	case failure == nil || failure == errInvalidChain:
-		log.Info("99999")
+		log.Info("99999", "failure", failure)
 		return accepted, failure
 	case useful:
 		return accepted, fmt.Errorf("Fast partial failure: %v", failure)
