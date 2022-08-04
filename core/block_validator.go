@@ -70,8 +70,9 @@ func (fv *BlockValidator) ValidateBody(block *types.Block, validateSign bool) er
 	if fv.config.IsTIP9(block.Number()) && fv.config.IsTIP9(new(big.Int).Sub(block.Number(), big.NewInt(1))) {
 		pHash := block.GetSignHash()
 		if !bytes.Equal(pHash.Bytes(), block.Header().SnailHash.Bytes()) {
-			return errors.New(fmt.Sprintf("snailhash wrong in tip9,want: %v,get: %v,validateSign:%v",
-				pHash.Hex(), block.Header().SnailHash.Hex(), validateSign))
+			p, l := block.GetLocalSigns()
+			return errors.New(fmt.Sprintf("snailhash wrong in tip9,want: %v,get: %v,validateSign:%v,p:%v,l:%v",
+				pHash.Hex(), block.Header().SnailHash.Hex(), validateSign, len(p), len(l)))
 		}
 	}
 	//validate reward snailBlock
