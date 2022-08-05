@@ -408,7 +408,8 @@ func (b *Block) UpdateSnailHash(h common.Hash) {
 	b.header.SnailHash = h
 }
 func (b *Block) SetSignInfosByPrevBlock(prev *Block) {
-	b.SetSign(prev.signs)
+	_, l := prev.GetLocalSigns()
+	b.SetSign(l)
 }
 
 // Body returns the non-header content of the block.
@@ -423,7 +424,13 @@ func (b *Block) SetSign(signs []*PbftSign) {
 	if b.signs == nil {
 		b.signs = append(make([]*PbftSign, 0), signs...)
 	} else {
-		b.signs = append(b.signs, signs...)
+		p, _ := b.GetLocalSigns()
+		if len(p) > 0 {
+			b.signs = append(make([]*PbftSign, 0), p...)
+			b.signs = append(b.signs, signs...)
+		} else {
+			b.signs = append(make([]*PbftSign, 0), signs...)
+		}
 	}
 }
 
