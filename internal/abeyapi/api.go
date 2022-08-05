@@ -637,7 +637,7 @@ func (s *PublicBlockChainAPI) Balance(ctx context.Context, address string, block
 	if err != nil {
 		addr = common.HexToAddress(address)
 	}
-	
+
 	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 	if state == nil || err != nil {
 		return nil, err
@@ -922,7 +922,7 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockHr r
 		return nil, err
 	}
 	if result == nil {
-		return nil,errors.New("unknown error for Call")
+		return nil, errors.New("unknown error for Call")
 	}
 	// If the result contains a revert reason, try to unpack and return it.
 	if len(result.Revert()) > 0 {
@@ -1102,7 +1102,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		return signmap, nil
 	}
 
-	ss := b.Signs()
+	ss := b.AllSigns()
 	signs := make([]interface{}, len(ss))
 	var err error
 	for i, sign := range ss {
@@ -1334,25 +1334,25 @@ func (s *PublicBlockChainAPI) GetChainRewardContent(blockNr rpc.BlockNumber, add
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	BlockHash        common.Hash    `json:"blockHash"`
-	BlockNumber      *hexutil.Big   `json:"blockNumber"`
-	From             common.Address         `json:"from"`
-	Gas              hexutil.Uint64 `json:"gas"`
-	GasPrice         *hexutil.Big   `json:"gasPrice"`
-	Hash             common.Hash    `json:"hash"`
-	Input            hexutil.Bytes  `json:"input"`
-	Nonce            hexutil.Uint64 `json:"nonce"`
+	BlockHash        common.Hash     `json:"blockHash"`
+	BlockNumber      *hexutil.Big    `json:"blockNumber"`
+	From             common.Address  `json:"from"`
+	Gas              hexutil.Uint64  `json:"gas"`
+	GasPrice         *hexutil.Big    `json:"gasPrice"`
+	Hash             common.Hash     `json:"hash"`
+	Input            hexutil.Bytes   `json:"input"`
+	Nonce            hexutil.Uint64  `json:"nonce"`
 	To               *common.Address `json:"to"`
-	TransactionIndex hexutil.Uint   `json:"transactionIndex"`
-	Value            *hexutil.Big   `json:"value"`
-	V                *hexutil.Big   `json:"v"`
-	R                *hexutil.Big   `json:"r"`
-	S                *hexutil.Big   `json:"s"`
-	Payer            *common.Address         `json:"payer"`
-	Fee              *hexutil.Big   `json:"fee"`
-	PV               *hexutil.Big   `json:"pv"`
-	PR               *hexutil.Big   `json:"pr"`
-	PS               *hexutil.Big   `json:"ps"`
+	TransactionIndex hexutil.Uint    `json:"transactionIndex"`
+	Value            *hexutil.Big    `json:"value"`
+	V                *hexutil.Big    `json:"v"`
+	R                *hexutil.Big    `json:"r"`
+	S                *hexutil.Big    `json:"s"`
+	Payer            *common.Address `json:"payer"`
+	Fee              *hexutil.Big    `json:"fee"`
+	PV               *hexutil.Big    `json:"pv"`
+	PR               *hexutil.Big    `json:"pr"`
+	PS               *hexutil.Big    `json:"ps"`
 }
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
@@ -1378,7 +1378,7 @@ type RPCTransaction2 struct {
 	PS               *hexutil.Big    `json:"ps"`
 }
 
-func newRPCTransaction2(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64,IsAbey bool) *RPCTransaction2 {
+func newRPCTransaction2(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64, IsAbey bool) *RPCTransaction2 {
 	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
@@ -1416,7 +1416,7 @@ func newRPCTransaction2(tx *types.Transaction, blockHash common.Hash, blockNumbe
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64,IsAbey bool) *RPCTransaction {
+func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64, IsAbey bool) *RPCTransaction {
 	var signer types.Signer = types.NewTIP1Signer(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
@@ -1454,24 +1454,25 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 
 // newRPCPendingTransaction returns a pending transaction that will serialize to the RPC representation
 func newRPCPendingTransaction(tx *types.Transaction) *RPCTransaction {
-	return newRPCTransaction(tx, common.Hash{}, 0, 0,true)
+	return newRPCTransaction(tx, common.Hash{}, 0, 0, true)
 }
 
 // newRPCTransactionFromBlockIndex returns a transaction that will serialize to the RPC representation.
-func newRPCTransactionFromBlockIndex(b *types.Block, index uint64,IsAbey bool) *RPCTransaction {
+func newRPCTransactionFromBlockIndex(b *types.Block, index uint64, IsAbey bool) *RPCTransaction {
 	txs := b.Transactions()
 	if index >= uint64(len(txs)) {
 		return nil
 	}
-	return newRPCTransaction(txs[index], b.Hash(), b.NumberU64(), index,IsAbey)
+	return newRPCTransaction(txs[index], b.Hash(), b.NumberU64(), index, IsAbey)
 }
-func newRPCTransactionFromBlockIndex2(b *types.Block, index uint64,IsAbey bool) *RPCTransaction2 {
+func newRPCTransactionFromBlockIndex2(b *types.Block, index uint64, IsAbey bool) *RPCTransaction2 {
 	txs := b.Transactions()
 	if index >= uint64(len(txs)) {
 		return nil
 	}
-	return newRPCTransaction2(txs[index], b.Hash(), b.NumberU64(), index,IsAbey)
+	return newRPCTransaction2(txs[index], b.Hash(), b.NumberU64(), index, IsAbey)
 }
+
 // newRPCFruitFromBlockIndex returns a fruit that will serialize to the RPC representation.
 func (s *PublicBlockChainAPI) newRPCFruitFromBlockIndex(ctx context.Context, b *types.SnailBlock, index uint64, fullSigns bool) (map[string]interface{}, error) {
 	fts := b.Fruits()
@@ -1495,7 +1496,7 @@ func newRPCRawTransactionFromBlockIndex(b *types.Block, index uint64) hexutil.By
 func newRPCTransactionFromBlockHash(b *types.Block, hash common.Hash) *RPCTransaction {
 	for idx, tx := range b.Transactions() {
 		if tx.Hash() == hash {
-			return newRPCTransactionFromBlockIndex(b, uint64(idx),true)
+			return newRPCTransactionFromBlockIndex(b, uint64(idx), true)
 		}
 	}
 	return nil
@@ -1503,11 +1504,12 @@ func newRPCTransactionFromBlockHash(b *types.Block, hash common.Hash) *RPCTransa
 func newRPCTransactionFromBlockHash2(b *types.Block, hash common.Hash) *RPCTransaction2 {
 	for idx, tx := range b.Transactions() {
 		if tx.Hash() == hash {
-			return newRPCTransactionFromBlockIndex2(b, uint64(idx),true)
+			return newRPCTransactionFromBlockIndex2(b, uint64(idx), true)
 		}
 	}
 	return nil
 }
+
 // PublicTransactionPoolAPI exposes methods for the RPC interface
 type PublicTransactionPoolAPI struct {
 	b         Backend
@@ -1563,7 +1565,7 @@ func (s *PublicBlockChainAPI) GetBlockFruitCountByHash(ctx context.Context, bloc
 // GetTransactionByBlockNumberAndIndex returns the transaction for the given block number and index.
 func (s *PublicTransactionPoolAPI) GetTransactionByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint) *RPCTransaction {
 	if block, _ := s.b.BlockByNumber(ctx, blockNr); block != nil {
-		return newRPCTransactionFromBlockIndex(block, uint64(index),true)
+		return newRPCTransactionFromBlockIndex(block, uint64(index), true)
 	}
 	return nil
 }
@@ -1571,7 +1573,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlockNumberAndIndex(ctx conte
 // GetTransactionByBlockHashAndIndex returns the transaction for the given block hash and index.
 func (s *PublicTransactionPoolAPI) GetTransactionByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index uint64) *RPCTransaction {
 	if block, _ := s.b.GetBlock(ctx, blockHash); block != nil {
-		return newRPCTransactionFromBlockIndex(block, uint64(index),true)
+		return newRPCTransactionFromBlockIndex(block, uint64(index), true)
 	}
 	return nil
 }
@@ -1622,7 +1624,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction {
 	// Try to return an already finalized transaction
 	if tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), hash); tx != nil {
-		return newRPCTransaction(tx, blockHash, blockNumber, index,true)
+		return newRPCTransaction(tx, blockHash, blockNumber, index, true)
 	}
 	// No finalized transaction, try to retrieve it from the pool
 	if tx := s.b.GetPoolTransaction(hash); tx != nil {
@@ -2305,7 +2307,7 @@ func NewPublicTransactionPoolAPI2(b Backend, nonceLock *AddrLocker) *PublicTrans
 // GetTransactionByBlockNumberAndIndex2 returns the transaction for the given block number and index.
 func (s *PublicTransactionPoolAPI2) GetTransactionByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint) *RPCTransaction {
 	if block, _ := s.b.BlockByNumber(ctx, blockNr); block != nil {
-		return newRPCTransactionFromBlockIndex(block, uint64(index),false)
+		return newRPCTransactionFromBlockIndex(block, uint64(index), false)
 	}
 	return nil
 }
@@ -2313,7 +2315,7 @@ func (s *PublicTransactionPoolAPI2) GetTransactionByBlockNumberAndIndex(ctx cont
 // GetTransactionByBlockHashAndIndex2 returns the transaction for the given block hash and index.
 func (s *PublicTransactionPoolAPI2) GetTransactionByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index uint64) *RPCTransaction {
 	if block, _ := s.b.GetBlock(ctx, blockHash); block != nil {
-		return newRPCTransactionFromBlockIndex(block, uint64(index),false)
+		return newRPCTransactionFromBlockIndex(block, uint64(index), false)
 	}
 	return nil
 }
@@ -2322,7 +2324,7 @@ func (s *PublicTransactionPoolAPI2) GetTransactionByBlockHashAndIndex(ctx contex
 func (s *PublicTransactionPoolAPI2) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction {
 	// Try to return an already finalized transaction
 	if tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), hash); tx != nil {
-		return newRPCTransaction(tx, blockHash, blockNumber, index,false)
+		return newRPCTransaction(tx, blockHash, blockNumber, index, false)
 	}
 	// No finalized transaction, try to retrieve it from the pool
 	if tx := s.b.GetPoolTransaction(hash); tx != nil {
@@ -2450,8 +2452,6 @@ func (s *PublicTransactionPoolAPI2) sign(addr common.Address, tx *types.Transact
 	// Request the wallet to sign the transaction
 	return wallet.SignTx(account, tx, s.b.ChainConfig().ChainID)
 }
-
-
 
 func (s *PublicTransactionPoolAPI2) sign_payment(addr common.Address, tx *types.Transaction) (*types.Transaction, error) {
 	// Look up the wallet containing the requested signer
