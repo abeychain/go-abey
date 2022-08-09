@@ -1232,10 +1232,7 @@ func (agent *PbftAgent) verifyRewardInCommittee(fb *types.Block) error {
 func (agent *PbftAgent) BroadcastConsensus(fb *types.Block) error {
 	agent.mu.Lock()
 	defer agent.mu.Unlock()
-	if len(fb.AllSigns()) > 8 {
-		p, l := fb.GetLocalSigns()
-		log.Info("0100101", "len", len(fb.AllSigns()), "prev", len(p), "local", len(l))
-	}
+
 	//insert bockchain
 	err := agent.handleConsensusBlock(fb)
 	if err != nil {
