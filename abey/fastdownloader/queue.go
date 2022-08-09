@@ -753,12 +753,10 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, signs [
 
 	reconstruct := func(header *types.Header, index int, result *abey.FetchResult) error {
 		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash {
-			log.Info("5555555")
 			return errInvalidChain
 		}
 
 		if types.RlpHash(infos[index]) != header.CommitteeHash {
-			log.Info("666666")
 			return errInvalidChain
 		}
 
