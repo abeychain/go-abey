@@ -763,7 +763,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, signs [
 		for _, sign := range signs[index] {
 			if !(sign.FastHeight.Uint64() == header.Number.Uint64()-1 ||
 				(sign.FastHeight.Uint64() == header.Number.Uint64() && sign.FastHash == header.Hash())) {
-				log.Info("777777", "sign.FastHeight", sign.FastHeight.Uint64(), "header.Number", header.Number.Uint64(),
+				log.Error("DeliverBodies", "sign.FastHeight", sign.FastHeight.Uint64(), "header.Number", header.Number.Uint64(),
 					"sign.FastHash", sign.FastHash.Hex(), "header.Hash()", header.Hash().Hex())
 				return errInvalidChain
 			}
