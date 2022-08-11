@@ -132,7 +132,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
-		TIP9: &BlockConfig{FastNumber: big.NewInt(3000), SnailNumber: big.NewInt(5)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(50000), SnailNumber: big.NewInt(50)},
 	}
 
 	SingleNodeChainConfig = &ChainConfig{
