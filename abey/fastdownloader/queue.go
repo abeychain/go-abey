@@ -491,7 +491,6 @@ func (q *queue) reserveHeaders(p abey.PeerConnection, count int, taskPool map[co
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 {
 			common.Report("Fast index allocation went beyond available resultCache space")
-			log.Info("4444444")
 			return nil, false, errInvalidChain
 		}
 		if q.resultCache[index] == nil {
@@ -836,7 +835,6 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 		// Reconstruct the next result if contents match up
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 || q.resultCache[index] == nil {
-			log.Info("8888")
 			failure = errInvalidChain
 			break
 		}
@@ -868,7 +866,6 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 	// If none of the data was good, it's a stale delivery
 	switch {
 	case failure == nil || failure == errInvalidChain:
-		log.Info("99999", "failure", failure)
 		return accepted, failure
 	case useful:
 		return accepted, fmt.Errorf("Fast partial failure: %v", failure)
