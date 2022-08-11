@@ -259,13 +259,12 @@ func TestTime(t *testing.T) {
 }
 func TestRewardWithTimes01(t *testing.T) {
 	// update the constant of rewards
-	params.StartPosRewardHeight = big.NewInt(100)
 	params.BlocksInFourYear = big.NewInt(500)
 	fmt.Println("init reward", toAbeyCoin(params.InitReward).Text('f', 6))
 
 	count, old := int64(10000), big.NewInt(0)
 	for i := int64(0); i < count; i++ {
-		value := getBaseRewardCoinForPos2(big.NewInt(i))
+		value := getBaseRewardCoinForPos2(big.NewInt(i), 0)
 		if old.Cmp(value) != 0 {
 			old = new(big.Int).Set(value)
 			fmt.Println("block height", i, "reward", toAbeyCoin(value).Text('f', 6))

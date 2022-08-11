@@ -870,11 +870,12 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 	if header != nil && m.sbc != nil {
 		currentSnailHeader := m.sbc.CurrentHeader().Number
-		if header.SnailNumber == nil && currentSnailHeader.Cmp(chain.Config().TIP9.SnailNumber) > 0 {
+		if header.SnailNumber == nil && currentSnailHeader.Cmp(chain.Config().TIP9.SnailNumber) >= 0 &&
+			chain.Config().TIP9.FastNumber.Sign() > 0 {
 			fastNumber := header.Number
 			epoch := types.GetEpochFromHeight(fastNumber.Uint64())
-			if fastNumber.Uint64() == epoch.EndHeight {
-				infos, err = accumulateRewardsFast3(state, header.Number.Uint64())
+			if fastNumber.Uint64() == epoch.EndHeight && fastNumber.Cmp(chain.Config().TIP9.FastNumber) >= 0 {
+				infos, err = accumulateRewardsFast3(state, header.Number.Uint64(), chain.Config().TIP9.FastNumber.Uint64())
 				if err != nil {
 					log.Error("Finalize Error", "accumulateRewardsFast3", err.Error())
 					return nil, nil, err
@@ -1059,8 +1060,8 @@ func accumulateRewardsFast2(stateDB *state.StateDB, sBlock *types.SnailBlock, fa
 	// "FruitBase",rewardsInfos.FruitBase,"CommitteeBase",rewardsInfos.CommitteeBase)
 	return rewardsInfos, nil
 }
-func accumulateRewardsFast3(stateDB *state.StateDB, fast uint64) (*types.ChainReward, error) {
-	committeeCoin := getBaseRewardCoinForPos(big.NewInt(0))
+func accumulateRewardsFast3(stateDB *state.StateDB, fast, startRewardPos uint64) (*types.ChainReward, error) {
+	committeeCoin := getBaseRewardCoinForPos2(big.NewInt(int64(fast)), startRewardPos)
 
 	epoch := types.GetEpochFromHeight(fast)
 
@@ -1250,9 +1251,9 @@ func getBaseRewardCoinForPos(height *big.Int) *big.Int {
 	return new(big.Int).Set(NewRewardCoinForPos)
 }
 
-func getBaseRewardCoinForPos2(height *big.Int) *big.Int {
-	//curEpoch := types.GetEpochFromHeight(height.Uint64())
-	range0 := new(big.Int).Sub(height, params.StartPosRewardHeight)
+func getBaseRewardCoinForPos2(height *big.Int, startRewardPos uint64) *big.Int {
+	//range0 := new(big.Int).Sub(height, params.StartPosRewardHeight)
+	range0 := new(big.Int).Sub(height, big.NewInt(int64(startRewardPos)))
 	if range0.Sign() <= 0 {
 		return new(big.Int).Set(params.InitReward)
 	}
