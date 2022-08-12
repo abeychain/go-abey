@@ -35,6 +35,23 @@ var (
 		common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
 		common.HexToAddress("0x36939d3324bd522Baba28b3F142Fed395A9751B9"),
 		common.HexToAddress("0x76fC12940EC8022D0F6D4d570d5cd685D223B29e"),
+
+		common.HexToAddress("0xB1eD4ba75082a753d87718422959A5499bE93a81"),
+		common.HexToAddress("0x3992Ff9a342d315E94A23Eccd235de3Fddf16fB6"),
+		common.HexToAddress("0x1BCc6e3d7d24E0fBBa57199e1F6889881e4f5a44"),
+		common.HexToAddress("0xa33830D226729927431FA3b98B8d3a45121942D5"),
+		common.HexToAddress("0x21BE07741842B76574b441EF79EfFAbe224AD7A3"),
+		common.HexToAddress("0x139C472a7C072079977552BfF0E194ACaDE48dA7"),
+		common.HexToAddress("0x7DB213cb13d9263f6D86C756ba2b8bDF1C86Aa62"),
+		common.HexToAddress("0xD1F3C3A7f18fe337793738060948Be6213a1f1B3"),
+		common.HexToAddress("0xFa5f818Fce5337B554A29195343A195E4CaBA477"),
+		common.HexToAddress("0xfF5Ca61dD101f4E01F394581148b71DccEe7DDaE"),
+		common.HexToAddress("0x5BB961f3f0A1253265e9a91EfE8AE5BFa2682419"),
+		common.HexToAddress("0xBf6a08f9EEc8640f67A4dbb970C6808852ed7769"),
+		common.HexToAddress("0x9423b473dbb50A0242FffA973786DdD5664736C9"),
+		common.HexToAddress("0xe2567E9222C96B3f6EB1b51d87CA0Cb3e22a338C"),
+		common.HexToAddress("0x954c5Fd1582DAae58fF5b583C505EE02DA163D3d"),
+		common.HexToAddress("0x5331043BA75A7d23D1776049f33EB1c4950a6892"),
 	}
 )
 
@@ -114,11 +131,12 @@ type RewardInfo struct {
 	Amount  *big.Int       `json:"Amount"`
 	Staking *big.Int       `json:"Staking"`
 }
+
 func (e *RewardInfo) clone() *RewardInfo {
 	return &RewardInfo{
-		Address:	e.Address,
-		Amount:		new(big.Int).Set(e.Amount),
-		Staking:	new(big.Int).Set(e.Staking),
+		Address: e.Address,
+		Amount:  new(big.Int).Set(e.Amount),
+		Staking: new(big.Int).Set(e.Staking),
 	}
 }
 func (e *RewardInfo) String() string {
@@ -154,9 +172,9 @@ func FetchOneToAbey(sas []*SARewardInfos, addr common.Address) map[string]interf
 			}
 		}
 	}
-	infos := make([]map[string]interface{},0,0)
-	for _,v := range items {
-		infos = append(infos,v.ToJson())
+	infos := make([]map[string]interface{}, 0, 0)
+	for _, v := range items {
+		infos = append(infos, v.ToJson())
 	}
 	return map[string]interface{}{
 		"committeeReward": infos,
@@ -181,10 +199,11 @@ func mergeRewardInfos(items1, itmes2 []*RewardInfo) []*RewardInfo {
 type SARewardInfos struct {
 	Items []*RewardInfo `json:"Items"`
 }
+
 func (s *SARewardInfos) clone() *SARewardInfos {
 	var res SARewardInfos
-	for _,v := range s.Items {
-		res.Items = append(res.Items,v.clone())
+	for _, v := range s.Items {
+		res.Items = append(res.Items, v.clone())
 	}
 	return &res
 }
@@ -203,14 +222,15 @@ func (s *SARewardInfos) String() string {
 	return ss
 }
 func (s *SARewardInfos) StringToAbey() map[string]interface{} {
-	ss := make([]map[string]interface{},0,0)
+	ss := make([]map[string]interface{}, 0, 0)
 	for _, v := range s.Items {
-		ss = append(ss,v.ToJson())
+		ss = append(ss, v.ToJson())
 	}
 	item := make(map[string]interface{})
 	item["SaReward"] = ss
 	return item
 }
+
 type TimedChainReward struct {
 	St     uint64
 	Number uint64
@@ -224,16 +244,17 @@ type ChainReward struct {
 	FruitBase     []*RewardInfo    `json:"fruitminer"`
 	CommitteeBase []*SARewardInfos `json:"committeeReward"`
 }
-func (s *ChainReward) CoinRewardInfo()  map[string]interface{} {
+
+func (s *ChainReward) CoinRewardInfo() map[string]interface{} {
 	feild := map[string]interface{}{
 		"blockminer": s.CoinBase.ToJson(),
 	}
 	return feild
 }
 func (s *ChainReward) FruitRewardInfo() map[string]interface{} {
-	infos := make([]map[string]interface{},0,0)
-	for _,v := range s.FruitBase {
-		infos = append(infos,v.ToJson())
+	infos := make([]map[string]interface{}, 0, 0)
+	for _, v := range s.FruitBase {
+		infos = append(infos, v.ToJson())
 	}
 	feild := map[string]interface{}{
 		"fruitminer": infos,
@@ -241,9 +262,9 @@ func (s *ChainReward) FruitRewardInfo() map[string]interface{} {
 	return feild
 }
 func (s *ChainReward) CommitteeRewardInfo() map[string]interface{} {
-	infos := make([]map[string]interface{},0,0)
-	for _,v := range s.CommitteeBase {
-		infos = append(infos,v.StringToAbey())
+	infos := make([]map[string]interface{}, 0, 0)
+	for _, v := range s.CommitteeBase {
+		infos = append(infos, v.StringToAbey())
 	}
 	feild := map[string]interface{}{
 		"committeeReward": infos,
@@ -253,13 +274,13 @@ func (s *ChainReward) CommitteeRewardInfo() map[string]interface{} {
 
 func CloneChainReward(reward *ChainReward) *ChainReward {
 	var res ChainReward
-	res.Height,res.St = reward.Height,reward.St
+	res.Height, res.St = reward.Height, reward.St
 	res.CoinBase = reward.CoinBase.clone()
-	for _,v := range reward.FruitBase {
-		res.FruitBase = append(res.FruitBase,v.clone())
+	for _, v := range reward.FruitBase {
+		res.FruitBase = append(res.FruitBase, v.clone())
 	}
-	for _,v := range reward.CommitteeBase {
-		res.CommitteeBase = append(res.CommitteeBase,v.clone())
+	for _, v := range reward.CommitteeBase {
+		res.CommitteeBase = append(res.CommitteeBase, v.clone())
 	}
 	return &res
 }

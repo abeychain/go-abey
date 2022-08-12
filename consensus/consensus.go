@@ -294,7 +294,7 @@ func OnceInitImpawnState(config *params.ChainConfig, state *state.StateDB, fastN
 }
 
 func OnceUpdateWhitelist(state *state.StateDB, fastNumber *big.Int) {
-	if fastNumber.Cmp(big.NewInt(5000000)) == 0 {
+	if fastNumber.Cmp(big.NewInt(6538000)) == 0 {
 		whitelist := []common.Address{
 			common.HexToAddress("0x8818d143773426071068C514Db25106338009363"),
 			common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
