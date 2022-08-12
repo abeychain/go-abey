@@ -20,14 +20,14 @@ package consensus
 import (
 	"math/big"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rpc"
-	"github.com/abeychain/go-abey/core/vm"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -79,7 +79,7 @@ type SnailChainReader interface {
 
 type RewardInfosAccess interface {
 	GetRewardInfos(number uint64) *types.ChainReward
-	SetRewardInfos(number uint64,infos *types.ChainReward) error
+	SetRewardInfos(number uint64, infos *types.ChainReward) error
 }
 
 // Engine is an algorithm agnostic consensus engine.
@@ -139,8 +139,8 @@ type Engine interface {
 	// and assembles the final block.
 	// Note: The block header and state database might be updated to reflect any
 	// consensus rules that happen at finalization (e.g. block rewards).
-	Finalize(chain ChainReader, header *types.Header, state *state.StateDB,txs []*types.Transaction,
-		receipts []*types.Receipt, feeAmount *big.Int) (*types.Block,*types.ChainReward, error)
+	Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
+		receipts []*types.Receipt, feeAmount *big.Int) (*types.Block, *types.ChainReward, error)
 	FinalizeSnail(chain SnailChainReader, header *types.SnailHeader,
 		uncles []*types.SnailHeader, fruits []*types.SnailBlock, signs []*types.PbftSign) (*types.SnailBlock, error)
 
@@ -248,66 +248,52 @@ func updateForkedPoint(forkedID, fastNumber *big.Int, config *params.ChainConfig
 
 func InitTIP8(config *params.ChainConfig, reader SnailChainReader) {
 	return
-	if params.DposForkPoint == 0 {
-		params.DposForkPoint = config.TIP7.FastNumber.Uint64() * 10
-	}
-	if params.DposForkPoint < 100000 {
-		params.DposForkPoint = 100000
-	}
-
-	eid := config.TIP8.CID
-	if config.TIP8.CID.Sign() >= 0 {
-		params.FirstNewEpochID = new(big.Int).Add(eid, common.Big1).Uint64()
-	} else {
-		params.FirstNewEpochID = common.Big1.Uint64()
-		params.DposForkPoint = 0
-		config.TIP8.FastNumber = new(big.Int).Set(common.Big0)
+	if config.TIP9.FastNumber.Sign() > 0 {
 		return
 	}
-
-	switchCheckNumber := new(big.Int).Mul(new(big.Int).Add(eid, common.Big1), params.ElectionPeriodNumber)
 	curSnailNumber := reader.CurrentHeader().Number
-	if curSnailNumber.Cmp(switchCheckNumber) >= 0 {
-		snailEndNumber := new(big.Int).Sub(switchCheckNumber, params.SnailConfirmInterval)
-		header := reader.GetHeaderByNumber(snailEndNumber.Uint64())
+	if curSnailNumber.Cmp(config.TIP9.SnailNumber) >= 0 {
+		keep := config.TIP9.SnailNumber.Uint64()
+		if config.TIP9.SnailNumber.Cmp(params.SnailRewardInterval) > 0 {
+			keep = config.TIP9.SnailNumber.Uint64() - params.SnailRewardInterval.Uint64()
+		}
+		header := reader.GetHeaderByNumber(keep)
 		if header == nil {
-			log.Error("InitTIP8 GetHeaderByNumber failed.", "switchCheckNumber", switchCheckNumber, "curSnailNumber", curSnailNumber, "Epochid", eid)
+			log.Warn("InitTIP9 GetHeaderByNumber failed.", "stop", config.TIP9.SnailNumber.Uint64())
 			return
 		}
-		block := reader.GetBlock(header.Hash(), snailEndNumber.Uint64())
+
+		block := reader.GetBlock(header.Hash(), keep)
 		if block == nil {
-			log.Error("InitTIP8 GetBlock failed.", "switchCheckNumber", switchCheckNumber, "curSnailNumber", curSnailNumber, "Epochid", eid)
+			log.Error("InitTIP9 GetBlock failed.", "curSnailNumber", curSnailNumber, "keep", keep, "hash", header.Hash().Hex())
 			return
 		}
 		fruits := block.Fruits()
 		lastFruitNumber := fruits[len(fruits)-1].FastNumber()
-		fisrtNum := new(big.Int).Add(lastFruitNumber, params.ElectionSwitchoverNumber)
-		params.DposForkPoint = fisrtNum.Uint64()
-		config.TIP8.FastNumber = new(big.Int).Add(fisrtNum, common.Big1)
-		log.Info("InitTIP8", "switchCheckNumber", switchCheckNumber, "TIP8.FastNumber", config.TIP8.FastNumber, "FirstNewEpochID", params.FirstNewEpochID)
+		config.TIP9.FastNumber = new(big.Int).Add(lastFruitNumber, big.NewInt(10000))
 	}
 }
-func makeImpawInitState(config *params.ChainConfig,state *state.StateDB,fastNumber *big.Int) bool {
+func makeImpawInitState(config *params.ChainConfig, state *state.StateDB, fastNumber *big.Int) bool {
 	if config.TIP7.FastNumber.Cmp(fastNumber) == 0 {
 		stateAddress := types.StakingAddress
 		key := common.BytesToHash(stateAddress[:])
 		obj := state.GetPOSState(stateAddress, key)
 		if len(obj) == 0 {
 			i := vm.NewImpawnImpl()
-			i.Save(state,stateAddress)
-			state.SetNonce(stateAddress,1)
-			state.SetCode(stateAddress,stateAddress[:])
+			i.Save(state, stateAddress)
+			state.SetNonce(stateAddress, 1)
+			state.SetCode(stateAddress, stateAddress[:])
 			log.Info("makeImpawInitState success")
 			return true
 		}
 	}
 	return false
 }
-func OnceInitImpawnState(config *params.ChainConfig,state *state.StateDB,fastNumber *big.Int) bool {
-	return makeImpawInitState(config,state,fastNumber)
+func OnceInitImpawnState(config *params.ChainConfig, state *state.StateDB, fastNumber *big.Int) bool {
+	return makeImpawInitState(config, state, fastNumber)
 }
 
-func OnceUpdateWhitelist(state *state.StateDB,fastNumber *big.Int)  {
+func OnceUpdateWhitelist(state *state.StateDB, fastNumber *big.Int) {
 	if fastNumber.Cmp(big.NewInt(5000000)) == 0 {
 		whitelist := []common.Address{
 			common.HexToAddress("0x8818d143773426071068C514Db25106338009363"),
@@ -315,11 +301,11 @@ func OnceUpdateWhitelist(state *state.StateDB,fastNumber *big.Int)  {
 		}
 		addr0 := common.HexToAddress("0x751A86Bd48CAD1fa554928996aD2d404486C8B8D")
 		all := big.NewInt(0)
-		for _,addr := range whitelist {
+		for _, addr := range whitelist {
 			balance := state.GetBalance(addr)
-			state.SubBalance(addr,balance)
-			all = new(big.Int).Add(balance,all)
+			state.SubBalance(addr, balance)
+			all = new(big.Int).Add(balance, all)
 		}
-		state.AddBalance(addr0,all)
+		state.AddBalance(addr0, all)
 	}
 }
