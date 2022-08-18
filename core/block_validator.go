@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/abeychain/go-abey/common"
 	"math/big"
 
 	"github.com/abeychain/go-abey/consensus"
@@ -77,8 +76,9 @@ func (fv *BlockValidator) ValidateBody(block *types.Block, validateSign bool) er
 	}
 	//validate reward snailBlock
 	if block.SnailNumber() != nil && block.SnailNumber().Cmp(fv.config.TIP9.SnailNumber) > 0 {
-		if block.SnailNumber().Sign() != 0 || block.SnailHash() != (common.Hash{}) {
-			return errors.New("snail number or hash not empty when stop snail mining")
+		if block.SnailNumber().Sign() != 0 {
+			return errors.New(fmt.Sprintf("snail number or hash not empty when stop snail mining,number:%v,hash:%s",
+				block.SnailNumber().Uint64(), block.SnailHash().Hex()))
 		}
 	} else {
 		if block.SnailNumber() != nil && block.SnailNumber().Uint64() != 0 {
