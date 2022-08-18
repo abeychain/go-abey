@@ -96,7 +96,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
-		TIP9: &BlockConfig{FastNumber: big.NewInt(3106000), SnailNumber: big.NewInt(21400)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(2660000), SnailNumber: big.NewInt(21400)},
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
