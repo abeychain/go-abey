@@ -189,10 +189,10 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, coinbase com
 	worker.fruitSub = abey.SnailPool().SubscribeNewFruitEvent(worker.fruitCh)
 	worker.fastchainEventSub = worker.fastchain.SubscribeChainEvent(worker.fastchainEventCh)
 
-	if !worker.freezeMiner() {
-		go worker.update()
-		go worker.wait()
+	go worker.update()
+	go worker.wait()
 
+	if !worker.freezeMiner() {
 		worker.commitNewWork()
 	}
 
