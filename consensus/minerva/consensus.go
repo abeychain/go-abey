@@ -875,13 +875,17 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 			fastNumber := header.Number
 			epoch := types.GetEpochFromHeight(fastNumber.Uint64())
 			if fastNumber.Uint64() == epoch.EndHeight && fastNumber.Cmp(chain.Config().TIP9.FastNumber) >= 0 {
+				log.Info("reward", "h0", header.Number.Uint64(), "h2", chain.Config().TIP9.FastNumber.Uint64())
+				log.Info("root1", state.IntermediateRoot(false).Hex())
 				infos, err = accumulateRewardsFast3(state, header.Number.Uint64(), chain.Config().TIP9.FastNumber.Uint64())
 				if err != nil {
 					log.Error("Finalize Error", "accumulateRewardsFast3", err.Error())
 					return nil, nil, err
 				}
+				log.Info("root2", state.IntermediateRoot(false).Hex())
 			}
 		} else if !chain.Config().IsTIP9(header.Number) && header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
+			log.Info("======xxx=======")
 			sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
 			if sBlockHeader == nil {
 				return nil, nil, types.ErrSnailHeightNotYet
@@ -905,11 +909,13 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 	if err := m.finalizeFastGas(state, header.Number, header.Hash(), feeAmount); err != nil {
 		return nil, nil, err
 	}
-
+	log.Info("root3", state.IntermediateRoot(false).Hex())
 	if err := m.finalizeValidators(chain, state, header.Number); err != nil {
 		return nil, nil, err
 	}
+	log.Info("root4", state.IntermediateRoot(false).Hex())
 	header.Root = state.IntermediateRoot(true)
+	log.Info("root5", header.Root.Hex())
 	return types.NewBlock(header, txs, receipts, nil, nil), infos, nil
 }
 
@@ -1083,6 +1089,8 @@ func accumulateRewardsFast3(stateDB *state.StateDB, fast, startRewardPos uint64)
 	rewardsInfos := &types.ChainReward{
 		CommitteeBase: infos,
 	}
+	log.Info("rewardsInfos", "CoinRewardInfo", rewardsInfos.CoinRewardInfo(), "FruitRewardInfo", rewardsInfos.FruitRewardInfo(),
+		"CommitteeRewardInfo", rewardsInfos.CommitteeRewardInfo())
 	return rewardsInfos, nil
 }
 
