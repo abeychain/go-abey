@@ -996,6 +996,10 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 	}
 	fastBlock.AppendSign(voteSign)
 	log.Info("generateFastBlock", "Height:", fastBlock.Number(), "hash", fastBlock.Hash().Hex(), "root", fastBlock.Root().Hex())
+	log.Info("verify fast block start")
+	_, err2 := agent.VerifyFastBlock(fastBlock, false)
+	log.Info("VerifyFastBlock", "err", err2)
+	log.Info("verify fast block end")
 	return fastBlock, err
 }
 
