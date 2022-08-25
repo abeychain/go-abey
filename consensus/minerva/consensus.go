@@ -869,27 +869,20 @@ func (m *Minerva) Finalize(chain consensus.ChainReader, header *types.Header, st
 	var err error
 
 	if header != nil && m.sbc != nil {
-		log.Info("1111111")
 		currentSnailHeader := m.sbc.CurrentHeader().Number
-		log.Info("**", "header.SnailNumber", header.SnailNumber, "currentSnailHeader", currentSnailHeader.Uint64(),
-			"chain.Config().TIP9.SnailNumber", chain.Config().TIP9.SnailNumber.Uint64(),
-			"chain.Config().TIP9.FastNumber", chain.Config().TIP9.FastNumber.Uint64())
-		if header.SnailNumber == nil && currentSnailHeader.Cmp(chain.Config().TIP9.SnailNumber) >= 0 &&
+		if header.SnailNumber.Sign() == 0 && currentSnailHeader.Cmp(chain.Config().TIP9.SnailNumber) >= 0 &&
 			chain.Config().TIP9.FastNumber.Sign() > 0 {
 			fastNumber := header.Number
 			epoch := types.GetEpochFromHeight(fastNumber.Uint64())
-			log.Info("22222222", "fastNumber", fastNumber, "epoch.EndHeight", epoch.EndHeight)
 
 			if fastNumber.Uint64() == epoch.EndHeight && fastNumber.Cmp(chain.Config().TIP9.FastNumber) >= 0 {
-				log.Info("333333")
-				log.Info("reward", "h0", header.Number.Uint64(), "h2", chain.Config().TIP9.FastNumber.Uint64())
 				infos, err = accumulateRewardsFast3(state, header.Number.Uint64(), chain.Config().TIP9.FastNumber.Uint64())
 				if err != nil {
 					log.Error("Finalize Error", "accumulateRewardsFast3", err.Error())
 					return nil, nil, err
 				}
 			}
-		} else if !chain.Config().IsTIP9(header.Number) && header.SnailHash != (common.Hash{}) && header.SnailNumber != nil {
+		} else if !chain.Config().IsTIP9(header.Number) && header.SnailHash != (common.Hash{}) && header.SnailNumber.Sign() != 0 {
 			sBlockHeader := m.sbc.GetHeaderByNumber(header.SnailNumber.Uint64())
 			if sBlockHeader == nil {
 				return nil, nil, types.ErrSnailHeightNotYet

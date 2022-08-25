@@ -942,10 +942,11 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 		tstamp = parent.Time().Int64() + 1
 	}
 	header := &types.Header{
-		ParentHash: parent.Hash(),
-		Number:     new(big.Int).Add(parentNumber, common.Big1),
-		GasLimit:   core.FastCalcGasLimit(parent, agent.gasFloor, agent.gasCeil),
-		Time:       big.NewInt(tstamp),
+		ParentHash:  parent.Hash(),
+		Number:      new(big.Int).Add(parentNumber, common.Big1),
+		GasLimit:    core.FastCalcGasLimit(parent, agent.gasFloor, agent.gasCeil),
+		Time:        big.NewInt(tstamp),
+		SnailNumber: big.NewInt(0),
 	}
 	if err := agent.validateBlockSpace(header); err == types.ErrSnailBlockTooSlow {
 		return nil, err
@@ -995,11 +996,6 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 		log.Error("generateBlock with sign error.", "err", err)
 	}
 	fastBlock.AppendSign(voteSign)
-	log.Info("generateFastBlock", "Height:", fastBlock.Number(), "hash", fastBlock.Hash().Hex(), "root", fastBlock.Root().Hex())
-	log.Info("verify fast block start")
-	_, err2 := agent.VerifyFastBlock(fastBlock, false)
-	log.Info("VerifyFastBlock", "err", err2)
-	log.Info("verify fast block end")
 	return fastBlock, err
 }
 

@@ -461,7 +461,7 @@ func (b *Block) GetLeaderSign() *PbftSign {
 }
 
 func (b *Block) IsAward() bool {
-	if b.SnailHash() != *new(common.Hash) && b.SnailNumber() != nil {
+	if b.SnailHash() != *new(common.Hash) && b.SnailNumber().Sign() != 0 {
 		return true
 	}
 	return false
