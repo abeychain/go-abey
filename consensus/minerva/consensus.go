@@ -1089,8 +1089,8 @@ func accumulateRewardsFast3(stateDB *state.StateDB, fast, startRewardPos uint64)
 	rewardsInfos := &types.ChainReward{
 		CommitteeBase: infos,
 	}
-	log.Info("rewardsInfos", "CoinRewardInfo", rewardsInfos.CoinRewardInfo(), "FruitRewardInfo", rewardsInfos.FruitRewardInfo(),
-		"CommitteeRewardInfo", rewardsInfos.CommitteeRewardInfo())
+	//log.Info("rewardsInfos", "CoinRewardInfo", rewardsInfos.CoinBase.String(), "FruitRewardInfo", rewardsInfos.FruitBase,
+	//	"CommitteeRewardInfo", rewardsInfos.CommitteeRewardInfo())
 	return rewardsInfos, nil
 }
 
