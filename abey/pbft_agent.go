@@ -988,7 +988,6 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 			return fastBlock, err
 		}
 	}
-	log.Info("generateFastBlock", "Height:", fastBlock.Number())
 	agent.updateSnailHashForSignInfo(fastBlock)
 
 	voteSign, err := agent.GenerateSign(fastBlock)
@@ -996,6 +995,7 @@ func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.Comm
 		log.Error("generateBlock with sign error.", "err", err)
 	}
 	fastBlock.AppendSign(voteSign)
+	log.Info("generateFastBlock", "Height:", fastBlock.Number(), "hash", fastBlock.Hash().Hex(), "root", fastBlock.Root().Hex())
 	return fastBlock, err
 }
 
