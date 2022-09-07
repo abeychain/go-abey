@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rlp"
@@ -797,10 +797,10 @@ func TestCache(t *testing.T) {
 }
 func TestRlp(t *testing.T) {
 	infos := types.ChainReward{
-		Foundation: &types.RewardInfo{
-			Address: common.Address{'1'},
-			Amount:  big.NewInt(100),
-		},
+		//Foundation: &types.RewardInfo{
+		//	Address: common.Address{'1'},
+		//	Amount:  big.NewInt(100),
+		//},
 		CoinBase: &types.RewardInfo{
 			Address: common.Address{'2'},
 			Amount:  big.NewInt(200),
@@ -1377,4 +1377,9 @@ func TestModify(t *testing.T) {
 	}
 	print_sas(impawn.GetAllStakingAccount())
 	fmt.Println()
+}
+
+func Test01(t *testing.T) {
+	e := types.GetEpochFromHeight(8742700)
+	fmt.Println(e.String())
 }
