@@ -642,9 +642,13 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrInvalidSender
 		//return fmt.Errorf("%v err is:%v", ErrInvalidSender, err)
 	}
-	if err := types.ForbidAddress(from); err != nil {
-		return err
+
+	if pool.chain.CurrentBlock().Number().Cmp(big.NewInt(6538000)) > 0 {
+		if err := types.ForbidAddress(from); err != nil {
+			return err
+		}
 	}
+
 	// Make sure the transaction is psigned properly
 	payer, err := types.Payer(pool.signer, tx)
 	if err != nil {
