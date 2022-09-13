@@ -106,7 +106,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	if err != nil {
 		return nil, err
 	}
-	if header.Number.Cmp(big.NewInt(6538000)) > 0 {
+	if header.Number.Cmp(big.NewInt(6638000)) > 0 {
 		if err := types.ForbidAddress(msg.From()); err != nil {
 			return nil, err
 		}
@@ -168,7 +168,7 @@ func ReadTransaction(config *params.ChainConfig, bc ChainContext,
 	if err != nil {
 		return nil, 0, err
 	}
-	if header.Number.Cmp(big.NewInt(6538000)) > 0 {
+	if header.Number.Cmp(big.NewInt(6638000)) > 0 {
 		if err := types.ForbidAddress(msgCopy.From()); err != nil {
 			return nil, 0, err
 		}

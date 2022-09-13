@@ -643,7 +643,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		//return fmt.Errorf("%v err is:%v", ErrInvalidSender, err)
 	}
 
-	if pool.chain.CurrentBlock().Number().Cmp(big.NewInt(6538000)) > 0 {
+	if pool.chain.CurrentBlock().Number().Cmp(big.NewInt(6638000)) > 0 {
 		if err := types.ForbidAddress(from); err != nil {
 			return err
 		}
