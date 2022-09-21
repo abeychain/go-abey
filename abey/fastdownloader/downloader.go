@@ -846,7 +846,6 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan abey.DataPack, 
 				// Deliver the received chunk of data and check chain validity
 				accepted, err := deliver(packet)
 				if err == errInvalidChain {
-					log.Info("1111111")
 					return err
 				}
 				// Unless a peer delivered something completely else than requested (usually
@@ -1089,7 +1088,6 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64) error {
 						if n > 0 {
 							rollback = append(rollback, chunk[:n]...)
 						}
-						log.Info("22222222")
 						log.Debug("Fast Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "err", err)
 						return errInvalidChain
 					}
@@ -1302,7 +1300,6 @@ func (d *Downloader) commitFastSyncData(results []*abey.FetchResult) error {
 	}
 	if index, err := d.blockchain.InsertReceiptChain(blocks, receipts); err != nil {
 		log.Debug("Fast Downloaded item processing failed", "number", results[index].Fheader.Number, "hash", results[index].Fheader.Hash(), "err", err)
-		log.Info("3333333")
 		return errInvalidChain
 	}
 	return nil
