@@ -21,14 +21,14 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/common/hexutil"
-	"github.com/abeychain/go-abey/log"
 	abeychain "github.com/abeychain/go-abey"
 	"github.com/abeychain/go-abey/accounts"
+	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/common/hexutil"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/internal/abeyapi"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/rpc"
 	"github.com/abeychain/go-abey/signer/core"
 )
@@ -39,16 +39,6 @@ type ExternalBackend struct {
 
 func (eb *ExternalBackend) Wallets() []accounts.Wallet {
 	return eb.signers
-}
-
-func NewExternalBackend(endpoint string) (*ExternalBackend, error) {
-	signer, err := NewExternalSigner(endpoint)
-	if err != nil {
-		return nil, err
-	}
-	return &ExternalBackend{
-		signers: []accounts.Wallet{signer},
-	}, nil
 }
 
 func (eb *ExternalBackend) Subscribe(sink chan<- accounts.WalletEvent) event.Subscription {
