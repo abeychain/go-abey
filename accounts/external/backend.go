@@ -152,9 +152,9 @@ func (api *ExternalSigner) SignData(account accounts.Account, mimeType string, d
 		return nil, err
 	}
 	// If V is on 27/28-form, convert to to 0/1 for Clique
-	if mimeType == accounts.MimetypeClique && (res[64] == 27 || res[64] == 28) {
-		res[64] -= 27 // Transform V from 27/28 to 0/1 for Clique use
-	}
+	//if mimeType == accounts.MimetypeClique && (res[64] == 27 || res[64] == 28) {
+	//	res[64] -= 27 // Transform V from 27/28 to 0/1 for Clique use
+	//}
 	return res, nil
 }
 
@@ -162,7 +162,7 @@ func (api *ExternalSigner) SignText(account accounts.Account, text []byte) ([]by
 	var res hexutil.Bytes
 	var signAddress = common.NewMixedcaseAddress(account.Address)
 	if err := api.client.Call(&res, "account_signData",
-		accounts.MimetypeTextPlain,
+		//accounts.MimetypeTextPlain,
 		&signAddress, // Need to use the pointer here, because of how MarshalJSON is defined
 		hexutil.Encode(text)); err != nil {
 		return nil, err
