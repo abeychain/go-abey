@@ -21,11 +21,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"encoding/xml"
+	"fmt"
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/common/base58"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core/rawdb"
@@ -340,10 +339,10 @@ func TestTip7(t *testing.T) {
 	fmt.Println("finish")
 }
 func Test08(t *testing.T) {
-	fmt.Println("len(nil):",len(getBytes()))
+	fmt.Println("len(nil):", len(getBytes()))
 	addr := common.HexToAddress("0x46498c274686be5e3c01b9268ea4604da5142265")
-	fmt.Println("addr:",addr.Hex())
-	fmt.Println("abey-addr:",addr.StringToAbey())
+	fmt.Println("addr:", addr.Hex())
+	fmt.Println("abey-addr:", addr.StringToAbey())
 	fmt.Println("finish")
 }
 func TestOnceUpdateWhitelist(t *testing.T) {
@@ -354,31 +353,31 @@ func TestOnceUpdateWhitelist(t *testing.T) {
 		common.HexToAddress("0x4eD71f64C4Dbd037B02BC4E1bD6Fd6900fcFd396"),
 	}
 	b1 := big.NewInt(10000000)
-	for _,addr := range whitelist {
-		statedb.SetBalance(addr,b1)
+	for _, addr := range whitelist {
+		statedb.SetBalance(addr, b1)
 	}
 
 	consensus.OnceUpdateWhitelist(statedb, big.NewInt(1))
-	for _,addr := range whitelist {
+	for _, addr := range whitelist {
 		b2 := statedb.GetBalance(addr)
-		fmt.Println(addr.String(),b2.String())
+		fmt.Println(addr.String(), b2.String())
 	}
 	consensus.OnceUpdateWhitelist(statedb, big.NewInt(5000000))
-	for _,addr := range whitelist {
+	for _, addr := range whitelist {
 		b2 := statedb.GetBalance(addr)
-		fmt.Println(addr.String(),b2.String())
+		fmt.Println(addr.String(), b2.String())
 	}
 	consensus.OnceUpdateWhitelist(statedb, big.NewInt(5000001))
-	for _,addr := range whitelist {
+	for _, addr := range whitelist {
 		b2 := statedb.GetBalance(addr)
-		fmt.Println(addr.String(),b2.String())
+		fmt.Println(addr.String(), b2.String())
 	}
 
 	b0 := statedb.GetBalance(addr0)
-	if b0.Cmp(new(big.Int).Mul(b1,big.NewInt(2))) != 0 {
+	if b0.Cmp(new(big.Int).Mul(b1, big.NewInt(2))) != 0 {
 		panic("error .....")
 	}
-	for _,addr := range whitelist {
+	for _, addr := range whitelist {
 		b2 := statedb.GetBalance(addr)
 		if b2.Sign() != 0 {
 			panic("error2 .....")
@@ -661,50 +660,23 @@ func Test1(t *testing.T) {
 	fmt.Println(generateAddr())
 	fmt.Println("finish")
 }
-func Test02(t *testing.T) {
-	strs := []string{
-		"ABEYLyzn9HvDaLw8c6SygKuzx5nj2ndzT3KWf",
-		"ABEYBsXQbnfaUT7CedZ65hUwtZvYwys3UE99f",
-		"ABEYAuqMqkzRdUM111bw66gAJ3YkBkRsAVpcs",
-		"ABEYXD4QCGDvTmdKNKnGjyVeVZX4zAviPrRWb",
-		"ABEYT1b6UDRUdpPMAq37sWX4uqeD28iSD2XXG",
-		"ABEYByojGTMQUZvpvjXA3dDCJztpFz72jqBii",
-		"ABEYLRr5tggiizWV68SbumTYvywjHxm34iZHF",
-		"ABEYXxqnoL8T3Me2Tgmz8wvQTKwPcq8mtGtE3",
-		"ABEYH1NrQ9tcxd4YuKd1CENo1apMDQmc3DvT6",
-		"ABEYSEq9wyZmSoSoUbqw3xrR68eovUKxMk8pS",
-		"ABEYV6DVAwCoCTFRsK8U4ULfdtmhc2XC1Hwv8",
-		"ABEYWkjDk3QyxZqshGPk6KtasYDc97N6yZTk2",
-	}
-	a := common.Address{}
-	for i,v := range strs {
-		a.FromAbeyString(v)
-		fmt.Println("index:",i,"addr:",a.String(),"abey:",v)
-	}
-	str := "0000000000000000000000000000000000000000"
-	if bdata,err := hex.DecodeString(str); err == nil {
-		str2 := base58.Encode(bdata[:])
-		fmt.Println(str2)
-	}
-	fmt.Println("finish")
-}
 func Test03(t *testing.T) {
 	a2 := common.HexToAddress("0x46498c274686be5e3c01b9268ea4604da5142265")
-	fmt.Println("addr:",a2.Hex())
-	fmt.Println("abey-addr:",a2.StringToAbey())
+	fmt.Println("addr:", a2.Hex())
+	fmt.Println("abey-addr:", a2.StringToAbey())
 	b1 := a2.Bytes()
 	b := make([]byte, 0, 3+len(b1)+4)
-	b = append(b, 0x43,0xe5,0x52)
+	b = append(b, 0x43, 0xe5, 0x52)
 	b = append(b, b1[:]...)
 	b2 := crypto.Keccak256(b)
-	fmt.Println("b2",hex.EncodeToString(b2[:]))
-	for i:=0;i<10;i++ {
+	fmt.Println("b2", hex.EncodeToString(b2[:]))
+	for i := 0; i < 10; i++ {
 		addr := generateAddr()
-		fmt.Println("addr:",addr.Hex())
-		fmt.Println("abey-addr:",addr.StringToAbey())
+		fmt.Println("addr:", addr.Hex())
+		fmt.Println("abey-addr:", addr.StringToAbey())
 		a := common.Address{}
 		a.FromAbeyString(addr.StringToAbey())
-		fmt.Println("addr2:",a.Hex())
+		fmt.Println("addr2:", a.Hex())
 	}
 	fmt.Println("finish")
 }
@@ -729,15 +701,15 @@ func Test04(t *testing.T) {
 		//	Kind: reflect.Map,
 		//},
 		{
-			Value: map[common.Address]*types.BalanceInfo {
-				generateAddr():&types.BalanceInfo{
+			Value: map[common.Address]*types.BalanceInfo{
+				generateAddr(): &types.BalanceInfo{
 					Address: generateAddr(),
-					Valid: big.NewInt(1),
-					Lock: big.NewInt(0),
+					Valid:   big.NewInt(1),
+					Lock:    big.NewInt(0),
 				},
 			},
-			Err:   "xml: unsupported type: map[*xml.Ship]bool",
-			Kind:  reflect.Map,
+			Err:  "xml: unsupported type: map[*xml.Ship]bool",
+			Kind: reflect.Map,
 		},
 	}
 
@@ -764,11 +736,11 @@ func dump(w io.Writer, val interface{}) error {
 }
 
 func Test05(t *testing.T) {
-	Value := map[common.Address]*types.BalanceInfo {
-		generateAddr():&types.BalanceInfo{
+	Value := map[common.Address]*types.BalanceInfo{
+		generateAddr(): &types.BalanceInfo{
 			Address: generateAddr(),
-			Valid: big.NewInt(1),
-			Lock: big.NewInt(0),
+			Valid:   big.NewInt(1),
+			Lock:    big.NewInt(0),
 		},
 	}
 	err := dump(os.Stdout, Value)

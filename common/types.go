@@ -223,12 +223,10 @@ func (a Address) String() string {
 func (a Address) StringToAbey() string {
 	str := a.String()
 	return strings.ToLower(str)
-	//return base58.CheckEncode(a[:])
 }
 
 func (a *Address) FromAbeyString(str string) error {
 	b := HexToAddress(str)
-	//b,err := base58.CheckDecode(str[:])
 	a.SetBytes(b.Bytes())
 	return nil
 }
