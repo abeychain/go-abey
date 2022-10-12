@@ -204,8 +204,8 @@ func TestSelectorUnmarshalling(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		if m.Sig() != selector {
-			t.Errorf("Expected equality: %v != %v", m.Sig(), selector)
+		if m.Sig != selector {
+			t.Errorf("Expected equality: %v != %v", m.Sig, selector)
 		}
 	}
 
