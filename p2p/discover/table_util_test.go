@@ -19,6 +19,7 @@ package discover
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/abeychain/go-abey/log"
 	"math/rand"
 	"net"
 	"sync"
@@ -37,7 +38,7 @@ func init() {
 
 func newTestTable(t transport) (*Table, *enode.DB) {
 	db, _ := enode.OpenDB("")
-	tab, _ := newTable(t, db, nil)
+	tab, _ := newTable(t, db, nil, log.New("testTable"))
 	return tab, db
 }
 
@@ -111,7 +112,15 @@ func newPingRecorder() *pingRecorder {
 func (t *pingRecorder) self() *enode.Node {
 	return nullNode
 }
-
+func (t *pingRecorder) RequestENR(*enode.Node) (*enode.Node, error) {
+	return nullNode, nil
+}
+func (t *pingRecorder) lookupRandom() []*enode.Node {
+	return nil
+}
+func (t *pingRecorder) lookupSelf() []*enode.Node {
+	return nil
+}
 func (t *pingRecorder) findnode(toid enode.ID, toaddr *net.UDPAddr, target encPubkey) ([]*node, error) {
 	return nil, nil
 }
