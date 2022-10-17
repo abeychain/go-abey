@@ -52,7 +52,7 @@ func testPingReplace(t *testing.T, newNodeIsResponding, lastInBucketIsResponding
 	transport := newPingRecorder()
 	tab, db := newTestTable(transport)
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	<-tab.initDone
 

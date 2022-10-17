@@ -108,7 +108,9 @@ func newPingRecorder() *pingRecorder {
 		n:      n,
 	}
 }
-
+func (t *pingRecorder) Self() *enode.Node {
+	return nullNode
+}
 func (t *pingRecorder) self() *enode.Node {
 	return nullNode
 }
@@ -124,18 +126,28 @@ func (t *pingRecorder) lookupSelf() []*enode.Node {
 func (t *pingRecorder) findnode(toid enode.ID, toaddr *net.UDPAddr, target encPubkey) ([]*node, error) {
 	return nil, nil
 }
-
-func (t *pingRecorder) ping(toid enode.ID, toaddr *net.UDPAddr) error {
+func (t *pingRecorder) ping(e *enode.Node) (seq uint64, err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-
-	t.pinged[toid] = true
-	if t.dead[toid] {
-		return errTimeout
+	t.pinged[e.ID()] = true
+	if t.dead[e.ID()] {
+		return 0, errTimeout
 	} else {
-		return nil
+		return 0, nil
 	}
 }
+
+//func (t *pingRecorder) ping(toid enode.ID, toaddr *net.UDPAddr) error {
+//	t.mu.Lock()
+//	defer t.mu.Unlock()
+//
+//	t.pinged[toid] = true
+//	if t.dead[toid] {
+//		return errTimeout
+//	} else {
+//		return nil
+//	}
+//}
 
 func (t *pingRecorder) close() {}
 
