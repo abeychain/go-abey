@@ -202,7 +202,7 @@ func TestTable_closest(t *testing.T) {
 		fillTable(tab, test.All)
 
 		// check that closest(Target, N) returns nodes
-		result := tab.closest(test.Target, test.N).entries
+		result := tab.closest(test.Target, test.N, true).entries
 		if hasDuplicates(result) {
 			t.Errorf("result contains duplicates")
 			return false
@@ -601,10 +601,18 @@ type preminedTestnet struct {
 	dists     [hashBits + 1][]encPubkey
 }
 
-func (tn *preminedTestnet) self() *enode.Node {
+func (tn *preminedTestnet) Self() *enode.Node {
 	return nullNode
 }
-
+func (tn *preminedTestnet) RequestENR(*enode.Node) (*enode.Node, error) {
+	return nullNode, nil
+}
+func (tn *preminedTestnet) lookupRandom() []*enode.Node {
+	return nil
+}
+func (tn *preminedTestnet) lookupSelf() []*enode.Node {
+	return nil
+}
 func (tn *preminedTestnet) findnode(toid enode.ID, toaddr *net.UDPAddr, target encPubkey) ([]*node, error) {
 	// current log distance is encoded in port number
 	// fmt.Println("findnode query at dist", toaddr.Port)
@@ -621,8 +629,10 @@ func (tn *preminedTestnet) findnode(toid enode.ID, toaddr *net.UDPAddr, target e
 	return result, nil
 }
 
-func (*preminedTestnet) close()                                        {}
-func (*preminedTestnet) ping(toid enode.ID, toaddr *net.UDPAddr) error { return nil }
+func (*preminedTestnet) close() {}
+
+//func (*preminedTestnet) ping(toid enode.ID, toaddr *net.UDPAddr) error { return nil }
+func (*preminedTestnet) ping(*enode.Node) (seq uint64, err error) { return 0, nil }
 
 var _ = (*preminedTestnet).mine // avoid linter warning about mine being dead code.
 
