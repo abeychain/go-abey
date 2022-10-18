@@ -117,7 +117,7 @@ func TestBucket_bumpNoDuplicates(t *testing.T) {
 	prop := func(nodes []*node, bumps []int) (ok bool) {
 		tab, db := newTestTable(newPingRecorder())
 		defer db.Close()
-		defer tab.Close()
+		defer tab.close()
 
 		b := &bucket{entries: make([]*node, len(nodes))}
 		copy(b.entries, nodes)
@@ -144,7 +144,7 @@ func TestTable_IPLimit(t *testing.T) {
 	transport := newPingRecorder()
 	tab, db := newTestTable(transport)
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	for i := 0; i < tableIPLimit+1; i++ {
 		n := nodeAtDistance(tab.self().ID(), i, net.IP{172, 0, 1, byte(i)})
@@ -161,7 +161,7 @@ func TestTable_BucketIPLimit(t *testing.T) {
 	transport := newPingRecorder()
 	tab, db := newTestTable(transport)
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	d := 3
 	for i := 0; i < bucketIPLimit+1; i++ {
@@ -198,7 +198,7 @@ func TestTable_closest(t *testing.T) {
 		transport := newPingRecorder()
 		tab, db := newTestTable(transport)
 		defer db.Close()
-		defer tab.Close()
+		defer tab.close()
 		fillTable(tab, test.All)
 
 		// check that closest(Target, N) returns nodes
@@ -259,7 +259,7 @@ func TestTable_ReadRandomNodesGetAll(t *testing.T) {
 		transport := newPingRecorder()
 		tab, db := newTestTable(transport)
 		defer db.Close()
-		defer tab.Close()
+		defer tab.close()
 		<-tab.initDone
 
 		for i := 0; i < len(buf); i++ {
@@ -309,7 +309,7 @@ func TestTable_addVerifiedNode(t *testing.T) {
 	tab, db := newTestTable(newPingRecorder())
 	<-tab.initDone
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	// Insert two nodes.
 	n1 := nodeAtDistance(tab.self().ID(), 256, net.IP{88, 77, 66, 1})
@@ -341,7 +341,7 @@ func TestTable_addSeenNode(t *testing.T) {
 	tab, db := newTestTable(newPingRecorder())
 	<-tab.initDone
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	// Insert two nodes.
 	n1 := nodeAtDistance(tab.self().ID(), 256, net.IP{88, 77, 66, 1})
@@ -371,7 +371,7 @@ func TestTable_addSeenNode(t *testing.T) {
 func TestTable_Lookup(t *testing.T) {
 	tab, db := newTestTable(lookupTestnet)
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	// lookup on empty table returns no nodes
 	if results := tab.lookup(lookupTestnet.target, false); len(results) > 0 {
