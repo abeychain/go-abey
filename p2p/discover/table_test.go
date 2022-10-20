@@ -368,38 +368,6 @@ func TestTable_addSeenNode(t *testing.T) {
 	checkIPLimitInvariant(t, tab)
 }
 
-func TestTable_Lookup(t *testing.T) {
-	tab, db := newTestTable(lookupTestnet)
-	defer db.Close()
-	defer tab.close()
-
-	// lookup on empty table returns no nodes
-	if results := tab.lookup(lookupTestnet.target, false); len(results) > 0 {
-		t.Fatalf("lookup on empty table returned %d results: %#v", len(results), results)
-	}
-	// seed table with initial node (otherwise lookup will terminate immediately)
-	seedKey, _ := decodePubkey(lookupTestnet.dists[256][0])
-	seed := wrapNode(enode.NewV4(seedKey, net.IP{127, 0, 0, 1}, 0, 256))
-	seed.livenessChecks = 1
-	fillTable(tab, []*node{seed})
-
-	results := tab.lookup(lookupTestnet.target, true)
-	t.Logf("results:")
-	for _, e := range results {
-		t.Logf("  ld=%d, %x", enode.LogDist(lookupTestnet.targetSha, e.ID()), e.ID().Bytes())
-	}
-	if len(results) != bucketSize {
-		t.Errorf("wrong number of results: got %d, want %d", len(results), bucketSize)
-	}
-	if hasDuplicates(results) {
-		t.Errorf("result set contains duplicate entries")
-	}
-	if !sortedByDistanceTo(lookupTestnet.targetSha, results) {
-		t.Errorf("result set not sorted by distance to target")
-	}
-	// TODO: check result nodes are actually closest
-}
-
 // This is the test network for the Lookup test.
 // The nodes were obtained by running testnet.mine with a random NodeID as target.
 var lookupTestnet = &preminedTestnet{
