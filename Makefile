@@ -17,6 +17,11 @@ gabey:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/gabey\" to launch gabey."
 
+genkey:
+	$(GORUN) build/ci.go install ./cmd/genKey
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/genKey\" to launch genKey."
+
 deps:
 	cd $(DEPS) &&	go-bindata -nometadata -pkg deps -o bindata.go bignumber.js web3.js
 	cd $(DEPS) &&	gofmt -w -s bindata.go
