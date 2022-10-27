@@ -4,10 +4,9 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"github.com/abeychain/go-abey/signer/core"
 	"os"
 	"strings"
-
-	"github.com/abeychain/go-abey/signer/core"
 )
 
 func init() {
@@ -26,8 +25,7 @@ func parse(data []byte) {
 	}
 	messages := core.ValidationMessages{}
 	v := core.NewValidator(db)
-	v.ValidateTransaction(nil, &messages)
-	//db.ValidateCallData(nil, data, &messages)
+	v.ValidateCallData(&messages, data, nil)
 	for _, m := range messages.Messages {
 		fmt.Printf("%v: %v\n", m.Typ, m.Message)
 	}
