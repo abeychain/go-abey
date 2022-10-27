@@ -62,6 +62,9 @@ func testSelector(selector string, data []byte) (*decodedCallData, error) {
 	return info, nil
 
 }
+func (v *Validator) ValidateCallData(msgs *ValidationMessages, data []byte, methodSelector *string) {
+	v.validateCallData(msgs, data, methodSelector)
+}
 
 // validateCallData checks if the ABI-data + methodselector (if given) can be parsed and seems to match
 func (v *Validator) validateCallData(msgs *ValidationMessages, data []byte, methodSelector *string) {
