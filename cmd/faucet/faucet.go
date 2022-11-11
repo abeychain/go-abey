@@ -67,6 +67,50 @@ func authTwitterWithTokenV1(tweetID string, token string) (string, string, strin
 	return result.User.ID + "@twitter", result.User.Username, result.User.Avatar, address, nil
 }
 
+// authTwitterWithTokenV2 tries to authenticate a faucet request using Twitter's v2
+// API, returning the user id, username, avatar URL and Ethereum address to fund on
+// success.
+func authTwitterWithTokenV2(tweetID string, token string) (string, string, string, common.Address, error) {
+	// Query the tweet details from Twitter
+	url := fmt.Sprintf("https://api.twitter.com/2/tweets/%s?expansions=author_id&user.fields=profile_image_url", tweetID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+	defer res.Body.Close()
+
+	var result struct {
+		Data struct {
+			AuthorID string `json:"author_id"`
+			Text     string `json:"text"`
+		} `json:"data"`
+		Includes struct {
+			Users []struct {
+				ID       string `json:"id"`
+				Username string `json:"username"`
+				Avatar   string `json:"profile_image_url"`
+			} `json:"users"`
+		} `json:"includes"`
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&result)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+
+	address := common.HexToAddress(regexp.MustCompile("0x[0-9a-fA-F]{40}").FindString(result.Data.Text))
+	if address == (common.Address{}) {
+		//lint:ignore ST1005 This error is to be displayed in the browser
+		return "", "", "", common.Address{}, errors.New("No ABEYCHAIN address found to fund")
+	}
+	return result.Data.AuthorID + "@twitter", result.Includes.Users[0].Username, result.Includes.Users[0].Avatar, address, nil
+}
+
 // authFacebook tries to authenticate a faucet request using Facebook posts,
 // returning the username, avatar URL and ABEYChain address to fund on success.
 func authFacebook(url string) (string, string, common.Address, error) {
