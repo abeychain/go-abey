@@ -22,16 +22,53 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/abeychain/go-abey/abeyclient"
+	"github.com/abeychain/go-abey/accounts"
+	"github.com/abeychain/go-abey/accounts/keystore"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core"
+	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/node"
+	"github.com/abeychain/go-abey/params"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
+
+// request represents an accepted funding request.
+type request struct {
+	Avatar  string             `json:"avatar"`  // Avatar URL to make the UI nicer
+	Account common.Address     `json:"account"` // ABEYCHAIN address being funded
+	Time    time.Time          `json:"time"`    // Timestamp when the request was accepted
+	Tx      *types.Transaction `json:"tx"`      // Transaction funding the account
+}
+
+// faucet represents a crypto faucet backed by an ABEYCHAIN light client.
+type faucet struct {
+	config *params.ChainConfig // Chain configurations for signing
+	stack  *node.Node          // ABEYCHAIN protocol stack
+	client *abeyclient.Client  // Client connection to the Ethereum chain
+	index  []byte              // Index page to serve up on the web
+
+	keystore *keystore.KeyStore // Keystore containing the single signer
+	account  accounts.Account   // Account funding user faucet requests
+	head     *types.Header      // Current head header of the faucet
+	balance  *big.Int           // Current balance of the faucet
+	nonce    uint64             // Current pending nonce of the faucet
+	price    *big.Int           // Current gas price to issue funds with
+
+	conns    []*wsConn            // Currently live websocket connections
+	timeouts map[string]time.Time // History of users and their funding timeouts
+	reqs     []*request           // Currently pending funding requests
+	update   chan struct{}        // Channel to signal request updates
+
+	lock sync.RWMutex // Lock protecting the faucet's internals
+}
 
 // wsConn wraps a websocket connection with a write mutex as the underlying
 // websocket library does not synchronize access to the stream.
