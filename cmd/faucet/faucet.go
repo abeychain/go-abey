@@ -19,6 +19,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/abeychain/go-abey/common"
@@ -28,6 +29,43 @@ import (
 	"regexp"
 	"strings"
 )
+
+// authTwitterWithTokenV1 tries to authenticate a faucet request using Twitter's v1
+// API, returning the user id, username, avatar URL and Ethereum address to fund on
+// success.
+func authTwitterWithTokenV1(tweetID string, token string) (string, string, string, common.Address, error) {
+	// Query the tweet details from Twitter
+	url := fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?id=%s", tweetID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+	defer res.Body.Close()
+
+	var result struct {
+		Text string `json:"text"`
+		User struct {
+			ID       string `json:"id_str"`
+			Username string `json:"screen_name"`
+			Avatar   string `json:"profile_image_url"`
+		} `json:"user"`
+	}
+	err = json.NewDecoder(res.Body).Decode(&result)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+	address := common.HexToAddress(regexp.MustCompile("0x[0-9a-fA-F]{40}").FindString(result.Text))
+	if address == (common.Address{}) {
+		//lint:ignore ST1005 This error is to be displayed in the browser
+		return "", "", "", common.Address{}, errors.New("No ABEYCHAIN address found to fund")
+	}
+	return result.User.ID + "@twitter", result.User.Username, result.User.Avatar, address, nil
+}
 
 // authFacebook tries to authenticate a faucet request using Facebook posts,
 // returning the username, avatar URL and ABEYChain address to fund on success.
