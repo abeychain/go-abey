@@ -24,14 +24,111 @@ import (
 	"fmt"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core"
+	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 )
 
+// wsConn wraps a websocket connection with a write mutex as the underlying
+// websocket library does not synchronize access to the stream.
+type wsConn struct {
+	conn  *websocket.Conn
+	wlock sync.Mutex
+}
+
+// sends transmits a data packet to the remote end of the websocket, but also
+// setting a write deadline to prevent waiting forever on the node.
+func send(conn *wsConn, value interface{}, timeout time.Duration) error {
+	if timeout == 0 {
+		timeout = 60 * time.Second
+	}
+	conn.wlock.Lock()
+	defer conn.wlock.Unlock()
+	conn.conn.SetWriteDeadline(time.Now().Add(timeout))
+
+	return conn.conn.WriteJSON(value)
+}
+
+// sendError transmits an error to the remote end of the websocket, also setting
+// the write deadline to 1 second to prevent waiting forever.
+func sendError(conn *wsConn, err error) error {
+	return send(conn, map[string]string{"error": err.Error()}, time.Second)
+}
+
+// sendSuccess transmits a success message to the remote end of the websocket, also
+// setting the write deadline to 1 second to prevent waiting forever.
+func sendSuccess(conn *wsConn, msg string) error {
+	return send(conn, map[string]string{"success": msg}, time.Second)
+}
+
+// authTwitter tries to authenticate a faucet request using Twitter posts, returning
+// the uniqueness identifier (user id/username), username, avatar URL and ABEYCHAIN address to fund on success.
+func authTwitter(url string, tokenV1, tokenV2 string) (string, string, string, common.Address, error) {
+	// Ensure the user specified a meaningful URL, no fancy nonsense
+	parts := strings.Split(url, "/")
+	if len(parts) < 4 || parts[len(parts)-2] != "status" {
+		//lint:ignore ST1005 This error is to be displayed in the browser
+		return "", "", "", common.Address{}, errors.New("Invalid Twitter status URL")
+	}
+	// Strip any query parameters from the tweet id and ensure it's numeric
+	tweetID := strings.Split(parts[len(parts)-1], "?")[0]
+	if !regexp.MustCompile("^[0-9]+$").MatchString(tweetID) {
+		return "", "", "", common.Address{}, errors.New("Invalid Tweet URL")
+	}
+	// Twitter's API isn't really friendly with direct links.
+	// It is restricted to 300 queries / 15 minute with an app api key.
+	// Anything more will require read only authorization from the users and that we want to avoid.
+
+	// If Twitter bearer token is provided, use the API, selecting the version
+	// the user would prefer (currently there's a limit of 1 v2 app / developer
+	// but unlimited v1.1 apps).
+	switch {
+	case tokenV1 != "":
+		return authTwitterWithTokenV1(tweetID, tokenV1)
+	case tokenV2 != "":
+		return authTwitterWithTokenV2(tweetID, tokenV2)
+	}
+	// Twiter API token isn't provided so we just load the public posts
+	// and scrape it for the ABEYCHAIN address and profile URL. We need to load
+	// the mobile page though since the main page loads tweet contents via JS.
+	url = strings.Replace(url, "https://twitter.com/", "https://mobile.twitter.com/", 1)
+
+	res, err := http.Get(url)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+	defer res.Body.Close()
+
+	// Resolve the username from the final redirect, no intermediate junk
+	parts = strings.Split(res.Request.URL.String(), "/")
+	if len(parts) < 4 || parts[len(parts)-2] != "status" {
+		//lint:ignore ST1005 This error is to be displayed in the browser
+		return "", "", "", common.Address{}, errors.New("Invalid Twitter status URL")
+	}
+	username := parts[len(parts)-3]
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", "", "", common.Address{}, err
+	}
+	address := common.HexToAddress(string(regexp.MustCompile("0x[0-9a-fA-F]{40}").Find(body)))
+	if address == (common.Address{}) {
+		//lint:ignore ST1005 This error is to be displayed in the browser
+		return "", "", "", common.Address{}, errors.New("No ABEYCHAIN address found to fund")
+	}
+	var avatar string
+	if parts = regexp.MustCompile(`src="([^"]+twimg\.com/profile_images[^"]+)"`).FindStringSubmatch(string(body)); len(parts) == 2 {
+		avatar = parts[1]
+	}
+	return username + "@twitter", username, avatar, address, nil
+}
+
 // authTwitterWithTokenV1 tries to authenticate a faucet request using Twitter's v1
-// API, returning the user id, username, avatar URL and Ethereum address to fund on
+// API, returning the user id, username, avatar URL and ABEYCHAIN address to fund on
 // success.
 func authTwitterWithTokenV1(tweetID string, token string) (string, string, string, common.Address, error) {
 	// Query the tweet details from Twitter
@@ -68,7 +165,7 @@ func authTwitterWithTokenV1(tweetID string, token string) (string, string, strin
 }
 
 // authTwitterWithTokenV2 tries to authenticate a faucet request using Twitter's v2
-// API, returning the user id, username, avatar URL and Ethereum address to fund on
+// API, returning the user id, username, avatar URL and ABEYCHAIN address to fund on
 // success.
 func authTwitterWithTokenV2(tweetID string, token string) (string, string, string, common.Address, error) {
 	// Query the tweet details from Twitter

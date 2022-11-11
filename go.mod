@@ -7,7 +7,6 @@ replace gopkg.in/fatih/set.v0 v0.2.1 => github.com/loinfish/set v0.0.1
 require (
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/allegro/bigcache v1.2.1
-	github.com/apilayer/freegeoip v3.5.0+incompatible
 	github.com/aristanetworks/goarista v0.0.0-20210415184815-1f5c17aef7bb
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/cespare/cp v1.1.1
@@ -21,9 +20,9 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
+	github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/holiman/uint256 v1.1.1
-	github.com/howeyc/fsnotify v0.9.0 // indirect
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.8.5
 	github.com/jackpal/go-nat-pmp v1.0.2
@@ -36,11 +35,9 @@ require (
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/nsf/termbox-go v1.1.0 // indirect
-	github.com/oschwald/maxminddb-golang v1.8.0 // indirect
 	github.com/pborman/uuid v1.2.1
 	github.com/peterh/liner v1.2.1
 	github.com/pkg/errors v0.9.1
