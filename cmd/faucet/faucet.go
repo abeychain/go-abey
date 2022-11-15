@@ -19,8 +19,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/abeychain/go-abey/abeyclient"
 	"github.com/abeychain/go-abey/accounts"
@@ -28,16 +30,52 @@ import (
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/node"
 	"github.com/abeychain/go-abey/params"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+)
+
+var (
+	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
+	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
+	ethPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
+	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
+	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Ethereum protocol")
+	statsFlag   = flag.String("ethstats", "", "Ethstats network monitoring auth string")
+
+	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
+	payoutFlag  = flag.Int("faucet.amount", 1, "Number of Ethers to pay out per user request")
+	minutesFlag = flag.Int("faucet.minutes", 1440, "Number of minutes to wait between funding rounds")
+	tiersFlag   = flag.Int("faucet.tiers", 3, "Number of funding tiers to enable (x3 time, x2.5 funds)")
+
+	accJSONFlag = flag.String("account.json", "", "Key json file to fund user requests with")
+	accPassFlag = flag.String("account.pass", "", "Decryption password to access faucet funds")
+
+	captchaToken  = flag.String("captcha.token", "", "Recaptcha site key to authenticate client side")
+	captchaSecret = flag.String("captcha.secret", "", "Recaptcha secret key to authenticate server side")
+
+	noauthFlag = flag.Bool("noauth", false, "Enables funding requests without authentication")
+	logFlag    = flag.Int("loglevel", 3, "Log level to use for Ethereum and the faucet")
+
+	twitterTokenFlag   = flag.String("twitter.token", "", "Bearer token to authenticate with the v2 Twitter API")
+	twitterTokenV1Flag = flag.String("twitter.token.v1", "", "Bearer token to authenticate with the v1.1 Twitter API")
+
+	goerliFlag  = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
+	rinkebyFlag = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
+)
+
+var (
+	abeycoin = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 )
 
 // request represents an accepted funding request.
@@ -82,10 +120,280 @@ func (f *faucet) close() error {
 	return f.stack.Close()
 }
 
+// refresh attempts to retrieve the latest header from the chain and extract the
+// associated faucet balance and nonce for connectivity caching.
+func (f *faucet) refresh(head *types.Header) error {
+	// Ensure a state update does not run for too long
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// If no header was specified, use the current chain head
+	var err error
+	if head == nil {
+		if head, err = f.client.HeaderByNumber(ctx, nil); err != nil {
+			return err
+		}
+	}
+	// Retrieve the balance, nonce and gas price from the current head
+	var (
+		balance *big.Int
+		nonce   uint64
+		price   *big.Int
+	)
+	if balance, err = f.client.BalanceAt(ctx, f.account.Address, head.Number); err != nil {
+		return err
+	}
+	if nonce, err = f.client.NonceAt(ctx, f.account.Address, head.Number); err != nil {
+		return err
+	}
+	if price, err = f.client.SuggestGasPrice(ctx); err != nil {
+		return err
+	}
+	// Everything succeeded, update the cached stats and eject old requests
+	f.lock.Lock()
+	f.head, f.balance = head, balance
+	f.price, f.nonce = price, nonce
+	for len(f.reqs) > 0 && f.reqs[0].Tx.Nonce() < f.nonce {
+		f.reqs = f.reqs[1:]
+	}
+	f.lock.Unlock()
+
+	return nil
+}
+
 // webHandler handles all non-api requests, simply flattening and returning the
 // faucet website.
 func (f *faucet) webHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(f.index)
+}
+
+// apiHandler handles requests for abeycoin grants and transaction statuses.
+func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+
+	// Start tracking the connection and drop at the end
+	defer conn.Close()
+
+	f.lock.Lock()
+	wsconn := &wsConn{conn: conn}
+	f.conns = append(f.conns, wsconn)
+	f.lock.Unlock()
+
+	defer func() {
+		f.lock.Lock()
+		for i, c := range f.conns {
+			if c.conn == conn {
+				f.conns = append(f.conns[:i], f.conns[i+1:]...)
+				break
+			}
+		}
+		f.lock.Unlock()
+	}()
+	// Gather the initial stats from the network to report
+	var (
+		head    *types.Header
+		balance *big.Int
+		nonce   uint64
+	)
+	for head == nil || balance == nil {
+		// Retrieve the current stats cached by the faucet
+		f.lock.RLock()
+		if f.head != nil {
+			head = types.CopyHeader(f.head)
+		}
+		if f.balance != nil {
+			balance = new(big.Int).Set(f.balance)
+		}
+		nonce = f.nonce
+		f.lock.RUnlock()
+
+		if head == nil || balance == nil {
+			// Report the faucet offline until initial stats are ready
+			//lint:ignore ST1005 This error is to be displayed in the browser
+			if err = sendError(wsconn, errors.New("Faucet offline")); err != nil {
+				log.Warn("Failed to send faucet error to client", "err", err)
+				return
+			}
+			time.Sleep(3 * time.Second)
+		}
+	}
+	// Send over the initial stats and the latest header
+	f.lock.RLock()
+	reqs := f.reqs
+	f.lock.RUnlock()
+	if err = send(wsconn, map[string]interface{}{
+		"funds":    new(big.Int).Div(balance, abeycoin),
+		"funded":   nonce,
+		"peers":    f.stack.Server().PeerCount(),
+		"requests": reqs,
+	}, 3*time.Second); err != nil {
+		log.Warn("Failed to send initial stats to client", "err", err)
+		return
+	}
+	if err = send(wsconn, head, 3*time.Second); err != nil {
+		log.Warn("Failed to send initial header to client", "err", err)
+		return
+	}
+	// Keep reading requests from the websocket until the connection breaks
+	for {
+		// Fetch the next funding request and validate against github
+		var msg struct {
+			URL     string `json:"url"`
+			Tier    uint   `json:"tier"`
+			Captcha string `json:"captcha"`
+		}
+		if err = conn.ReadJSON(&msg); err != nil {
+			return
+		}
+		if !*noauthFlag && !strings.HasPrefix(msg.URL, "https://twitter.com/") && !strings.HasPrefix(msg.URL, "https://www.facebook.com/") {
+			if err = sendError(wsconn, errors.New("URL doesn't link to supported services")); err != nil {
+				log.Warn("Failed to send URL error to client", "err", err)
+				return
+			}
+			continue
+		}
+		if msg.Tier >= uint(*tiersFlag) {
+			//lint:ignore ST1005 This error is to be displayed in the browser
+			if err = sendError(wsconn, errors.New("Invalid funding tier requested")); err != nil {
+				log.Warn("Failed to send tier error to client", "err", err)
+				return
+			}
+			continue
+		}
+		log.Info("Faucet funds requested", "url", msg.URL, "tier", msg.Tier)
+
+		// If captcha verifications are enabled, make sure we're not dealing with a robot
+		if *captchaToken != "" {
+			form := url.Values{}
+			form.Add("secret", *captchaSecret)
+			form.Add("response", msg.Captcha)
+
+			res, err := http.PostForm("https://www.google.com/recaptcha/api/siteverify", form)
+			if err != nil {
+				if err = sendError(wsconn, err); err != nil {
+					log.Warn("Failed to send captcha post error to client", "err", err)
+					return
+				}
+				continue
+			}
+			var result struct {
+				Success bool            `json:"success"`
+				Errors  json.RawMessage `json:"error-codes"`
+			}
+			err = json.NewDecoder(res.Body).Decode(&result)
+			res.Body.Close()
+			if err != nil {
+				if err = sendError(wsconn, err); err != nil {
+					log.Warn("Failed to send captcha decode error to client", "err", err)
+					return
+				}
+				continue
+			}
+			if !result.Success {
+				log.Warn("Captcha verification failed", "err", string(result.Errors))
+				//lint:ignore ST1005 it's funny and the robot won't mind
+				if err = sendError(wsconn, errors.New("Beep-bop, you're a robot!")); err != nil {
+					log.Warn("Failed to send captcha failure to client", "err", err)
+					return
+				}
+				continue
+			}
+		}
+		// Retrieve the Ethereum address to fund, the requesting user and a profile picture
+		var (
+			id       string
+			username string
+			avatar   string
+			address  common.Address
+		)
+		switch {
+		case strings.HasPrefix(msg.URL, "https://twitter.com/"):
+			id, username, avatar, address, err = authTwitter(msg.URL, *twitterTokenV1Flag, *twitterTokenFlag)
+		case strings.HasPrefix(msg.URL, "https://www.facebook.com/"):
+			username, avatar, address, err = authFacebook(msg.URL)
+			id = username
+		case *noauthFlag:
+			username, avatar, address, err = authNoAuth(msg.URL)
+			id = username
+		default:
+			//lint:ignore ST1005 This error is to be displayed in the browser
+			err = errors.New("Something funky happened,eeeee")
+		}
+		if err != nil {
+			if err = sendError(wsconn, err); err != nil {
+				log.Warn("Failed to send prefix error to client", "err", err)
+				return
+			}
+			continue
+		}
+		log.Info("Faucet request valid", "url", msg.URL, "tier", msg.Tier, "user", username, "address", address)
+
+		// Ensure the user didn't request funds too recently
+		f.lock.Lock()
+		var (
+			fund    bool
+			timeout time.Time
+		)
+		if timeout = f.timeouts[id]; time.Now().After(timeout) {
+			// User wasn't funded recently, create the funding transaction
+			amount := new(big.Int).Mul(big.NewInt(int64(*payoutFlag)), abeycoin)
+			amount = new(big.Int).Mul(amount, new(big.Int).Exp(big.NewInt(5), big.NewInt(int64(msg.Tier)), nil))
+			amount = new(big.Int).Div(amount, new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(msg.Tier)), nil))
+
+			tx := types.NewTransaction(f.nonce+uint64(len(f.reqs)), address, amount, 21000, f.price, nil)
+			signed, err := f.keystore.SignTx(f.account, tx, f.config.ChainID)
+			if err != nil {
+				f.lock.Unlock()
+				if err = sendError(wsconn, err); err != nil {
+					log.Warn("Failed to send transaction creation error to client", "err", err)
+					return
+				}
+				continue
+			}
+			// Submit the transaction and mark as funded if successful
+			if err := f.client.SendTransaction(context.Background(), signed); err != nil {
+				f.lock.Unlock()
+				if err = sendError(wsconn, err); err != nil {
+					log.Warn("Failed to send transaction transmission error to client", "err", err)
+					return
+				}
+				continue
+			}
+			f.reqs = append(f.reqs, &request{
+				Avatar:  avatar,
+				Account: address,
+				Time:    time.Now(),
+				Tx:      signed,
+			})
+			timeout := time.Duration(*minutesFlag*int(math.Pow(3, float64(msg.Tier)))) * time.Minute
+			grace := timeout / 288 // 24h timeout => 5m grace
+
+			f.timeouts[id] = time.Now().Add(timeout - grace)
+			fund = true
+		}
+		f.lock.Unlock()
+
+		// Send an error if too frequent funding, othewise a success
+		if !fund {
+			if err = sendError(wsconn, fmt.Errorf("%s left until next allowance", common.PrettyDuration(time.Until(timeout)))); err != nil { // nolint: gosimple
+				log.Warn("Failed to send funding error to client", "err", err)
+				return
+			}
+			continue
+		}
+		if err = sendSuccess(wsconn, fmt.Sprintf("Funding request accepted for %s into %s", username, address.Hex())); err != nil {
+			log.Warn("Failed to send funding success to client", "err", err)
+			return
+		}
+		select {
+		case f.update <- struct{}{}:
+		default:
+		}
+	}
 }
 
 // sends transmits a data packet to the remote end of the websocket, but also
