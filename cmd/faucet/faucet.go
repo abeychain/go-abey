@@ -77,6 +77,17 @@ type wsConn struct {
 	wlock sync.Mutex
 }
 
+// close terminates the Ethereum connection and tears down the faucet.
+func (f *faucet) close() error {
+	return f.stack.Close()
+}
+
+// webHandler handles all non-api requests, simply flattening and returning the
+// faucet website.
+func (f *faucet) webHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write(f.index)
+}
+
 // sends transmits a data packet to the remote end of the websocket, but also
 // setting a write deadline to prevent waiting forever on the node.
 func send(conn *wsConn, value interface{}, timeout time.Duration) error {
