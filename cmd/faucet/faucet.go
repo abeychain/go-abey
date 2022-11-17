@@ -24,14 +24,21 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/abeychain/go-abey/abey"
+	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/abeyclient"
+	"github.com/abeychain/go-abey/abeystats"
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/accounts/keystore"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/les"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/node"
+	"github.com/abeychain/go-abey/p2p"
+	"github.com/abeychain/go-abey/p2p/enode"
+	"github.com/abeychain/go-abey/p2p/nat"
 	"github.com/abeychain/go-abey/params"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
@@ -39,6 +46,8 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -76,6 +85,10 @@ var (
 
 var (
 	abeycoin = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+)
+var (
+	gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
+	gitDate   = "" // Git commit date YYYYMMDD of the release (set via linker flags)
 )
 
 // request represents an accepted funding request.
@@ -115,9 +128,87 @@ type wsConn struct {
 	wlock sync.Mutex
 }
 
-// close terminates the Ethereum connection and tears down the faucet.
+func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network uint64, stats string,
+	ks *keystore.KeyStore, index []byte) (*faucet, error) {
+	// Assemble the raw devp2p protocol stack
+	stack, err := node.New(&node.Config{
+		Name:    "abey",
+		Version: params.VersionWithCommit(gitCommit, gitDate),
+		DataDir: filepath.Join(os.Getenv("HOME"), ".faucet"),
+		P2P: p2p.Config{
+			NAT:            nat.Any(),
+			NoDiscovery:    true,
+			DiscoveryV5:    true,
+			ListenAddr:     fmt.Sprintf(":%d", port),
+			MaxPeers:       25,
+			BootstrapNodes: enodes,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Assemble the ABEYCHAIN light client protocol
+	cfg := abey.DefaultConfig
+	cfg.SyncMode = downloader.LightSync
+	cfg.NetworkId = network
+	cfg.Genesis = genesis
+	//utils.SetDNSDiscoveryDefaults(&cfg, genesis.ToBlock(nil).Hash())
+
+	// Assemble the abeystats monitoring and reporting service'
+	if stats != "" {
+		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+			var lesServ *les.LightAbey
+			ctx.Service(&lesServ)
+
+			return abeystats.New(stats, nil, lesServ)
+		}); err != nil {
+			return nil, errors.New(fmt.Sprintf("Failed to register the Abeychain Stats service: %v", err))
+		}
+	}
+	// Boot up the client and ensure it connects to bootnodes
+	if err := stack.Start(); err != nil {
+		return nil, err
+	}
+	for _, boot := range enodes {
+		old, err := enode.Parse(enode.ValidSchemes, boot.String())
+		if err == nil {
+			stack.Server().AddPeer(old)
+		}
+	}
+	// Attach to the client and retrieve and interesting metadatas
+	api, err := stack.Attach()
+	if err != nil {
+		stack.Close()
+		return nil, err
+	}
+	client := abeyclient.NewClient(api)
+
+	return &faucet{
+		config:   genesis.Config,
+		stack:    stack,
+		client:   client,
+		index:    index,
+		keystore: ks,
+		account:  ks.Accounts()[0],
+		timeouts: make(map[string]time.Time),
+		update:   make(chan struct{}, 1),
+	}, nil
+}
+
+// close terminates the ABEYCHAIN connection and tears down the faucet.
 func (f *faucet) close() error {
 	return f.stack.Close()
+}
+
+// listenAndServe registers the HTTP handlers for the faucet and boots it up
+// for service user funding requests.
+func (f *faucet) listenAndServe(port int) error {
+	go f.loop()
+
+	http.HandleFunc("/", f.webHandler)
+	http.HandleFunc("/api", f.apiHandler)
+	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 // loop keeps waiting for interesting events and pushes them out to connected
