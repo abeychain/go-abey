@@ -120,6 +120,82 @@ func (f *faucet) close() error {
 	return f.stack.Close()
 }
 
+// loop keeps waiting for interesting events and pushes them out to connected
+// websockets.
+func (f *faucet) loop() {
+	// Wait for chain events and push them to clients
+	heads := make(chan *types.Header, 16)
+	sub, err := f.client.SubscribeNewHead(context.Background(), heads)
+	if err != nil {
+		log.Crit("Failed to subscribe to head events", "err", err)
+	}
+	defer sub.Unsubscribe()
+
+	// Start a goroutine to update the state from head notifications in the background
+	update := make(chan *types.Header)
+
+	go func() {
+		for head := range update {
+			// New chain head arrived, query the current stats and stream to clients
+			timestamp := time.Unix(head.Time.Int64(), 0)
+			if time.Since(timestamp) > time.Hour {
+				log.Warn("Skipping faucet refresh, head too old", "number", head.Number, "hash", head.Hash(), "age", common.PrettyAge(timestamp))
+				continue
+			}
+			if err := f.refresh(head); err != nil {
+				log.Warn("Failed to update faucet state", "block", head.Number, "hash", head.Hash(), "err", err)
+				continue
+			}
+			// Faucet state retrieved, update locally and send to clients
+			f.lock.RLock()
+			log.Info("Updated faucet state", "number", head.Number, "hash", head.Hash(), "age", common.PrettyAge(timestamp), "balance", f.balance, "nonce", f.nonce, "price", f.price)
+
+			balance := new(big.Int).Div(f.balance, abeycoin)
+			peers := f.stack.Server().PeerCount()
+
+			for _, conn := range f.conns {
+				if err := send(conn, map[string]interface{}{
+					"funds":    balance,
+					"funded":   f.nonce,
+					"peers":    peers,
+					"requests": f.reqs,
+				}, time.Second); err != nil {
+					log.Warn("Failed to send stats to client", "err", err)
+					conn.conn.Close()
+					continue
+				}
+				if err := send(conn, head, time.Second); err != nil {
+					log.Warn("Failed to send header to client", "err", err)
+					conn.conn.Close()
+				}
+			}
+			f.lock.RUnlock()
+		}
+	}()
+	// Wait for various events and assing to the appropriate background threads
+	for {
+		select {
+		case head := <-heads:
+			// New head arrived, send if for state update if there's none running
+			select {
+			case update <- head:
+			default:
+			}
+
+		case <-f.update:
+			// Pending requests updated, stream to clients
+			f.lock.RLock()
+			for _, conn := range f.conns {
+				if err := send(conn, map[string]interface{}{"requests": f.reqs}, time.Second); err != nil {
+					log.Warn("Failed to send requests to client", "err", err)
+					conn.conn.Close()
+				}
+			}
+			f.lock.RUnlock()
+		}
+	}
+}
+
 // refresh attempts to retrieve the latest header from the chain and extract the
 // associated faucet balance and nonce for connectivity caching.
 func (f *faucet) refresh(head *types.Header) error {
