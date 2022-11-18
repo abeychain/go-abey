@@ -19,6 +19,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -41,6 +42,7 @@ import (
 	"github.com/abeychain/go-abey/p2p/nat"
 	"github.com/abeychain/go-abey/params"
 	"github.com/gorilla/websocket"
+	"html/template"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -49,21 +51,22 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
-	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
-	ethPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
-	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
-	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Ethereum protocol")
-	statsFlag   = flag.String("ethstats", "", "Ethstats network monitoring auth string")
+	genesisFlag  = flag.String("genesis", "", "Genesis json file to seed the chain with")
+	apiPortFlag  = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
+	abeyPortFlag = flag.Int("abeyport", 30313, "Listener port for the devp2p connection")
+	bootFlag     = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
+	netFlag      = flag.Uint64("network", 0, "Network ID to use for the ABEYCHAIN protocol")
+	statsFlag    = flag.String("abeystats", "url", "abeystats network monitoring auth string")
 
 	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
-	payoutFlag  = flag.Int("faucet.amount", 1, "Number of Ethers to pay out per user request")
+	payoutFlag  = flag.Int("faucet.amount", 1, "Number of abeycoin to pay out per user request")
 	minutesFlag = flag.Int("faucet.minutes", 1440, "Number of minutes to wait between funding rounds")
 	tiersFlag   = flag.Int("faucet.tiers", 3, "Number of funding tiers to enable (x3 time, x2.5 funds)")
 
@@ -79,8 +82,8 @@ var (
 	twitterTokenFlag   = flag.String("twitter.token", "", "Bearer token to authenticate with the v2 Twitter API")
 	twitterTokenV1Flag = flag.String("twitter.token.v1", "", "Bearer token to authenticate with the v1.1 Twitter API")
 
-	goerliFlag  = flag.Bool("goerli", false, "Initializes the faucet with Görli network config")
-	rinkebyFlag = flag.Bool("rinkeby", false, "Initializes the faucet with Rinkeby network config")
+	testnetFlag = flag.Bool("testnet", false, "Initializes the faucet with testnet network config")
+	devnetFlag  = flag.Bool("devnet", false, "Initializes the faucet with devnet network config")
 )
 
 var (
@@ -126,6 +129,98 @@ type faucet struct {
 type wsConn struct {
 	conn  *websocket.Conn
 	wlock sync.Mutex
+}
+
+func main() {
+	// Parse the flags and set up the logger to print everything requested
+	flag.Parse()
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*logFlag), log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+
+	// Construct the payout tiers
+	amounts := make([]string, *tiersFlag)
+	periods := make([]string, *tiersFlag)
+	for i := 0; i < *tiersFlag; i++ {
+		// Calculate the amount for the next tier and format it
+		amount := float64(*payoutFlag) * math.Pow(2.5, float64(i))
+		amounts[i] = fmt.Sprintf("%s Ethers", strconv.FormatFloat(amount, 'f', -1, 64))
+		if amount == 1 {
+			amounts[i] = strings.TrimSuffix(amounts[i], "s")
+		}
+		// Calculate the period for the next tier and format it
+		period := *minutesFlag * int(math.Pow(3, float64(i)))
+		periods[i] = fmt.Sprintf("%d mins", period)
+		if period%60 == 0 {
+			period /= 60
+			periods[i] = fmt.Sprintf("%d hours", period)
+
+			if period%24 == 0 {
+				period /= 24
+				periods[i] = fmt.Sprintf("%d days", period)
+			}
+		}
+		if period == 1 {
+			periods[i] = strings.TrimSuffix(periods[i], "s")
+		}
+	}
+	// Load up and render the faucet website
+	tmpl, err := Asset("faucet.html")
+	if err != nil {
+		log.Crit("Failed to load the faucet template", "err", err)
+	}
+	website := new(bytes.Buffer)
+	err = template.Must(template.New("").Parse(string(tmpl))).Execute(website, map[string]interface{}{
+		"Network":   *netnameFlag,
+		"Amounts":   amounts,
+		"Periods":   periods,
+		"Recaptcha": *captchaToken,
+		"NoAuth":    *noauthFlag,
+	})
+	if err != nil {
+		log.Crit("Failed to render the faucet template", "err", err)
+	}
+	// Load and parse the genesis block requested by the user
+	genesis, err := getGenesis(*genesisFlag, *testnetFlag, *devnetFlag)
+	if err != nil {
+		log.Crit("Failed to parse genesis config", "err", err)
+	}
+	// Convert the bootnodes to internal enode representations
+	var enodes []*enode.Node
+	for _, boot := range strings.Split(*bootFlag, ",") {
+		if url, err := enode.Parse(enode.ValidSchemes, boot); err == nil {
+			enodes = append(enodes, url)
+		} else {
+			log.Error("Failed to parse bootnode URL", "url", boot, "err", err)
+		}
+	}
+	// Load up the account key and decrypt its password
+	blob, err := ioutil.ReadFile(*accPassFlag)
+	if err != nil {
+		log.Crit("Failed to read account password contents", "file", *accPassFlag, "err", err)
+	}
+	pass := strings.TrimSuffix(string(blob), "\n")
+
+	ks := keystore.NewKeyStore(filepath.Join(os.Getenv("HOME"), ".faucet", "keys"), keystore.StandardScryptN, keystore.StandardScryptP)
+	if blob, err = ioutil.ReadFile(*accJSONFlag); err != nil {
+		log.Crit("Failed to read account key contents", "file", *accJSONFlag, "err", err)
+	}
+	acc, err := ks.Import(blob, pass, pass)
+	//&& err != keystore.ErrAccountAlreadyExists
+	if err != nil {
+		log.Crit("Failed to import faucet signer account", "err", err)
+	}
+	if err := ks.Unlock(acc, pass); err != nil {
+		log.Crit("Failed to unlock faucet signer account", "err", err)
+	}
+	// Assemble and start the faucet light service
+	faucet, err := newFaucet(genesis, *abeyPortFlag, enodes, *netFlag, *statsFlag, ks, website.Bytes())
+	if err != nil {
+		log.Crit("Failed to start faucet", "err", err)
+	}
+	defer faucet.close()
+
+	if err := faucet.listenAndServe(*apiPortFlag); err != nil {
+		log.Crit("Failed to launch faucet API", "err", err)
+	}
 }
 
 func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network uint64, stats string,
