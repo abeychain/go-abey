@@ -18,8 +18,8 @@ package les
 
 import (
 	"crypto/ecdsa"
-	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/accounts/abi/bind"
+	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/light/fast"
 	"github.com/abeychain/go-abey/light/public"
 	"github.com/abeychain/go-abey/p2p/enode"
@@ -29,14 +29,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/abeychain/go-abey/abey"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abey"
 	"github.com/abeychain/go-abey/les/flowcontrol"
 	"github.com/abeychain/go-abey/light"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/p2p"
 	"github.com/abeychain/go-abey/p2p/discv5"
 )
@@ -385,4 +385,10 @@ func (pm *ProtocolManager) blockLoop() {
 			}
 		}
 	}()
+}
+
+/////////////////////////////////////////////////////////////////////////////
+type linReg struct {
+	sumX, sumY, sumXX, sumXY float64
+	cnt                      uint64
 }
