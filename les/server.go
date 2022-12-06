@@ -19,6 +19,7 @@ package les
 import (
 	"crypto/ecdsa"
 	"encoding/binary"
+	ethdb "github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts/abi/bind"
 	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/light/fast"
@@ -412,7 +413,6 @@ func (l *linReg) add(x, y float64) {
 	l.sumXX += x * x
 	l.sumXY += x * y
 }
-
 func (l *linReg) calc() (b, m float64) {
 	if l.cnt == 0 {
 		return 0, 0
@@ -426,7 +426,6 @@ func (l *linReg) calc() (b, m float64) {
 	b = (l.sumY / cnt) - (m * l.sumX / cnt)
 	return b, m
 }
-
 func (l *linReg) toBytes() []byte {
 	var arr [40]byte
 	binary.BigEndian.PutUint64(arr[0:8], math.Float64bits(l.sumX))
@@ -435,4 +434,22 @@ func (l *linReg) toBytes() []byte {
 	binary.BigEndian.PutUint64(arr[24:32], math.Float64bits(l.sumXY))
 	binary.BigEndian.PutUint64(arr[32:40], l.cnt)
 	return arr[:]
+}
+func linRegFromBytes(data []byte) *linReg {
+	if len(data) != 40 {
+		return nil
+	}
+	l := &linReg{}
+	l.sumX = math.Float64frombits(binary.BigEndian.Uint64(data[0:8]))
+	l.sumY = math.Float64frombits(binary.BigEndian.Uint64(data[8:16]))
+	l.sumXX = math.Float64frombits(binary.BigEndian.Uint64(data[16:24]))
+	l.sumXY = math.Float64frombits(binary.BigEndian.Uint64(data[24:32]))
+	l.cnt = binary.BigEndian.Uint64(data[32:40])
+	return l
+}
+
+type requestCostStats struct {
+	lock  sync.RWMutex
+	db    ethdb.Database
+	stats map[uint64]*linReg
 }
