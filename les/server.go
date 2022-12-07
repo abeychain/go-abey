@@ -19,13 +19,14 @@ package les
 import (
 	"crypto/ecdsa"
 	"encoding/binary"
-	ethdb "github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts/abi/bind"
 	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/light/fast"
 	"github.com/abeychain/go-abey/light/public"
 	"github.com/abeychain/go-abey/p2p/enode"
 	"github.com/abeychain/go-abey/params"
+	"github.com/abeychain/go-abey/rlp"
 	"github.com/abeychain/go-abey/rpc"
 	"math"
 	"math/big"
@@ -391,6 +392,11 @@ func (pm *ProtocolManager) blockLoop() {
 }
 
 /////////////////////////////////////////////////////////////////////////////
+
+var (
+	reqList = []uint64{GetCodeMsg, GetReceiptsMsg, SendTxV2Msg, GetTxStatusMsg, GetProofsV2Msg, GetHelperTrieProofsMsg}
+)
+
 type linReg struct {
 	sumX, sumY, sumXX, sumXY float64
 	cnt                      uint64
@@ -450,6 +456,91 @@ func linRegFromBytes(data []byte) *linReg {
 
 type requestCostStats struct {
 	lock  sync.RWMutex
-	db    ethdb.Database
+	db    abeydb.Database
 	stats map[uint64]*linReg
+}
+type requestCostStatsRlp []struct {
+	MsgCode uint64
+	Data    []byte
+}
+
+var rcStatsKey = []byte("_requestCostStats")
+
+func newCostStats(db abeydb.Database) *requestCostStats {
+	stats := make(map[uint64]*linReg)
+	for _, code := range reqList {
+		stats[code] = &linReg{cnt: 100}
+	}
+
+	if db != nil {
+		data, err := db.Get(rcStatsKey)
+		var statsRlp requestCostStatsRlp
+		if err == nil {
+			err = rlp.DecodeBytes(data, &statsRlp)
+		}
+		if err == nil {
+			for _, r := range statsRlp {
+				if stats[r.MsgCode] != nil {
+					if l := linRegFromBytes(r.Data); l != nil {
+						stats[r.MsgCode] = l
+					}
+				}
+			}
+		}
+	}
+
+	return &requestCostStats{
+		db:    db,
+		stats: stats,
+	}
+}
+
+func (s *requestCostStats) store() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	statsRlp := make(requestCostStatsRlp, len(reqList))
+	for i, code := range reqList {
+		statsRlp[i].MsgCode = code
+		statsRlp[i].Data = s.stats[code].toBytes()
+	}
+
+	if data, err := rlp.EncodeToBytes(statsRlp); err == nil {
+		s.db.Put(rcStatsKey, data)
+	}
+}
+
+func (s *requestCostStats) getCurrentList() RequestCostList {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	list := make(RequestCostList, len(reqList))
+	//fmt.Println("RequestCostList")
+	for idx, code := range reqList {
+		b, m := s.stats[code].calc()
+		//fmt.Println(code, s.stats[code].cnt, b/1000000, m/1000000)
+		if m < 0 {
+			b += m
+			m = 0
+		}
+		if b < 0 {
+			b = 0
+		}
+
+		list[idx].MsgCode = code
+		list[idx].BaseCost = uint64(b * 2)
+		list[idx].ReqCost = uint64(m * 2)
+	}
+	return list
+}
+
+func (s *requestCostStats) update(msgCode, reqCnt, cost uint64) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	c, ok := s.stats[msgCode]
+	if !ok || reqCnt == 0 {
+		return
+	}
+	c.add(float64(reqCnt), float64(cost))
 }
