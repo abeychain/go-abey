@@ -21,10 +21,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/consensus/tbft/help"
-	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"github.com/abeychain/go-abey/light/fast"
 	"github.com/abeychain/go-abey/light/public"
 	"golang.org/x/crypto/sha3"
@@ -33,6 +33,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core"
@@ -40,8 +42,6 @@ import (
 	snaildb "github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abey/downloader"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/light"
 	"github.com/abeychain/go-abey/log"
@@ -148,6 +148,8 @@ type ProtocolManager struct {
 	quitSync    chan struct{}
 	noMorePeers chan struct{}
 
+	// wait group is used for graceful shutdowns during downloading
+	// and processing
 	wg       *sync.WaitGroup
 	eventMux *event.TypeMux
 	election *Election
@@ -155,8 +157,8 @@ type ProtocolManager struct {
 	synced func() bool
 }
 
-// NewProtocolManager returns a new ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
-// with the ethereum network.
+// NewProtocolManager returns a new abeychain sub protocol manager. The abeychain sub protocol manages peers capable
+// with the abeychain network.
 func NewProtocolManager(chainConfig *params.ChainConfig, checkpoint *params.TrustedCheckpoint, indexerConfig *public.IndexerConfig, ulcServers []string, ulcFraction int, client bool, networkId uint64, mux *event.TypeMux, engine consensus.Engine, peers *peerSet, blockchain FastBlockChain, snailchain BlockChain, txpool txPool, chainDb abeydb.Database, odr *LesOdr, serverPool *serverPool, registrar *checkpointOracle, quitSync chan struct{}, wg *sync.WaitGroup, election *Election, synced func() bool) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
