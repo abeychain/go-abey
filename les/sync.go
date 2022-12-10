@@ -55,38 +55,27 @@ func (pm *ProtocolManager) syncer() {
 	}
 }
 
+func (pm *ProtocolManager) needToSync(peerHead blockInfo) bool {
+	head := pm.blockchain.CurrentHeader()
+	currentTd := rawdb.ReadTd(pm.chainDb, head.Hash(), head.Number.Uint64())
+	return currentTd != nil && peerHead.Td.Cmp(currentTd) > 0
+}
+
 // synchronise tries to sync up our local block chain with a remote peer.
 func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Short circuit if no peers are available
 	if peer == nil {
 		return
 	}
-
+	//fhead := pm.fblockchain.CurrentHeader()
+	//currentNumber := fhead.Number.Uint64()
+	//fastHeight := headBlockInfo.FastNumber
+	//pHead := headBlockInfo.FastHash
 	// Make sure the peer's TD is higher than our own.
-	head := pm.blockchain.CurrentHeader()
-	currentTd := rawdb.ReadTd(pm.chainDb, head.Hash(), head.Number.Uint64())
-	headBlockInfo := peer.headBlockInfo()
-	pTd := headBlockInfo.Td
-
-	fhead := pm.fblockchain.CurrentHeader()
-	currentNumber := fhead.Number.Uint64()
-	fastHeight := headBlockInfo.FastNumber
-	pHead := headBlockInfo.FastHash
-
-	if currentTd == nil {
+	if !pm.needToSync(peer.headBlockInfo()) {
 		return
 	}
 
-	if pTd.Cmp(currentTd) <= 0 {
-		log.Info("synchronise fast", "fastHeight", fastHeight, "currentNumber", currentNumber)
-		if fastHeight > currentNumber {
-			if err := pm.downloader.SyncFast(peer.id, pHead, fastHeight, downloader.LightSync); err != nil {
-				log.Error("ProtocolManager fast sync: ", "err", err)
-				return
-			}
-		}
-		return
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	pm.blockchain.(*light.LightChain).SyncCht(ctx)
