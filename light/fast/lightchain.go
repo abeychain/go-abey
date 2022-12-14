@@ -121,14 +121,18 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 
 // AddTrustedCheckpoint adds a trusted checkpoint to the blockchain
 func (lc *LightChain) AddTrustedCheckpoint(cp *params.TrustedCheckpoint) {
+	if lc.odr.ChtIndexer() != nil {
+		StoreChtRoot(lc.chainDb, cp.SectionIndex, cp.SectionHead, cp.CHTRoot)
+		lc.odr.ChtIndexer().AddCheckpoint(cp.SectionIndex, cp.SectionHead)
+	}
 	if lc.odr.BloomTrieIndexer() != nil {
-		StoreBloomTrieRoot(lc.chainDb, cp.SectionBIndex, cp.SectionBHead, cp.BloomRoot)
-		lc.odr.BloomTrieIndexer().AddCheckpoint(cp.SectionBIndex, cp.SectionBHead)
+		StoreBloomTrieRoot(self.chainDb, cp.SectionIndex, cp.SectionHead, cp.BloomRoot)
+		lc.odr.BloomTrieIndexer().AddCheckpoint(cp.SectionIndex, cp.SectionHead)
 	}
 	if lc.odr.BloomIndexer() != nil {
-		lc.odr.BloomIndexer().AddCheckpoint(cp.SectionBIndex, cp.SectionBHead)
+		lc.odr.BloomIndexer().AddCheckpoint(cp.SectionIndex, cp.SectionHead)
 	}
-	log.Info("Added fast trusted checkpoint", "chain", (cp.SectionBIndex+1)*lc.indexerConfig.BloomSize-1, "hash", cp.SectionBHead)
+	log.Info("Added trusted checkpoint", "chain", cp.Name, "block", (cp.SectionIndex+1)*self.indexerConfig.ChtSize-1, "hash", cp.SectionHead)
 }
 
 func (lc *LightChain) getProcInterrupt() bool {
@@ -464,6 +468,35 @@ func (lc *LightChain) GetHeaderByNumberOdr(ctx context.Context, number uint64) (
 
 // Config retrieves the header chain's chain configuration.
 func (lc *LightChain) Config() *params.ChainConfig { return lc.hc.Config() }
+
+func (lc *LightChain) SyncCht(ctx context.Context) bool {
+	// If we don't have a CHT indexer, abort
+	if lc.odr.ChtIndexer() == nil {
+		return false
+	}
+	// Ensure the remote CHT head is ahead of us
+	head := lc.CurrentHeader().Number.Uint64()
+	sections, _, _ := lc.odr.ChtIndexer().Sections()
+
+	latest := sections*lc.indexerConfig.ChtSize - 1
+	if head >= latest {
+		return false
+	}
+	// Retrieve the latest useful header and update to it
+	if header, err := GetHeaderByNumber(ctx, lc.odr, latest); header != nil && err == nil {
+		lc.chainmu.Lock()
+		defer lc.chainmu.Unlock()
+
+		// Ensure the chain didn't move past the latest block while retrieving it
+		if lc.hc.CurrentHeader().Number.Uint64() < header.Number.Uint64() {
+			log.Info("Updated latest header based on CHT", "number", header.Number, "hash", header.Hash(), "age", common.PrettyAge(time.Unix(header.Time.Int64(), 0)))
+			lc.hc.SetCurrentHeader(header)
+			lc.fastchain.LoadLastState()
+		}
+		return true
+	}
+	return false
+}
 
 // LockChain locks the chain mutex for reading so that multiple canonical hashes can be
 // retrieved while it is guaranteed that they belong to the same version of the chain
