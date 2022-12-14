@@ -16,28 +16,29 @@
 
 // Package light implements on-demand retrieval capable state and chain objects
 // for the Ethereum Light Client.
-package fast
+package light
 
 import (
 	"context"
 	"errors"
-	"github.com/abeychain/go-abey/light/public"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/abeychain/go-abey/light/public"
+
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
-	"github.com/abeychain/go-abey/rlp"
-	"github.com/hashicorp/golang-lru"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/rawdb"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
+	"github.com/abeychain/go-abey/rlp"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
