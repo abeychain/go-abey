@@ -25,7 +25,6 @@ import (
 	"sync/atomic"
 	"time"
 
-
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
@@ -64,14 +63,12 @@ type LightChain struct {
 	bodyRLPCache *lru.Cache // Cache for the most recent block bodies in RLP encoded format
 	blockCache   *lru.Cache // Cache for the most recent entire blocks
 
-	chainmu   sync.RWMutex // protects header inserts
-	quit      chan struct{}
-	wg        sync.WaitGroup
-	infoQueue map[common.Hash]*injectInfo // Blocks with committeeInfo fetched
+	chainmu sync.RWMutex // protects header inserts
+	quit    chan struct{}
+	wg      sync.WaitGroup
 	// Atomic boolean switches:
-	running          int32 // whether LightChain is running or stopped
-	procInterrupt    int32 // interrupts chain insert
-	disableCheckFreq int32 // disables header verification
+	running       int32 // whether LightChain is running or stopped
+	procInterrupt int32 // interrupts chain insert
 }
 
 // NewLightChain returns a fully initialised light chain using information
@@ -91,7 +88,6 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 		bodyRLPCache:  bodyRLPCache,
 		blockCache:    blockCache,
 		engine:        engine,
-		infoQueue:     make(map[common.Hash]*injectInfo),
 	}
 	var err error
 	bc.hc, err = core.NewHeaderChain(odr.Database(), config, bc.engine, bc.getProcInterrupt)
@@ -126,13 +122,13 @@ func (lc *LightChain) AddTrustedCheckpoint(cp *params.TrustedCheckpoint) {
 		lc.odr.ChtIndexer().AddCheckpoint(cp.SectionIndex, cp.SectionHead)
 	}
 	if lc.odr.BloomTrieIndexer() != nil {
-		StoreBloomTrieRoot(self.chainDb, cp.SectionIndex, cp.SectionHead, cp.BloomRoot)
+		StoreBloomTrieRoot(lc.chainDb, cp.SectionIndex, cp.SectionHead, cp.BloomRoot)
 		lc.odr.BloomTrieIndexer().AddCheckpoint(cp.SectionIndex, cp.SectionHead)
 	}
 	if lc.odr.BloomIndexer() != nil {
 		lc.odr.BloomIndexer().AddCheckpoint(cp.SectionIndex, cp.SectionHead)
 	}
-	log.Info("Added trusted checkpoint", "chain", cp.Name, "block", (cp.SectionIndex+1)*self.indexerConfig.ChtSize-1, "hash", cp.SectionHead)
+	log.Info("Added trusted checkpoint", "chain", cp.Name, "block", (cp.SectionIndex+1)*lc.indexerConfig.ChtSize-1, "hash", cp.SectionHead)
 }
 
 func (lc *LightChain) getProcInterrupt() bool {
@@ -355,9 +351,6 @@ func (lc *LightChain) postChainEvents(events []interface{}) {
 // In the case of a light chain, InsertHeaderChain also creates and posts light
 // chain events when necessary.
 func (lc *LightChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (int, error) {
-	if atomic.LoadInt32(&lc.disableCheckFreq) == 1 {
-		checkFreq = 0
-	}
 	start := time.Now()
 	if i, err := lc.hc.ValidateHeaderChain(chain, checkFreq); err != nil {
 		return i, err
@@ -385,16 +378,6 @@ func (lc *LightChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (i
 		return err
 	}
 	i, err := lc.hc.InsertHeaderChain(chain, whFunc, start)
-	for _, head := range chain {
-		if head.CommitteeHash != (types.EmptySignHash) {
-			if inject, ok := lc.infoQueue[head.Hash()]; ok {
-				if err == nil {
-					rawdb.WriteCommitteeInfo(lc.chainDb, head.Hash(), head.Number.Uint64(), inject.infos)
-				}
-				delete(lc.infoQueue, head.Hash())
-			}
-		}
-	}
 	lc.postChainEvents(events)
 	return i, err
 }
@@ -536,35 +519,11 @@ func (lc *LightChain) SubscribeRemovedLogsEvent(ch chan<- types.RemovedLogsEvent
 	return lc.scope.Track(new(event.Feed).Subscribe(ch))
 }
 
-// DisableCheckFreq disables header validation. This is used for ultralight mode.
-func (lc *LightChain) DisableCheckFreq() {
-	atomic.StoreInt32(&lc.disableCheckFreq, 1)
-}
-
-// EnableCheckFreq enables header validation.
-func (lc *LightChain) EnableCheckFreq() {
-	atomic.StoreInt32(&lc.disableCheckFreq, 0)
-}
-
 // loadLastState loads the last known chain state from the database. This method
 // assumes that the chain manager mutex is held.
 func (lc *LightChain) LoadLastState() {
 	log.Info("Update fast block based on CHT")
 	lc.loadLastState()
-}
-
-// SetCommitteeInfo rewinds the local chain to a new head. Everything above the new
-// head will be deleted and the new one set.
-func (bc *LightChain) SetCommitteeInfo(hash common.Hash, number uint64, infos []*types.CommitteeMember) {
-	bc.chainmu.Lock()
-	defer bc.chainmu.Unlock()
-	inject := &injectInfo{infos: infos}
-	bc.infoQueue[hash] = inject
-}
-
-// inject represents a schedules import operation.
-type injectInfo struct {
-	infos []*types.CommitteeMember
 }
 
 // GetHeaderChain loads the last known chain state from the database. This method
