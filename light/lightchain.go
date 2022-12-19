@@ -15,7 +15,7 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package light implements on-demand retrieval capable state and chain objects
-// for the Ethereum Light Client.
+// for the AbeyChain Light Client.
 package light
 
 import (
@@ -25,7 +25,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/abeychain/go-abey/light/public"
 
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
@@ -51,7 +50,7 @@ var (
 // interface. It only does header validation during chain insertion.
 type LightChain struct {
 	hc            *core.HeaderChain
-	indexerConfig *public.IndexerConfig
+	indexerConfig *IndexerConfig
 	chainDb       abeydb.Database
 	engine        consensus.Engine
 	odr           OdrBackend
