@@ -24,11 +24,11 @@ import (
 
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/light"
+	"github.com/abeychain/go-abey/log"
 )
 
 const (
@@ -461,7 +461,7 @@ func (f *lightFetcher) findBestRequest() (bestHash common.Hash, bestAmount uint6
 
 			//if ulc mode is disabled, isTrustedHash returns true
 			amount := f.requestAmount(p, n)
-			if (bestTd == nil || n.td.Cmp(bestTd) > 0 || amount < bestAmount) && (f.isTrustedHash(hash) || f.maxConfirmedTd.Int64() == 0) {
+			if (bestTd == nil || n.td.Cmp(bestTd) > 0 || amount < bestAmount) && f.maxConfirmedTd.Int64() == 0) {
 				bestHash = hash
 				bestTd = n.td
 				bestAmount = amount
@@ -470,22 +470,6 @@ func (f *lightFetcher) findBestRequest() (bestHash common.Hash, bestAmount uint6
 		}
 	}
 	return
-}
-
-// isTrustedHash checks if the block can be trusted by the minimum trusted fraction.
-func (f *lightFetcher) isTrustedHash(hash common.Hash) bool {
-	// If ultra light cliet mode is disabled, trust all hashes
-	if f.pm.ulc == nil {
-		return true
-	}
-	// Ultra light enabled, only trust after enough confirmations
-	var agreed int
-	for peer, info := range f.peers {
-		if peer.trusted && info.nodeByHash[hash] != nil {
-			agreed++
-		}
-	}
-	return 100*agreed/len(f.pm.ulc.keys) >= f.pm.ulc.fraction
 }
 
 func (f *lightFetcher) newFetcherDistReqForSync(bestHash common.Hash) *distReq {
@@ -505,10 +489,6 @@ func (f *lightFetcher) newFetcherDistReqForSync(bestHash common.Hash) *distReq {
 			return fp != nil && fp.nodeByHash[bestHash] != nil
 		},
 		request: func(dp distPeer) func() {
-			if f.pm.ulc != nil {
-				// Keep last trusted header before sync
-				f.setLastTrustedHeader(f.chain.CurrentHeader())
-			}
 			go func() {
 				p := dp.(*peer)
 				p.Log().Debug("Synchronisation started")
@@ -713,12 +693,6 @@ func (f *lightFetcher) checkSyncedHeaders(p *peer) {
 		node = fp.lastAnnounced
 		td   *big.Int
 	)
-	if f.pm.ulc != nil {
-		// Roll back untrusted blocks
-		h, unapproved := f.lastTrustedTreeNode(p)
-		f.chain.Rollback(unapproved)
-		node = fp.nodeByHash[h.Hash()]
-	}
 	// Find last valid block
 	for node != nil {
 		if td = f.chain.GetTd(node.hash, node.number); td != nil {
@@ -756,9 +730,6 @@ func (f *lightFetcher) lastTrustedTreeNode(p *peer) (*types.SnailHeader, []commo
 	}
 
 	for current.Hash() == commonAncestor.Hash() {
-		if f.isTrustedHash(current.Hash()) {
-			break
-		}
 		unapprovedHashes = append(unapprovedHashes, current.Hash())
 		current = f.chain.GetHeader(current.ParentHash, current.Number.Uint64()-1)
 	}

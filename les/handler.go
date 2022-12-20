@@ -138,7 +138,6 @@ type ProtocolManager struct {
 	fdownloader  *fastdownloader.Downloader
 	fetcher      *lightFetcher
 	fastFetcher  *fastLightFetcher
-	ulc          *ulc
 	peers        *peerSet
 	checkpoint   *params.TrustedCheckpoint
 	reg          *checkpointOracle // If reg == nil, it means the checkpoint registrar is not activated
@@ -188,14 +187,6 @@ func NewProtocolManager(chainConfig *params.ChainConfig, checkpoint *params.Trus
 		manager.reqDist = odr.retriever.dist
 	}
 
-	if ulcServers != nil {
-		ulc, err := newULC(ulcServers, ulcFraction)
-		if err != nil {
-			log.Warn("Failed to initialize ultra light client", "err", err)
-		} else {
-			manager.ulc = ulc
-		}
-	}
 	removePeer := manager.removePeer
 	if disableClientRemovePeer {
 		removePeer = func(id string, call uint32) {}
@@ -290,11 +281,7 @@ func (pm *ProtocolManager) runPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWrit
 }
 
 func (pm *ProtocolManager) newPeer(pv int, nv uint64, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
-	var trusted bool
-	if pm.ulc != nil {
-		trusted = pm.ulc.trusted(p.ID())
-	}
-	return newPeer(pv, nv, trusted, p, newMeteredMsgWriter(rw))
+	return newPeer(pv, nv, p, newMeteredMsgWriter(rw))
 }
 
 // handle is the callback invoked to manage the life cycle of a les peer. When

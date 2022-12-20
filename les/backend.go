@@ -19,29 +19,29 @@ package les
 
 import (
 	"fmt"
-	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/accounts/abi/bind"
+	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/light/fast"
 	"github.com/abeychain/go-abey/light/public"
 	"sync"
 	"time"
 
+	"github.com/abeychain/go-abey/abey"
+	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/abey/filters"
+	"github.com/abeychain/go-abey/abey/gasprice"
+	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
-	"github.com/abeychain/go-abey/log"
-	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/bloombits"
 	"github.com/abeychain/go-abey/core/rawdb"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abey"
-	"github.com/abeychain/go-abey/abey/downloader"
-	"github.com/abeychain/go-abey/abey/filters"
-	"github.com/abeychain/go-abey/abey/gasprice"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/internal/abeyapi"
 	"github.com/abeychain/go-abey/light"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/node"
 	"github.com/abeychain/go-abey/p2p"
 	"github.com/abeychain/go-abey/p2p/discv5"
@@ -161,10 +161,6 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 
 	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, checkpoint, public.DefaultClientIndexerConfig, nil, 0, true, config.NetworkId, leth.eventMux, leth.engine, leth.peers, leth.fblockchain, leth.blockchain, nil, chainDb, leth.odr, leth.serverPool, nil, quitSync, &leth.wg, leth.election, nil); err != nil {
 		return nil, err
-	}
-	if leth.protocolManager.ulc != nil {
-		log.Warn("Ultra light client is enabled")
-		leth.blockchain.DisableCheckFreq()
 	}
 	return leth, nil
 }

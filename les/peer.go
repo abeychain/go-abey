@@ -20,10 +20,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/light/fast"
 	"github.com/abeychain/go-abey/light/public"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/p2p/enode"
 	"github.com/abeychain/go-abey/params"
 	"math/big"
@@ -33,11 +33,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/rlp"
 	"github.com/abeychain/go-abey/abey"
+	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/les/flowcontrol"
 	"github.com/abeychain/go-abey/p2p"
+	"github.com/abeychain/go-abey/rlp"
 )
 
 var (
@@ -115,20 +115,18 @@ type peer struct {
 	fcCosts        requestCostTable
 	balanceTracker *balanceTracker // set by clientPool.connect, used and removed by ProtocolManager.handle
 
-	trusted                 bool
 	onlyAnnounce            bool
 	chainSince, chainRecent uint64
 	stateSince, stateRecent uint64
 }
 
-func newPeer(version int, network uint64, trusted bool, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
+func newPeer(version int, network uint64, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
 		Peer:    p,
 		rw:      rw,
 		version: version,
 		network: network,
 		id:      peerIdToString(p.ID()),
-		trusted: trusted,
 		errCh:   make(chan error, 1),
 	}
 }
