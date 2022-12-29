@@ -53,19 +53,19 @@ type LightAbey struct {
 	lesCommons
 
 	odr         *LesOdr
+	relay       *LesTxRelay
 	chainConfig *params.ChainConfig
 	// Channel for shutting down the service
 	shutdownChan chan bool
 
 	// Handlers
-	peers       *peerSet
-	txPool      *fast.TxPool
+	peers      *peerSet
+	txPool     *light.TxPool
 	election    *Election
-	blockchain  *light.LightChain
-	fblockchain *fast.LightChain
-	serverPool  *serverPool
-	reqDist     *requestDistributor
-	retriever   *retrieveManager
+	blockchain *light.LightChain
+	serverPool *serverPool
+	reqDist    *requestDistributor
+	retriever  *retrieveManager
 	relay       *lesTxRelay
 
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
@@ -88,7 +88,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, snailGenesis, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.ConstantinopleOverride)
 	if _, isCompat := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !isCompat {
 		return nil, genesisErr
 	}
@@ -101,48 +101,38 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 		lesCommons: lesCommons{
 			chainDb: chainDb,
 			config:  config,
-			iConfig: public.DefaultClientIndexerConfig,
+			iConfig: light.DefaultClientIndexerConfig,
 		},
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		peers:          peers,
-		reqDist:        newRequestDistributor(peers, quitSync, &mclock.System{}),
+		reqDist:        newRequestDistributor(peers, quitSync),
 		accountManager: ctx.AccountManager,
-		engine:         abey.CreateConsensusEngine(ctx, &config.MinervaHash, chainConfig, chainDb),
+		engine:         eth.CreateConsensusEngine(ctx, chainConfig, &config.Ethash, nil, false, chainDb),
 		shutdownChan:   make(chan bool),
 		networkId:      config.NetworkId,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		//bloomIndexer:   abey.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
 	}
 
-	leth.serverPool = newServerPool(chainDb, quitSync, &leth.wg, nil)
+	leth.relay = NewLesTxRelay(peers, leth.reqDist)
+	leth.serverPool = newServerPool(chainDb, quitSync, &leth.wg)
 	leth.retriever = newRetrieveManager(peers, leth.reqDist, leth.serverPool)
-	leth.relay = newLesTxRelay(peers, leth.retriever)
 
-	leth.odr = NewLesOdr(chainDb, public.DefaultClientIndexerConfig, leth.retriever)
-	leth.chtIndexer = light.NewChtIndexer(chainDb, leth.odr, params.CHTFrequency, params.HelperTrieConfirmations)
-	leth.bloomTrieIndexer = fast.NewBloomTrieIndexer(chainDb, leth.odr, params.BloomBitsBlocksClient, params.BloomTrieFrequency)
+	leth.odr = NewLesOdr(chainDb, light.DefaultClientIndexerConfig, leth.retriever)
+	leth.chtIndexer = light.NewChtIndexer(chainDb, leth.odr, params.CHTFrequencyClient, params.HelperTrieConfirmations)
+	leth.bloomTrieIndexer = light.NewBloomTrieIndexer(chainDb, leth.odr, params.BloomBitsBlocksClient, params.BloomTrieFrequency)
 	leth.odr.SetIndexers(leth.chtIndexer, leth.bloomTrieIndexer, leth.bloomIndexer)
 
-	checkpoint := params.TrustedCheckpoints[snailGenesis]
-
-	if leth.fblockchain, err = fast.NewLightChain(leth.odr, leth.chainConfig, leth.engine, checkpoint); err != nil {
-		return nil, err
-	}
 	// Note: NewLightChain adds the trusted checkpoint so it needs an ODR with
 	// indexers already set but not started yet
-	if leth.blockchain, err = light.NewLightChain(leth.fblockchain, leth.odr, leth.chainConfig, leth.engine, checkpoint); err != nil {
+	if leth.blockchain, err = light.NewLightChain(leth.odr, leth.chainConfig, leth.engine); err != nil {
 		return nil, err
 	}
-	leth.election = NewLightElection(leth.fblockchain, leth.blockchain)
-	leth.engine.SetElection(leth.election)
-	leth.engine.SetSnailChainReader(leth.blockchain.GetHeaderChain())
-	leth.engine.SetSnailHeaderHash(chainDb)
-
 	// Note: AddChildIndexer starts the update process for the child
+	leth.bloomIndexer.AddChildIndexer(leth.bloomTrieIndexer)
 	leth.chtIndexer.Start(leth.blockchain)
-	//leth.bloomIndexer.AddChildIndexer(leth.bloomTrieIndexer)
-	//leth.bloomIndexer.Start(leth.fblockchain)
+	leth.bloomIndexer.Start(leth.blockchain)
 
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
@@ -151,23 +141,24 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
 
-	leth.txPool = fast.NewTxPool(leth.chainConfig, leth.fblockchain, leth.relay)
-	leth.ApiBackend = &LesApiBackend{false, leth, nil}
-	gpoParams := config.GPO
-	if gpoParams.Default == nil {
-		gpoParams.Default = config.GasPrice
-	}
-	leth.ApiBackend.gpo = gasprice.NewOracle(leth.ApiBackend, gpoParams)
-
-	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, checkpoint, public.DefaultClientIndexerConfig, nil, 0, true, config.NetworkId, leth.eventMux, leth.engine, leth.peers, leth.fblockchain, leth.blockchain, nil, chainDb, leth.odr, leth.serverPool, nil, quitSync, &leth.wg, leth.election, nil); err != nil {
+	leth.txPool = light.NewTxPool(leth.chainConfig, leth.blockchain, leth.relay)
+	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, light.DefaultClientIndexerConfig, true, config.NetworkId, leth.eventMux, leth.engine, leth.peers, leth.blockchain, nil, chainDb, leth.odr, leth.relay, leth.serverPool, quitSync, &leth.wg); err != nil {
 		return nil, err
 	}
+	leth.ApiBackend = &LesApiBackend{leth, nil}
+	gpoParams := config.GPO
+	if gpoParams.Default == nil {
+		gpoParams.Default = config.MinerGasPrice
+	}
+	leth.ApiBackend.gpo = gasprice.NewOracle(leth.ApiBackend, gpoParams)
 	return leth, nil
 }
 
 func lesTopic(genesisHash common.Hash, protocolVersion uint) discv5.Topic {
 	var name string
 	switch protocolVersion {
+	case lpv1:
+		name = "LES"
 	case lpv2:
 		name = "LES2"
 	default:
@@ -180,12 +171,12 @@ type LightDummyAPI struct{}
 
 // Etherbase is the address that mining rewards will be send to
 func (s *LightDummyAPI) Etherbase() (common.Address, error) {
-	return common.Address{}, fmt.Errorf("mining is not supported in light mode")
+	return common.Address{}, fmt.Errorf("not supported")
 }
 
 // Coinbase is the address that mining rewards will be send to (alias for Etherbase)
 func (s *LightDummyAPI) Coinbase() (common.Address, error) {
-	return common.Address{}, fmt.Errorf("mining is not supported in light mode")
+	return common.Address{}, fmt.Errorf("not supported")
 }
 
 // Hashrate returns the POW hashrate
@@ -201,51 +192,38 @@ func (s *LightDummyAPI) Mining() bool {
 // APIs returns the collection of RPC services the ethereum package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *LightAbey) APIs() []rpc.API {
-	apis := abeyapi.GetAPIs(s.ApiBackend)
-	namespaces := []string{"abey", "eth"}
-	for _, name := range namespaces {
-		apis = append(apis, []rpc.API{
-			{
-				Namespace: name,
-				Version:   "1.0",
-				Service:   &LightDummyAPI{},
-				Public:    true,
-			}, {
-				Namespace: name,
-				Version:   "1.0",
-				Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
-				Public:    true,
-			}, {
-				Namespace: name,
-				Version:   "1.0",
-				Service:   filters.NewPublicFilterAPI(s.ApiBackend, true),
-				Public:    true,
-			},
-		}...)
-	}
-	apis = append(apis, []rpc.API{
+	return append(abeyapi.GetAPIs(s.ApiBackend), []rpc.API{
 		{
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   &LightDummyAPI{},
+			Public:    true,
+		}, {
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
+			Public:    true,
+		}, {
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   filters.NewPublicFilterAPI(s.ApiBackend, true),
+			Public:    true,
+		}, {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
 			Public:    true,
-		}, {
-			Namespace: "les",
-			Version:   "1.0",
-			Service:   NewPrivateLightAPI(&s.lesCommons, s.protocolManager.reg),
-			Public:    false,
 		},
 	}...)
 	return apis
 }
 
 func (s *LightAbey) ResetWithGenesisBlock(gb *types.Block) {
-	s.fblockchain.ResetWithGenesisBlock(gb)
+	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
 func (s *LightAbey) SnailBlockChain() *light.LightChain { return s.blockchain }
-func (s *LightAbey) BlockChain() *fast.LightChain       { return s.fblockchain }
-func (s *LightAbey) TxPool() *fast.TxPool               { return s.txPool }
+func (s *LightAbey) TxPool() *light.TxPool               { return s.txPool }
 func (s *LightAbey) Engine() consensus.Engine           { return s.engine }
 func (s *LightAbey) LesVersion() int                    { return int(ClientProtocolVersions[0]) }
 func (s *LightAbey) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
@@ -274,14 +252,12 @@ func (s *LightAbey) Start(srvr *p2p.Server) error {
 // Abeychain protocol.
 func (s *LightAbey) Stop() error {
 	s.odr.Stop()
-	s.relay.Stop()
-	//s.bloomIndexer.Close()
+	s.bloomIndexer.Close()
 	s.chtIndexer.Close()
 	s.blockchain.Stop()
-	s.fblockchain.Stop()
 	s.protocolManager.Stop()
 	s.txPool.Stop()
-	//s.engine.Close()
+	s.engine.Close()
 
 	s.eventMux.Stop()
 
@@ -290,13 +266,4 @@ func (s *LightAbey) Stop() error {
 	close(s.shutdownChan)
 
 	return nil
-}
-
-// SetClient sets the rpc client and binds the registrar contract.
-func (s *LightAbey) SetContractBackend(backend bind.ContractBackend) {
-	// Short circuit if registrar is nil
-	if s.protocolManager.reg == nil {
-		return
-	}
-	s.protocolManager.reg.start(backend)
 }
