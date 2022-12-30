@@ -17,7 +17,6 @@
 package les
 
 import (
-	"github.com/abeychain/go-abey/light/public"
 	"math/big"
 	"sync"
 	"time"

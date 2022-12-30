@@ -18,11 +18,9 @@
 package flowcontrol
 
 import (
+	"github.com/abeychain/go-abey/common/mclock"
 	"sync"
 	"time"
-
-	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/log"
 )
 
 const fcTimeConst = time.Millisecond

@@ -20,18 +20,15 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/abeychain/go-abey/light/fast"
-	"github.com/abeychain/go-abey/light/public"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/core/rawdb"
+	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
+	"github.com/abeychain/go-abey/light"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/rlp"
-	"github.com/abeychain/go-abey/core/rawdb"
-	snailDB "github.com/abeychain/go-abey/core/snailchain/rawdb"
-	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
-	"github.com/abeychain/go-abey/light"
 	"github.com/abeychain/go-abey/trie"
 )
 
@@ -52,7 +49,7 @@ type LesOdrRequest interface {
 	GetCost(*peer) uint64
 	CanSend(*peer) bool
 	Request(uint64, *peer) error
-	Validate(ethdb.Database, *Msg) error
+	Validate(abeydb.Database, *Msg) error
 }
 
 func LesRequest(req light.OdrRequest) LesOdrRequest {
@@ -117,9 +114,6 @@ func (r *BlockRequest) Validate(db abeydb.Database, msg *Msg) error {
 	}
 	if header.TxHash != types.DeriveSha(types.Transactions(body.Transactions)) {
 		return errTxHashMismatch
-	}
-	if header.UncleHash != types.CalcUncleHash(body.Uncles) {
-		return errUncleHashMismatch
 	}
 	// Validations passed, encode and store RLP
 	data, err := rlp.EncodeToBytes(body)

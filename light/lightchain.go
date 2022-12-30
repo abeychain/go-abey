@@ -81,7 +81,7 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 
 	bc := &LightChain{
 		chainDb:       odr.Database(),
-		indexerConfig: odr.FastIndexerConfig(),
+		indexerConfig: odr.IndexerConfig(),
 		odr:           odr,
 		quit:          make(chan struct{}),
 		bodyCache:     bodyCache,
@@ -128,7 +128,7 @@ func (lc *LightChain) AddTrustedCheckpoint(cp *params.TrustedCheckpoint) {
 	if lc.odr.BloomIndexer() != nil {
 		lc.odr.BloomIndexer().AddCheckpoint(cp.SectionIndex, cp.SectionHead)
 	}
-	log.Info("Added trusted checkpoint", "chain", cp.Name, "block", (cp.SectionIndex+1)*lc.indexerConfig.ChtSize-1, "hash", cp.SectionHead)
+	log.Info("Added trusted checkpoint", "block", (cp.SectionIndex+1)*lc.indexerConfig.ChtSize-1, "hash", cp.SectionHead)
 }
 
 func (lc *LightChain) getProcInterrupt() bool {
@@ -474,7 +474,7 @@ func (lc *LightChain) SyncCht(ctx context.Context) bool {
 		if lc.hc.CurrentHeader().Number.Uint64() < header.Number.Uint64() {
 			log.Info("Updated latest header based on CHT", "number", header.Number, "hash", header.Hash(), "age", common.PrettyAge(time.Unix(header.Time.Int64(), 0)))
 			lc.hc.SetCurrentHeader(header)
-			lc.fastchain.LoadLastState()
+			//lc.fastchain.LoadLastState()
 		}
 		return true
 	}

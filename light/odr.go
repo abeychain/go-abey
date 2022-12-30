@@ -21,16 +21,13 @@ package light
 import (
 	"context"
 	"errors"
-	"github.com/abeychain/go-abey/consensus/minerva"
-	"github.com/abeychain/go-abey/core/snailchain"
-	"github.com/abeychain/go-abey/light/public"
+	"github.com/abeychain/go-abey/core"
 	"math/big"
 
-	"github.com/abeychain/go-abey/common"
-	fastDB "github.com/abeychain/go-abey/core/rawdb"
-	"github.com/abeychain/go-abey/core/snailchain/rawdb"
-	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/core/rawdb"
+	"github.com/abeychain/go-abey/core/types"
 )
 
 // NoOdr is the default context passed to an ODR capable function when the ODR
@@ -94,7 +91,7 @@ type TrieRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *TrieRequest) StoreResult(db ethdb.Database) {
+func (req *TrieRequest) StoreResult(db abeydb.Database) {
 	req.Proof.Store(db)
 }
 
@@ -107,7 +104,7 @@ type CodeRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *CodeRequest) StoreResult(db ethdb.Database) {
+func (req *CodeRequest) StoreResult(db abeydb.Database) {
 	db.Put(req.Hash[:], req.Data)
 }
 
@@ -133,7 +130,7 @@ type ReceiptsRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *ReceiptsRequest) StoreResult(db ethdb.Database) {
+func (req *ReceiptsRequest) StoreResult(db abeydb.Database) {
 	rawdb.WriteReceipts(db, req.Hash, req.Number, req.Receipts)
 }
 
@@ -170,7 +167,7 @@ type BloomRequest struct {
 }
 
 // StoreResult stores the retrieved data in local database
-func (req *BloomRequest) StoreResult(db ethdb.Database) {
+func (req *BloomRequest) StoreResult(db abeydb.Database) {
 	for i, sectionIdx := range req.SectionIndexList {
 		sectionHead := rawdb.ReadCanonicalHash(db, (sectionIdx+1)*req.Config.BloomTrieSize-1)
 		// if we don't have the canonical hash stored for this section head number, we'll still store it under
