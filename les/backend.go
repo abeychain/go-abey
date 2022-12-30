@@ -19,10 +19,6 @@ package les
 
 import (
 	"fmt"
-	"github.com/abeychain/go-abey/accounts/abi/bind"
-	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/light/fast"
-	"github.com/abeychain/go-abey/light/public"
 	"sync"
 	"time"
 
@@ -61,12 +57,11 @@ type LightAbey struct {
 	// Handlers
 	peers      *peerSet
 	txPool     *light.TxPool
-	election    *Election
+	election   *Election
 	blockchain *light.LightChain
 	serverPool *serverPool
 	reqDist    *requestDistributor
 	retriever  *retrieveManager
-	relay       *lesTxRelay
 
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer  *core.ChainIndexer
@@ -88,7 +83,10 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockWithOverride(chainDb, config.Genesis, config.ConstantinopleOverride)
+	chainConfig, genesisHash, _, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
+		return nil, genesisErr
+	}
 	if _, isCompat := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !isCompat {
 		return nil, genesisErr
 	}
@@ -108,7 +106,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 		peers:          peers,
 		reqDist:        newRequestDistributor(peers, quitSync),
 		accountManager: ctx.AccountManager,
-		engine:         eth.CreateConsensusEngine(ctx, chainConfig, &config.Ethash, nil, false, chainDb),
+		engine:         abey.CreateConsensusEngine(ctx, &config.MinervaHash, chainConfig, chainDb),
 		shutdownChan:   make(chan bool),
 		networkId:      config.NetworkId,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
@@ -116,17 +114,19 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	}
 
 	leth.relay = NewLesTxRelay(peers, leth.reqDist)
-	leth.serverPool = newServerPool(chainDb, quitSync, &leth.wg)
+	leth.serverPool = newServerPool(chainDb, quitSync, &leth.wg, nil)
 	leth.retriever = newRetrieveManager(peers, leth.reqDist, leth.serverPool)
 
 	leth.odr = NewLesOdr(chainDb, light.DefaultClientIndexerConfig, leth.retriever)
-	leth.chtIndexer = light.NewChtIndexer(chainDb, leth.odr, params.CHTFrequencyClient, params.HelperTrieConfirmations)
+	// TODO: make params.CHTFrequencyClient=32768
+	leth.chtIndexer = light.NewChtIndexer(chainDb, leth.odr, 32768, params.HelperTrieConfirmations)
 	leth.bloomTrieIndexer = light.NewBloomTrieIndexer(chainDb, leth.odr, params.BloomBitsBlocksClient, params.BloomTrieFrequency)
 	leth.odr.SetIndexers(leth.chtIndexer, leth.bloomTrieIndexer, leth.bloomIndexer)
 
 	// Note: NewLightChain adds the trusted checkpoint so it needs an ODR with
 	// indexers already set but not started yet
-	if leth.blockchain, err = light.NewLightChain(leth.odr, leth.chainConfig, leth.engine); err != nil {
+	// TODO make the params.MainnetTrustedCheckpoint in the config
+	if leth.blockchain, err = light.NewLightChain(leth.odr, leth.chainConfig, leth.engine, params.MainnetTrustedCheckpoint); err != nil {
 		return nil, err
 	}
 	// Note: AddChildIndexer starts the update process for the child
@@ -142,7 +142,9 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	}
 
 	leth.txPool = light.NewTxPool(leth.chainConfig, leth.blockchain, leth.relay)
-	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, light.DefaultClientIndexerConfig, true, config.NetworkId, leth.eventMux, leth.engine, leth.peers, leth.blockchain, nil, chainDb, leth.odr, leth.relay, leth.serverPool, quitSync, &leth.wg); err != nil {
+	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, light.DefaultClientIndexerConfig, true,
+		config.NetworkId, leth.eventMux, leth.engine, leth.peers, leth.blockchain, nil,
+		chainDb, leth.odr, leth.relay, leth.serverPool, quitSync, &leth.wg); err != nil {
 		return nil, err
 	}
 	leth.ApiBackend = &LesApiBackend{leth, nil}
@@ -223,7 +225,7 @@ func (s *LightAbey) ResetWithGenesisBlock(gb *types.Block) {
 }
 
 func (s *LightAbey) SnailBlockChain() *light.LightChain { return s.blockchain }
-func (s *LightAbey) TxPool() *light.TxPool               { return s.txPool }
+func (s *LightAbey) TxPool() *light.TxPool              { return s.txPool }
 func (s *LightAbey) Engine() consensus.Engine           { return s.engine }
 func (s *LightAbey) LesVersion() int                    { return int(ClientProtocolVersions[0]) }
 func (s *LightAbey) Downloader() *downloader.Downloader { return s.protocolManager.downloader }

@@ -21,16 +21,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/consensus/minerva"
-	"github.com/abeychain/go-abey/consensus/tbft/help"
-	"github.com/abeychain/go-abey/light/fast"
-	"github.com/abeychain/go-abey/light/public"
-	"golang.org/x/crypto/sha3"
 	"math/big"
+	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/abeychain/go-abey/abey/downloader"
@@ -39,7 +33,6 @@ import (
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/rawdb"
-	snaildb "github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/event"
@@ -82,7 +75,7 @@ type BlockChain interface {
 	GetHeader(hash common.Hash, number uint64) *types.Header
 	GetHeaderByHash(hash common.Hash) *types.Header
 	CurrentHeader() *types.Header
-	GetTd(hash common.Hash, number uint64) *big.Int
+	//GetTd(hash common.Hash, number uint64) *big.Int
 	State() (*state.StateDB, error)
 	InsertHeaderChain(chain []*types.Header, checkFreq int) (int, error)
 	Rollback(chain []common.Hash)
@@ -133,7 +126,9 @@ type ProtocolManager struct {
 
 // NewProtocolManager returns a new abeychain sub protocol manager. The abeychain sub protocol manages peers capable
 // with the abeychain network.
-func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.IndexerConfig, lightSync bool, networkId uint64, mux *event.TypeMux, engine consensus.Engine, peers *peerSet, blockchain BlockChain, txpool txPool, chainDb ethdb.Database, odr *LesOdr, txrelay *LesTxRelay, serverPool *serverPool, quitSync chan struct{}, wg *sync.WaitGroup) (*ProtocolManager, error) {
+func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.IndexerConfig, lightSync bool, networkId uint64,
+	mux *event.TypeMux, engine consensus.Engine, peers *peerSet, blockchain BlockChain, txpool txPool, chainDb abeydb.Database,
+	odr *LesOdr, txrelay *LesTxRelay, serverPool *serverPool, quitSync chan struct{}, wg *sync.WaitGroup) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		lightSync:   lightSync,
