@@ -18,10 +18,12 @@ package les
 
 import (
 	"context"
-	"errors"
-	"github.com/abeychain/go-abey/light/fast"
+	"github.com/abeychain/go-abey/light"
 	"math/big"
 
+	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/abey/gasprice"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/math"
@@ -31,17 +33,14 @@ import (
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
-	"github.com/abeychain/go-abey/abey/downloader"
-	"github.com/abeychain/go-abey/abey/gasprice"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rpc"
 )
 
 type LesApiBackend struct {
-	abey         *LightAbey
-	gpo           *gasprice.Oracle
+	abey *LightAbey
+	gpo  *gasprice.Oracle
 }
 
 func (b *LesApiBackend) ChainConfig() *params.ChainConfig {
@@ -49,23 +48,23 @@ func (b *LesApiBackend) ChainConfig() *params.ChainConfig {
 }
 
 func (b *LesApiBackend) CurrentBlock() *types.Block {
-	return types.NewBlockWithHeader(b.abey.BlockChain().CurrentHeader())
+	return types.NewBlockWithHeader(b.abey.blockchain.CurrentHeader())
 }
 
 func (b *LesApiBackend) SetHead(number uint64) {
 	b.abey.protocolManager.downloader.Cancel()
-	b.abey.fblockchain.SetHead(number)
+	b.abey.blockchain.SetHead(number)
 }
 
 func (b *LesApiBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
 	if blockNr == rpc.LatestBlockNumber || blockNr == rpc.PendingBlockNumber {
-		return b.abey.fblockchain.CurrentHeader(), nil
+		return b.abey.blockchain.CurrentHeader(), nil
 	}
 
-	return b.abey.fblockchain.GetHeaderByNumberOdr(ctx, uint64(blockNr))
+	return b.abey.blockchain.GetHeaderByNumberOdr(ctx, uint64(blockNr))
 }
 func (b *LesApiBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
-	return b.abey.fblockchain.GetHeaderByHash(hash), nil
+	return b.abey.blockchain.GetHeaderByHash(hash), nil
 }
 
 func (b *LesApiBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Block, error) {
@@ -85,7 +84,7 @@ func (b *LesApiBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 }
 
 func (b *LesApiBackend) GetBlock(ctx context.Context, blockHash common.Hash) (*types.Block, error) {
-	return b.abey.fblockchain.GetBlockByHash(ctx, blockHash)
+	return b.abey.blockchain.GetBlockByHash(ctx, blockHash)
 }
 
 func (b *LesApiBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
@@ -103,12 +102,13 @@ func (b *LesApiBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 }
 
 func (b *LesApiBackend) GetTd(hash common.Hash) *big.Int {
-	return b.abey.blockchain.GetTdByHash(hash)
+	return big.NewInt(0)
+	//return b.abey.blockchain.GetTdByHash(hash)
 }
 
 func (b *LesApiBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
 	state.SetBalance(msg.From(), math.MaxBig256)
-	context := core.NewEVMContext(msg, header, b.abey.fblockchain, nil, nil)
+	context := core.NewEVMContext(msg, header, b.abey.blockchain, nil, nil)
 	return vm.NewEVM(context, state, b.abey.chainConfig, vmCfg), state.Error, nil
 }
 
@@ -145,23 +145,23 @@ func (b *LesApiBackend) SubscribeNewTxsEvent(ch chan<- types.NewTxsEvent) event.
 }
 
 func (b *LesApiBackend) SubscribeChainEvent(ch chan<- types.FastChainEvent) event.Subscription {
-	return b.abey.fblockchain.SubscribeChainEvent(ch)
+	return b.abey.blockchain.SubscribeChainEvent(ch)
 }
 
 func (b *LesApiBackend) SubscribeChainHeadEvent(ch chan<- types.FastChainHeadEvent) event.Subscription {
-	return b.abey.fblockchain.SubscribeChainHeadEvent(ch)
+	return b.abey.blockchain.SubscribeChainHeadEvent(ch)
 }
 
 func (b *LesApiBackend) SubscribeChainSideEvent(ch chan<- types.FastChainSideEvent) event.Subscription {
-	return b.abey.fblockchain.SubscribeChainSideEvent(ch)
+	return b.abey.blockchain.SubscribeChainSideEvent(ch)
 }
 
 func (b *LesApiBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
-	return b.abey.fblockchain.SubscribeLogsEvent(ch)
+	return b.abey.blockchain.SubscribeLogsEvent(ch)
 }
 
 func (b *LesApiBackend) SubscribeRemovedLogsEvent(ch chan<- types.RemovedLogsEvent) event.Subscription {
-	return b.abey.fblockchain.SubscribeRemovedLogsEvent(ch)
+	return b.abey.blockchain.SubscribeRemovedLogsEvent(ch)
 }
 
 func (b *LesApiBackend) Downloader() *downloader.Downloader {
@@ -186,10 +186,6 @@ func (b *LesApiBackend) EventMux() *event.TypeMux {
 
 func (b *LesApiBackend) AccountManager() *accounts.Manager {
 	return b.abey.accountManager
-}
-
-func (b *LesApiBackend) ExtRPCEnabled() bool {
-	return b.extRPCEnabled
 }
 
 func (b *LesApiBackend) BloomStatus() (uint64, uint64) {
