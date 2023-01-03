@@ -150,7 +150,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	leth.ApiBackend = &LesApiBackend{leth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
-		gpoParams.Default = config.MinerGasPrice
+		gpoParams.Default = config.GasPrice
 	}
 	leth.ApiBackend.gpo = gasprice.NewOracle(leth.ApiBackend, gpoParams)
 	return leth, nil
@@ -217,7 +217,7 @@ func (s *LightAbey) APIs() []rpc.API {
 			Public:    true,
 		},
 	}...)
-	return apis
+	//return apis
 }
 
 func (s *LightAbey) ResetWithGenesisBlock(gb *types.Block) {
@@ -259,8 +259,6 @@ func (s *LightAbey) Stop() error {
 	s.blockchain.Stop()
 	s.protocolManager.Stop()
 	s.txPool.Stop()
-	s.engine.Close()
-
 	s.eventMux.Stop()
 
 	time.Sleep(time.Millisecond * 200)
