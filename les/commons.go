@@ -17,15 +17,13 @@
 package les
 
 import (
+	"fmt"
 	"github.com/abeychain/go-abey/core"
-	"github.com/abeychain/go-abey/core/snailchain"
-	"github.com/abeychain/go-abey/light/fast"
-	"github.com/abeychain/go-abey/light/public"
 	"math/big"
 
-	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/abey"
 	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/light"
 	"github.com/abeychain/go-abey/p2p"
 	"github.com/abeychain/go-abey/p2p/enode"
@@ -34,10 +32,10 @@ import (
 
 // lesCommons contains fields needed by both server and client.
 type lesCommons struct {
-	config           *abey.Config
-	iConfig          *light.IndexerConfig
-	chainDb          abeydb.Database
-	protocolManager  *ProtocolManager
+	config                       *abey.Config
+	iConfig                      *light.IndexerConfig
+	chainDb                      abeydb.Database
+	protocolManager              *ProtocolManager
 	chtIndexer, bloomTrieIndexer *core.ChainIndexer
 }
 
