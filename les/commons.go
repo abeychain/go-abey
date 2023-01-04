@@ -108,10 +108,9 @@ func (c *lesCommons) nodeInfo() interface{} {
 
 	chain := c.protocolManager.blockchain
 	head := chain.CurrentHeader()
-	hash := head.Hash()
 	return &NodeInfo{
 		Network:    c.config.NetworkId,
-		Difficulty: chain.GetTd(hash, head.Number.Uint64()),
+		Difficulty: new(big.Int).Add(head.Number, big.NewInt(1)),
 		Genesis:    chain.Genesis().Hash(),
 		Config:     chain.Config(),
 		Head:       chain.CurrentHeader().Hash(),
