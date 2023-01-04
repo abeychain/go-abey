@@ -528,11 +528,7 @@ func (f *lightFetcher) processResponse(req fetchRequest, resp fetchResponse) boo
 	}
 	tds := make([]*big.Int, len(headers))
 	for i, header := range headers {
-		td := f.chain.GetTd(header.Hash(), header.Number.Uint64())
-		if td == nil {
-			log.Debug("Total difficulty not found for header", "index", i+1, "number", header.Number, "hash", header.Hash())
-			return false
-		}
+		td := new(big.Int).Add(header.Number, big.NewInt(1))
 		tds[i] = td
 	}
 	f.newHeaders(headers, tds)
@@ -578,7 +574,7 @@ func (f *lightFetcher) checkAnnouncedHeaders(fp *fetcherPeerInfo, headers []*typ
 			}
 			// we ran out of recently delivered headers but have not reached a node known by this peer yet, continue matching
 			hash, number := header.ParentHash, header.Number.Uint64()-1
-			td = f.chain.GetTd(hash, number)
+			td = big.NewInt(int64(number + 1))
 			header = f.chain.GetHeader(hash, number)
 			if header == nil || td == nil {
 				log.Error("Missing parent of validated header", "hash", hash, "number", number)
@@ -639,10 +635,11 @@ func (f *lightFetcher) checkSyncedHeaders(p *peer) {
 		p.Log().Debug("Unknown peer to check sync headers")
 		return
 	}
+	// TODO: for the loops
 	n := fp.lastAnnounced
 	var td *big.Int
 	for n != nil {
-		if td = f.chain.GetTd(n.hash, n.number); td != nil {
+		if td = big.NewInt(int64(n.number + 1)); td != nil {
 			break
 		}
 		n = n.parent
@@ -663,7 +660,7 @@ func (f *lightFetcher) checkKnownNode(p *peer, n *fetcherTreeNode) bool {
 	if n.known {
 		return true
 	}
-	td := f.chain.GetTd(n.hash, n.number)
+	td := big.NewInt(int64(n.number + 1))
 	if td == nil {
 		return false
 	}
