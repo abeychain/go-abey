@@ -18,11 +18,10 @@ package les
 
 import (
 	"context"
-	"github.com/abeychain/go-abey/log"
 	"time"
 
-	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/light"
 )
 

@@ -17,7 +17,6 @@
 package les
 
 import (
-	"context"
 	"github.com/abeychain/go-abey/rlp"
 	"sync"
 
