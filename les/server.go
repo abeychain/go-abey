@@ -19,21 +19,8 @@ package les
 import (
 	"crypto/ecdsa"
 	"encoding/binary"
-	"github.com/abeychain/go-abey/abeydb"
-	"github.com/abeychain/go-abey/accounts/abi/bind"
-	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/light/fast"
-	"github.com/abeychain/go-abey/light/public"
-	"github.com/abeychain/go-abey/p2p/enode"
-	"github.com/abeychain/go-abey/params"
-	"github.com/abeychain/go-abey/rlp"
-	"github.com/abeychain/go-abey/rpc"
-	"math"
-	"math/big"
-	"sync"
-	"time"
-
 	"github.com/abeychain/go-abey/abey"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain/rawdb"
@@ -43,6 +30,10 @@ import (
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/p2p"
 	"github.com/abeychain/go-abey/p2p/discv5"
+	"github.com/abeychain/go-abey/params"
+	"github.com/abeychain/go-abey/rlp"
+	"math"
+	"sync"
 )
 
 type LesServer struct {
@@ -102,7 +93,7 @@ func NewLesServer(abey *abey.Abeychain, config *abey.Config) (*LesServer, error)
 		logger.Info("Loaded bloom trie", "section", bloomTrieLastSection, "head", bloomTrieSectionHead, "root", bloomTrieRoot)
 	}
 
-	srv.chtIndexer.Start(eth.BlockChain())
+	srv.chtIndexer.Start(abey.BlockChain())
 	pm.server = srv
 
 	srv.defParams = &flowcontrol.ServerParams{
@@ -110,7 +101,7 @@ func NewLesServer(abey *abey.Abeychain, config *abey.Config) (*LesServer, error)
 		MinRecharge: 50000,
 	}
 	srv.fcManager = flowcontrol.NewClientManager(uint64(config.LightServ), 10, 1000000000)
-	srv.fcCostStats = newCostStats(eth.ChainDb())
+	srv.fcCostStats = newCostStats(abey.ChainDb())
 	return srv, nil
 }
 
