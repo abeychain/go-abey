@@ -21,9 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/abeychain/go-abey/common/mclock"
 	"math/big"
-	"net"
 	"sync"
 	"time"
 
@@ -102,7 +100,6 @@ type ProtocolManager struct {
 	odr         *LesOdr
 	server      *LesServer
 	serverPool  *serverPool
-	clientPool  *freeClientPool
 	lesTopic    discv5.Topic
 	reqDist     *requestDistributor
 	retriever   *retrieveManager
@@ -181,7 +178,6 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	if pm.lightSync {
 		go pm.syncer()
 	} else {
-		pm.clientPool = newFreeClientPool(pm.chainDb, maxPeers, 10000, mclock.System{})
 		go func() {
 			for range pm.newPeerCh {
 			}
@@ -199,9 +195,6 @@ func (pm *ProtocolManager) Stop() {
 	pm.noMorePeers <- struct{}{}
 
 	close(pm.quitSync) // quits syncer, fetcher
-	if pm.clientPool != nil {
-		pm.clientPool.stop()
-	}
 
 	// Disconnect existing sessions.
 	// This also closes the gate for any new registrations on the peer set.
@@ -266,18 +259,6 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	if err := p.Handshake(td, hash, number, genesis.Hash(), pm.server); err != nil {
 		p.Log().Debug("Light Abeychain handshake failed", "err", err)
 		return err
-	}
-
-	if !pm.lightSync && !p.Peer.Info().Network.Trusted {
-		addr, ok := p.RemoteAddr().(*net.TCPAddr)
-		// test peer address is not a tcp address, don't use client pool if can not typecast
-		if ok {
-			id := addr.IP.String()
-			if !pm.clientPool.connect(id, func() { go pm.removePeer(p.id) }) {
-				return p2p.DiscTooManyPeers
-			}
-			defer pm.clientPool.disconnect(id)
-		}
 	}
 
 	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
