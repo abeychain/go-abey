@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"math/big"
 	"sync"
 	"time"
 
-	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
@@ -104,7 +104,7 @@ type ProtocolManager struct {
 	reqDist     *requestDistributor
 	retriever   *retrieveManager
 
-	downloader *downloader.Downloader
+	downloader *fastdownloader.Downloader
 	fetcher    *lightFetcher
 	peers      *peerSet
 	maxPeers   int
@@ -155,11 +155,8 @@ func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.In
 		removePeer = func(id string) {}
 	}
 	if lightSync {
-		var checkpoint uint64
-		if cht, ok := params.TrustedCheckpoints[blockchain.Genesis().Hash()]; ok {
-			checkpoint = (cht.SectionIndex+1)*params.CHTFrequencyClient - 1
-		}
-		manager.downloader = downloader.New(downloader.LightSync, checkpoint, chainDb, manager.eventMux, nil, blockchain, removePeer)
+		manager.downloader = fastdownloader.New(fastdownloader.LightSync, chainDb, manager.eventMux,
+			nil, blockchain, removePeer)
 		manager.peers.notify((*downloaderPeerNotify)(manager))
 		manager.fetcher = newLightFetcher(manager)
 	}
@@ -1179,7 +1176,7 @@ func (pc *peerConnection) Head() (common.Hash, *big.Int) {
 	return pc.peer.HeadAndTd()
 }
 
-func (pc *peerConnection) RequestHeadersByHash(origin common.Hash, amount int, skip int, reverse bool) error {
+func (pc *peerConnection) RequestHeadersByHash(origin common.Hash, amount int, skip int, reverse, isFastchain bool) error {
 	reqID := genReqID()
 	rq := &distReq{
 		getCost: func(dp distPeer) uint64 {
@@ -1203,7 +1200,7 @@ func (pc *peerConnection) RequestHeadersByHash(origin common.Hash, amount int, s
 	return nil
 }
 
-func (pc *peerConnection) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error {
+func (pc *peerConnection) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse, isFastchain bool) error {
 	reqID := genReqID()
 	rq := &distReq{
 		getCost: func(dp distPeer) uint64 {
@@ -1224,6 +1221,9 @@ func (pc *peerConnection) RequestHeadersByNumber(origin uint64, amount int, skip
 	if !ok {
 		return light.ErrNoPeers
 	}
+	return nil
+}
+func (pc *peerConnection) RequestBodies(hashes []common.Hash, fast bool, call uint32) error {
 	return nil
 }
 
