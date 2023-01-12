@@ -152,7 +152,7 @@ func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.In
 
 	removePeer := manager.removePeer
 	if disableClientRemovePeer {
-		removePeer = func(id string) {}
+		removePeer = func(id string, call uint32) {}
 	}
 	if lightSync {
 		manager.downloader = fastdownloader.New(fastdownloader.LightSync, chainDb, manager.eventMux,
@@ -165,7 +165,7 @@ func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.In
 }
 
 // removePeer initiates disconnection from a peer by removing it from the peer set
-func (pm *ProtocolManager) removePeer(id string) {
+func (pm *ProtocolManager) removePeer(id string, call uint32) {
 	pm.peers.Unregister(id)
 }
 
@@ -270,7 +270,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		if pm.server != nil && pm.server.fcManager != nil && p.fcClient != nil {
 			p.fcClient.Remove(pm.server.fcManager)
 		}
-		pm.removePeer(p.id)
+		pm.removePeer(p.id, 0)
 	}()
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
 	if pm.lightSync {
@@ -500,7 +500,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if pm.fetcher != nil && pm.fetcher.requestedID(resp.ReqID) {
 			pm.fetcher.deliverHeaders(p, resp.ReqID, resp.Headers)
 		} else {
-			err := pm.downloader.DeliverHeaders(p.id, resp.Headers)
+			err := pm.downloader.DeliverHeaders(p.id, resp.Headers, types.DownloaderCall)
 			if err != nil {
 				log.Debug(fmt.Sprint(err))
 			}
