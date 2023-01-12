@@ -184,7 +184,7 @@ func (f *lightFetcher) syncLoop() {
 			if ok {
 				f.pm.serverPool.adjustResponseTime(req.peer.poolEntry, time.Duration(mclock.Now()-req.sent), true)
 				req.peer.Log().Debug("Fetching data timed out hard")
-				go f.pm.removePeer(req.peer.id)
+				go f.pm.removePeer(req.peer.id, types.FetcherCall)
 			}
 		case resp := <-f.deliverChn:
 			f.reqMu.Lock()
@@ -202,7 +202,7 @@ func (f *lightFetcher) syncLoop() {
 			f.lock.Lock()
 			if !ok || !(f.syncing || f.processResponse(req, resp)) {
 				resp.peer.Log().Debug("Failed processing response")
-				go f.pm.removePeer(resp.peer.id)
+				go f.pm.removePeer(resp.peer.id, types.FetcherCall)
 			}
 			f.lock.Unlock()
 		case p := <-f.syncDone:
@@ -260,7 +260,7 @@ func (f *lightFetcher) announce(p *peer, head *announceData) {
 	if fp.lastAnnounced != nil && head.Td.Cmp(fp.lastAnnounced.td) <= 0 {
 		// announced tds should be strictly monotonic
 		p.Log().Debug("Received non-monotonic td", "current", head.Td, "previous", fp.lastAnnounced.td)
-		go f.pm.removePeer(p.id)
+		go f.pm.removePeer(p.id, types.FetcherCall)
 		return
 	}
 
@@ -542,7 +542,7 @@ func (f *lightFetcher) newHeaders(headers []*types.Header, tds []*big.Int) {
 	for p, fp := range f.peers {
 		if !f.checkAnnouncedHeaders(fp, headers, tds) {
 			p.Log().Debug("Inconsistent announcement")
-			go f.pm.removePeer(p.id)
+			go f.pm.removePeer(p.id, types.FetcherCall)
 		}
 		if fp.confirmedTd != nil && (maxTd == nil || maxTd.Cmp(fp.confirmedTd) > 0) {
 			maxTd = fp.confirmedTd
@@ -647,7 +647,7 @@ func (f *lightFetcher) checkSyncedHeaders(p *peer) {
 	// now n is the latest downloaded header after syncing
 	if n == nil {
 		p.Log().Debug("Synchronisation failed")
-		go f.pm.removePeer(p.id)
+		go f.pm.removePeer(p.id, types.FetcherCall)
 	} else {
 		header := f.chain.GetHeader(n.hash, n.number)
 		f.newHeaders([]*types.Header{header}, []*big.Int{td})
@@ -678,7 +678,7 @@ func (f *lightFetcher) checkKnownNode(p *peer, n *fetcherTreeNode) bool {
 	}
 	if !f.checkAnnouncedHeaders(fp, []*types.Header{header}, []*big.Int{td}) {
 		p.Log().Debug("Inconsistent announcement")
-		go f.pm.removePeer(p.id)
+		go f.pm.removePeer(p.id, types.FetcherCall)
 	}
 	if fp.confirmedTd != nil {
 		f.updateMaxConfirmedTd(fp.confirmedTd)
