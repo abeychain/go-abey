@@ -356,7 +356,7 @@ func (pm *ProtocolManager) blockLoop() {
 								select {
 								case p.announceChn <- announce:
 								default:
-									pm.removePeer(p.id)
+									pm.removePeer(p.id, types.Normal)
 								}
 
 							case announceTypeSigned:
@@ -369,7 +369,7 @@ func (pm *ProtocolManager) blockLoop() {
 								select {
 								case p.announceChn <- signedAnnounce:
 								default:
-									pm.removePeer(p.id)
+									pm.removePeer(p.id, types.Normal)
 								}
 							}
 						}
