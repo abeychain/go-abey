@@ -19,11 +19,11 @@ package les
 
 import (
 	"fmt"
+	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"sync"
 	"time"
 
 	"github.com/abeychain/go-abey/abey"
-	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/abey/filters"
 	"github.com/abeychain/go-abey/abey/gasprice"
 	"github.com/abeychain/go-abey/accounts"
@@ -200,12 +200,13 @@ func (s *LightAbey) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   &LightDummyAPI{},
 			Public:    true,
-		}, {
-			Namespace: "eth",
-			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
-			Public:    true,
-		}, {
+		}, // {
+		//	Namespace: "eth",
+		//	Version:   "1.0",
+		//	Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
+		//	Public:    true,
+		//},
+		{
 			Namespace: "eth",
 			Version:   "1.0",
 			Service:   filters.NewPublicFilterAPI(s.ApiBackend, true),
@@ -224,12 +225,12 @@ func (s *LightAbey) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *LightAbey) SnailBlockChain() *light.LightChain { return s.blockchain }
-func (s *LightAbey) TxPool() *light.TxPool              { return s.txPool }
-func (s *LightAbey) Engine() consensus.Engine           { return s.engine }
-func (s *LightAbey) LesVersion() int                    { return int(ClientProtocolVersions[0]) }
-func (s *LightAbey) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
-func (s *LightAbey) EventMux() *event.TypeMux           { return s.eventMux }
+func (s *LightAbey) SnailBlockChain() *light.LightChain     { return s.blockchain }
+func (s *LightAbey) TxPool() *light.TxPool                  { return s.txPool }
+func (s *LightAbey) Engine() consensus.Engine               { return s.engine }
+func (s *LightAbey) LesVersion() int                        { return int(ClientProtocolVersions[0]) }
+func (s *LightAbey) Downloader() *fastdownloader.Downloader { return s.protocolManager.downloader }
+func (s *LightAbey) EventMux() *event.TypeMux               { return s.eventMux }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
