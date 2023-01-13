@@ -319,10 +319,9 @@ func (s *requestCostStats) update(msgCode, reqCnt, cost uint64) {
 
 func (pm *ProtocolManager) blockLoop() {
 	pm.wg.Add(1)
-	headCh := make(chan core.ChainHeadEvent, 10)
+	headCh := make(chan types.FastChainHeadEvent, 10)
 	headSub := pm.blockchain.SubscribeChainHeadEvent(headCh)
 	go func() {
-		var lastHead *types.Header
 		lastBroadcastTd := common.Big0
 		for {
 			select {
@@ -334,16 +333,11 @@ func (pm *ProtocolManager) blockLoop() {
 					number := header.Number.Uint64()
 					td := rawdb.ReadTd(pm.chainDb, hash, number)
 					if td != nil && td.Cmp(lastBroadcastTd) > 0 {
-						var reorg uint64
-						if lastHead != nil {
-							reorg = lastHead.Number.Uint64() - rawdb.FindCommonAncestor(pm.chainDb, header, lastHead).Number.Uint64()
-						}
-						lastHead = header
 						lastBroadcastTd = td
 
-						log.Debug("Announcing block to peers", "number", number, "hash", hash, "td", td, "reorg", reorg)
+						log.Debug("Announcing block to peers", "number", number, "hash", hash, "td", td)
 
-						announce := announceData{Hash: hash, Number: number, Td: td, ReorgDepth: reorg}
+						announce := announceData{Hash: hash, Number: number, Td: td, ReorgDepth: 0}
 						var (
 							signed         bool
 							signedAnnounce announceData

@@ -46,4 +46,12 @@ const (
 	// HelperTrieProcessConfirmations is the number of confirmations before a HelperTrie
 	// is generated
 	HelperTrieProcessConfirmations = 16
+
+	// CHTFrequencyClient is the block frequency for creating CHTs on the client side.
+	CHTFrequencyClient = 32768
+
+	// CHTFrequencyServer is the block frequency for creating CHTs on the server side.
+	// Eventually this can be merged back with the client version, but that requires a
+	// full database upgrade, so that should be left for a suitable moment.
+	CHTFrequencyServer = 4096
 )
