@@ -18,10 +18,10 @@ package les
 
 import (
 	"context"
+	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"github.com/abeychain/go-abey/light"
 	"math/big"
 
-	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/abey/gasprice"
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
@@ -164,7 +164,7 @@ func (b *LesApiBackend) SubscribeRemovedLogsEvent(ch chan<- types.RemovedLogsEve
 	return b.abey.blockchain.SubscribeRemovedLogsEvent(ch)
 }
 
-func (b *LesApiBackend) Downloader() *downloader.Downloader {
+func (b *LesApiBackend) Downloader() *fastdownloader.Downloader {
 	return b.abey.Downloader()
 }
 
