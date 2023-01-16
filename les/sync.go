@@ -18,9 +18,9 @@ package les
 
 import (
 	"context"
+	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"time"
 
-	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/light"
 )
@@ -66,10 +66,15 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if peer == nil {
 		return
 	}
-	//fhead := pm.fblockchain.CurrentHeader()
-	//currentNumber := fhead.Number.Uint64()
-	//fastHeight := headBlockInfo.FastNumber
-	//pHead := headBlockInfo.FastHash
+	currentHead := pm.blockchain.CurrentHeader()
+	currentNumber := currentHead.Number.Uint64()
+	remote := uint64(0)
+	if peer.Td().Sign() > 0 {
+		remote = peer.Td().Uint64() - 1 // TD = number + 1
+	}
+	if currentNumber > remote {
+		return
+	}
 	// Make sure the peer's TD is higher than our own.
 	if !pm.needToSync(peer.headBlockInfo()) {
 		return
@@ -78,5 +83,5 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	pm.blockchain.(*light.LightChain).SyncCht(ctx)
-	pm.downloader.Synchronise(peer.id, peer.Head(), peer.Td(), downloader.LightSync)
+	pm.downloader.Synchronise(peer.id, peer.Head(), fastdownloader.LightSync, currentNumber, remote)
 }
