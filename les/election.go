@@ -49,8 +49,7 @@ type Election struct {
 	genesisCommittee []*types.CommitteeMember
 	defaultMembers   []*types.CommitteeMember
 
-	fastchain  *light.LightChain
-	snailchain *light.LightChain
+	fastchain *light.LightChain
 
 	commiteeCache *lru.Cache
 	switchCache   *lru.Cache
@@ -73,11 +72,10 @@ func ElectionEpoch(id *big.Int) (begin *big.Int, end *big.Int) {
 }
 
 // NewLightElection create the instance of committee electioin
-func NewLightElection(fastBlockChain *light.LightChain, snailBlockChain *light.LightChain) *Election {
+func NewLightElection(fastBlockChain *light.LightChain) *Election {
 	// init
 	election := &Election{
-		fastchain:  fastBlockChain,
-		snailchain: snailBlockChain,
+		fastchain: fastBlockChain,
 	}
 	election.commiteeCache, _ = lru.New(committeeCacheLimit)
 	election.switchCache, _ = lru.New(committeeCacheLimit)
@@ -94,10 +92,8 @@ func NewLightElection(fastBlockChain *light.LightChain, snailBlockChain *light.L
 
 func (e *Election) Start() {
 	num := e.fastchain.CurrentHeader().Number
-	snail := e.snailchain.CurrentHeader().Number
 
 	log.Info("Latest block", "number", num)
-	log.Info("Latest snail", "number", snail)
 	members := e.GetCommittee(num)
 	log.Info("Current committee", "count", len(members))
 }
