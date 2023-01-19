@@ -23,7 +23,6 @@ import (
 	"math/big"
 
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/consensus/election"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/light"
@@ -35,7 +34,7 @@ import (
 const (
 	snailchainHeadSize  = 64
 	committeeCacheLimit = 256
-
+	startFastHeight     = 8800000
 	// The sha3 of empy switchinfo rlp encoded data
 	emptyCommittee = "1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
 )
@@ -212,44 +211,16 @@ func (e *Election) VerifySwitchInfo(fastNumber *big.Int, info []*types.Committee
 
 // GetCommittee gets committee members which propose the fast block
 func (e *Election) GetCommittee(fastNumber *big.Int) []*types.CommitteeMember {
-	var (
-		id         *big.Int
-		snail      *big.Int
-		beginFruit *big.Int
-		c          *types.ElectionCommittee
-	)
 
-	blockHead := e.fastchain.GetHeaderByNumber(fastNumber.Uint64())
-	if fruitHead := e.snailchain.GetFruitHeaderByHash(blockHead.Hash()); fruitHead != nil {
-		snail = fruitHead.Number
-	} else {
-		snail = e.snailchain.CurrentHeader().Number
+	if startFastHeight > fastNumber.Uint64() {
+		return nil
 	}
+	epochInfo := types.GetEpochFromHeight(fastNumber.Uint64())
 
-	id = new(big.Int).Div(snail, params.ElectionPeriodNumber)
-	if id.Cmp(common.Big0) == 0 {
-		// return genesisi committee
-		id = big.NewInt(0)
-		c = e.getCommittee(common.Big0)
-		beginFruit = big.NewInt(2)
-	}
-	_, end := ElectionEpoch(id)
-	fruitNum := e.endFruitNumber(end)
-
-	if fastNumber.Cmp(new(big.Int).Add(fruitNum, params.ElectionSwitchoverNumber)) > 0 {
-		beginFruit = new(big.Int).Add(fruitNum, params.ElectionSwitchoverNumber)
-		beginFruit = beginFruit.Add(beginFruit, common.Big2)
-		c = e.getCommittee(id)
-	} else {
-		id := new(big.Int).Sub(id, common.Big1)
-		c = e.getCommittee(id)
-		begin, _ := ElectionEpoch(id)
-		beginFruit = e.beginFruitNumber(begin)
-		beginFruit = new(big.Int).Add(beginFruit, common.Big1)
-	}
+	c := e.getCommittee(big.NewInt(int64(epochInfo.EpochID)))
 
 	// Load switch block to calculate committee members
-	switches := e.loadSwitchPoint(id, beginFruit, fastNumber)
+	switches := e.loadSwitchPoint(big.NewInt(int64(epochInfo.EpochID)), big.NewInt(int64(epochInfo.BeginHeight)), fastNumber)
 	if len(switches) > 0 {
 		return e.filterWithSwitchInfo(c, fastNumber, switches)
 	} else {
@@ -335,7 +306,10 @@ func (e *Election) filterWithSwitchInfo(c *types.ElectionCommittee, fastNumber *
 
 	return
 }
-
+func GetCommitteeFromFullnode(id *big.Int) *types.ElectionCommittee {
+	// TODO get the committee from the full node by rpc
+	return nil
+}
 func (e *Election) getCommittee(id *big.Int) *types.ElectionCommittee {
 	if cache, ok := e.commiteeCache.Get(id.Uint64()); ok {
 		committee := cache.(*types.ElectionCommittee)
@@ -347,25 +321,11 @@ func (e *Election) getCommittee(id *big.Int) *types.ElectionCommittee {
 		// genesis committee for committee 0
 		c = &types.ElectionCommittee{Members: e.genesisCommittee}
 	} else {
-		// elect committee based on snail fruits
-		begin, end := ElectionEpoch(id)
-		c = election.ElectCommittee(e.snailchain, e.defaultMembers, begin, end)
-		beginFruit := e.beginFruitNumber(begin)
-		endFruit := e.endFruitNumber(end)
-		log.Info("Committee members", "committee", id, "beginBlock", beginFruit, "endBlock", endFruit, "count", len(c.Members), "backup", len(c.Backups))
+		c = GetCommitteeFromFullnode(id)
+		log.Info("Committee members", "committee", id, "count", len(c.Members), "backup", len(c.Backups))
 	}
 	e.commiteeCache.Add(id.Uint64(), c)
 	return c
-}
-
-func (e *Election) endFruitNumber(snail *big.Int) *big.Int {
-	fruits := e.snailchain.GetFruitsHead(snail.Uint64())
-	return fruits[len(fruits)-1].FastNumber
-}
-
-func (e *Election) beginFruitNumber(snail *big.Int) *big.Int {
-	fruits := e.snailchain.GetFruitsHead(snail.Uint64())
-	return fruits[0].FastNumber
 }
 
 // FinalizeCommittee upddate current committee state
