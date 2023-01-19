@@ -18,19 +18,18 @@ package les
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"math/big"
-	"encoding/hex"
 
-	"github.com/hashicorp/golang-lru"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
-	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/params"
-	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/light"
-	"github.com/abeychain/go-abey/light/fast"
 	"github.com/abeychain/go-abey/consensus/election"
+	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/crypto"
+	"github.com/abeychain/go-abey/light"
+	"github.com/abeychain/go-abey/log"
+	"github.com/abeychain/go-abey/params"
+	"github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -51,7 +50,7 @@ type Election struct {
 	genesisCommittee []*types.CommitteeMember
 	defaultMembers   []*types.CommitteeMember
 
-	fastchain  *fast.LightChain
+	fastchain  *light.LightChain
 	snailchain *light.LightChain
 
 	commiteeCache *lru.Cache
@@ -75,11 +74,11 @@ func ElectionEpoch(id *big.Int) (begin *big.Int, end *big.Int) {
 }
 
 // NewLightElection create the instance of committee electioin
-func NewLightElection(fastBlockChain *fast.LightChain, snailBlockChain *light.LightChain) *Election {
+func NewLightElection(fastBlockChain *light.LightChain, snailBlockChain *light.LightChain) *Election {
 	// init
 	election := &Election{
-		fastchain:         fastBlockChain,
-		snailchain:        snailBlockChain,
+		fastchain:  fastBlockChain,
+		snailchain: snailBlockChain,
 	}
 	election.commiteeCache, _ = lru.New(committeeCacheLimit)
 	election.switchCache, _ = lru.New(committeeCacheLimit)
@@ -258,9 +257,9 @@ func (e *Election) GetCommittee(fastNumber *big.Int) []*types.CommitteeMember {
 	}
 }
 
-func (e *Election) loadSwitchPoint(id *big.Int, beginFruit *big.Int, fastNumber *big.Int) []uint64  {
+func (e *Election) loadSwitchPoint(id *big.Int, beginFruit *big.Int, fastNumber *big.Int) []uint64 {
 	var (
-		switches []uint64
+		switches     []uint64
 		switchBlocks *switchPoint
 	)
 
@@ -282,7 +281,7 @@ func (e *Election) loadSwitchPoint(id *big.Int, beginFruit *big.Int, fastNumber 
 	if fastNumber.Cmp(beginFruit) > 0 && (switchBlocks == nil || fastNumber.Cmp(switchBlocks.checkNumber) > 0) {
 		switchBlocks = &switchPoint{
 			checkNumber: fastNumber,
-			switches: switches,
+			switches:    switches,
 		}
 		e.switchCache.Add(id.Uint64(), switchBlocks)
 	}
