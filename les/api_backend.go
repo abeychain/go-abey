@@ -18,6 +18,8 @@ package les
 
 import (
 	"context"
+	"errors"
+	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/abey/fastdownloader"
 	"github.com/abeychain/go-abey/light"
 	"math/big"
@@ -43,6 +45,70 @@ type LesApiBackend struct {
 	gpo  *gasprice.Oracle
 }
 
+var (
+	NotSupportOnLes = errors.New("not support on les protocol")
+)
+
+//////////////////////////////////////////////////////////////
+func (b *LesApiBackend) SetSnailHead(number uint64) {
+
+}
+func (b *LesApiBackend) SnailHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.SnailHeader, error) {
+	return nil, NotSupportOnLes
+}
+func (b *LesApiBackend) SnailBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.SnailBlock, error) {
+	return nil, NotSupportOnLes
+}
+func (b *LesApiBackend) GetFruit(ctx context.Context, fastblockHash common.Hash) (*types.SnailBlock, error) {
+	return nil, NotSupportOnLes
+}
+func (b *LesApiBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error) {
+	return nil, nil, NotSupportOnLes
+}
+func (b *LesApiBackend) StateAndHeaderByHash(ctx context.Context, hash common.Hash) (*state.StateDB, *types.Header, error) {
+	return nil, nil, NotSupportOnLes
+}
+func (b *LesApiBackend) GetSnailBlock(ctx context.Context, blockHash common.Hash) (*types.SnailBlock, error) {
+	return nil, NotSupportOnLes
+}
+func (b *LesApiBackend) GetReward(number int64) *types.BlockReward {
+	return nil
+}
+func (b *LesApiBackend) GetCommittee(id rpc.BlockNumber) (map[string]interface{}, error) {
+	return nil, NotSupportOnLes
+}
+func (b *LesApiBackend) GetCurrentCommitteeNumber() *big.Int {
+	return nil
+}
+func (b *LesApiBackend) GetStateChangeByFastNumber(fastNumber rpc.BlockNumber) *types.BlockBalance {
+	return nil
+}
+func (b *LesApiBackend) GetBalanceChangeBySnailNumber(snailNumber rpc.BlockNumber) *types.BalanceChangeContent {
+	return nil
+}
+func (b *LesApiBackend) GetSnailRewardContent(blockNr rpc.BlockNumber) *types.SnailRewardContenet {
+	return nil
+}
+func (b *LesApiBackend) GetChainRewardContent(blockNr rpc.BlockNumber) *types.ChainReward {
+	return nil
+}
+func (b *LesApiBackend) CurrentSnailBlock() *types.SnailBlock {
+	return nil
+}
+func (b *LesApiBackend) SnailPoolContent() []*types.SnailBlock {
+	return nil
+}
+func (b *LesApiBackend) SnailPoolInspect() []*types.SnailBlock {
+	return nil
+}
+func (b *LesApiBackend) SnailPoolStats() (pending int, unVerified int) {
+	return 0, 0
+}
+func (b *LesApiBackend) Downloader() *downloader.Downloader {
+	return nil
+}
+
+//////////////////////////////////////////////////////////////
 func (b *LesApiBackend) ChainConfig() *params.ChainConfig {
 	return b.abey.chainConfig
 }
@@ -164,7 +230,7 @@ func (b *LesApiBackend) SubscribeRemovedLogsEvent(ch chan<- types.RemovedLogsEve
 	return b.abey.blockchain.SubscribeRemovedLogsEvent(ch)
 }
 
-func (b *LesApiBackend) Downloader() *fastdownloader.Downloader {
+func (b *LesApiBackend) FastDownloader() *fastdownloader.Downloader {
 	return b.abey.Downloader()
 }
 
