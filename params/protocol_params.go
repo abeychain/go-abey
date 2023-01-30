@@ -200,3 +200,6 @@ var (
 	DposForkPoint              uint64 = 0
 	ElectionMinLimitForStaking        = new(big.Int).Mul(big.NewInt(200000), big.NewInt(1e18))
 )
+var (
+	LesProtocolGenesisBlock uint64 = 9000000
+)

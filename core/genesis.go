@@ -152,6 +152,16 @@ func SetupGenesisBlock(db abeydb.Database, genesis *Genesis) (*params.ChainConfi
 	return fastConfig, fastHash, snailHash, fastErr
 
 }
+func SetupGenesisBlockForLes(db abeydb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+	if genesis != nil && genesis.Config == nil {
+		return params.AllMinervaProtocolChanges, common.Hash{}, errGenesisNoConfig
+	}
+
+	fastConfig, fastHash, fastErr := setupFastGenesisBlockForLes(db, genesis)
+
+	return fastConfig, fastHash, fastErr
+
+}
 
 // setupFastGenesisBlock writes or updates the fast genesis block in db.
 // The block that will be used is:
@@ -217,6 +227,50 @@ func setupFastGenesisBlock(db abeydb.Database, genesis *Genesis) (*params.ChainC
 	if compatErr != nil && *height != 0 && compatErr.RewindTo != 0 {
 		return newcfg, stored, compatErr
 	}
+	rawdb.WriteChainConfig(db, stored, newcfg)
+	return newcfg, stored, nil
+}
+func setupFastGenesisBlockForLes(db abeydb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+	if genesis != nil && genesis.Config == nil {
+		return params.AllMinervaProtocolChanges, common.Hash{}, errGenesisNoConfig
+	}
+
+	// Just commit the new block if there is no stored genesis block.
+	stored := rawdb.ReadCanonicalHash(db, params.LesProtocolGenesisBlock)
+	if (stored == common.Hash{}) {
+		if genesis == nil {
+			log.Info("Writing default main-net genesis block")
+			genesis = DefaultGenesisBlockForLes()
+		} else {
+			log.Info("Writing custom genesis block")
+		}
+		block, err := genesis.CommitFast(db)
+		return genesis.Config, block.Hash(), err
+	}
+
+	// Check whether the genesis block is already written.
+	if genesis != nil {
+		hash := genesis.ToFastBlock(nil).Hash()
+		if hash != stored {
+			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
+		}
+	}
+
+	// Get the existing chain configuration.
+	newcfg := genesis.configOrDefault(stored)
+	storedcfg := rawdb.ReadChainConfig(db, stored)
+	if storedcfg == nil {
+		log.Warn("Found genesis block without chain config")
+		rawdb.WriteChainConfig(db, stored, newcfg)
+		return newcfg, stored, nil
+	}
+	// Special case: don't change the existing config of a non-mainnet chain if no new
+	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
+	// if we just continued here.
+	if genesis == nil && stored != params.MainnetGenesisHashForLes {
+		return storedcfg, stored, nil
+	}
+	// remove check config compatibility
 	rawdb.WriteChainConfig(db, stored, newcfg)
 	return newcfg, stored, nil
 }
@@ -616,7 +670,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	// addr: 0x37C229201a1d05b7326a2A8c64D8c7966F795a3B
 	// seed4
 	//coinbase := common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779")
-	amount1 := new(big.Int).Mul(big.NewInt(900000000000000000),big.NewInt(1e18))
+	amount1 := new(big.Int).Mul(big.NewInt(900000000000000000), big.NewInt(1e18))
 	return &Genesis{
 		Config:     params.TestnetChainConfig,
 		Nonce:      0,
@@ -640,5 +694,19 @@ func DefaultTestnetGenesisBlock() *Genesis {
 			&types.CommitteeMember{Coinbase: common.HexToAddress("0x8fF345746C3d3435a105538E4c024Af5FE700598"), Publickey: seedkey3},
 			&types.CommitteeMember{Coinbase: common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"), Publickey: seedkey4},
 		},
+	}
+}
+func DefaultGenesisBlockForLes() *Genesis {
+	return &Genesis{
+		Config:     params.MainnetChainConfig,
+		Number:     params.LesProtocolGenesisBlock,
+		Nonce:      402,
+		ExtraData:  hexutil.MustDecode("0x0123456789"),
+		GasLimit:   16777216,
+		Difficulty: big.NewInt(8388608),
+		//Timestamp:  1553918400,
+		Coinbase:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 	}
 }
