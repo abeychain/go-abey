@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/abeychain/go-abey/core/types"
 	"io"
 	"math/big"
 
@@ -222,4 +223,8 @@ type txStatus struct {
 	Status core.TxStatus
 	Lookup *rawdb.TxLookupEntry `rlp:"nil"`
 	Error  string
+}
+type HeaderWithSigns struct {
+	Heads []*types.Header
+	Signs [][]*types.PbftSign
 }

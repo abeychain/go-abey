@@ -243,6 +243,9 @@ func (s *LightAbey) Protocols() []p2p.Protocol {
 func (s *LightAbey) GenesisHash() common.Hash {
 	return s.genesisHash
 }
+func GenesisNumber() uint64 {
+	return params.LesProtocolGenesisBlock
+}
 
 // Start implements node.Service, starting all internal goroutines needed by the
 // Abeychain protocol implementation.
