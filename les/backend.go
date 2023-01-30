@@ -75,7 +75,8 @@ type LightAbey struct {
 	networkId     uint64
 	netRPCService *abeyapi.PublicNetAPI
 
-	wg sync.WaitGroup
+	genesisHash common.Hash
+	wg          sync.WaitGroup
 }
 
 func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
@@ -95,12 +96,13 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	peers := newPeerSet()
 	quitSync := make(chan struct{})
 
-	leth := &LightAbey{
+	labey := &LightAbey{
 		lesCommons: lesCommons{
 			chainDb: chainDb,
 			config:  config,
 			iConfig: light.DefaultClientIndexerConfig,
 		},
+		genesisHash:    genesisHash,
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		peers:          peers,
@@ -110,50 +112,51 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 		shutdownChan:   make(chan bool),
 		networkId:      config.NetworkId,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
-		//bloomIndexer:   abey.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
+		bloomIndexer:   abey.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
 	}
 
-	leth.relay = NewLesTxRelay(peers, leth.reqDist)
-	leth.serverPool = newServerPool(chainDb, quitSync, &leth.wg, nil)
-	leth.retriever = newRetrieveManager(peers, leth.reqDist, leth.serverPool)
+	labey.relay = NewLesTxRelay(peers, labey.reqDist)
+	labey.serverPool = newServerPool(chainDb, quitSync, &labey.wg, nil)
+	labey.retriever = newRetrieveManager(peers, labey.reqDist, labey.serverPool)
 
-	leth.odr = NewLesOdr(chainDb, light.DefaultClientIndexerConfig, leth.retriever)
-	// TODO: make params.CHTFrequencyClient=32768
-	leth.chtIndexer = light.NewChtIndexer(chainDb, leth.odr, 32768, params.HelperTrieConfirmations)
-	leth.bloomTrieIndexer = light.NewBloomTrieIndexer(chainDb, leth.odr, params.BloomBitsBlocksClient, params.BloomTrieFrequency)
-	leth.odr.SetIndexers(leth.chtIndexer, leth.bloomTrieIndexer, leth.bloomIndexer)
+	labey.odr = NewLesOdr(chainDb, light.DefaultClientIndexerConfig, labey.retriever)
+	labey.chtIndexer = light.NewChtIndexer(chainDb, labey.odr, params.CHTFrequencyClient, params.HelperTrieConfirmations)
+	labey.bloomTrieIndexer = light.NewBloomTrieIndexer(chainDb, labey.odr, params.BloomBitsBlocksClient, params.BloomTrieFrequency)
+	labey.odr.SetIndexers(labey.chtIndexer, labey.bloomTrieIndexer, labey.bloomIndexer)
 
 	// Note: NewLightChain adds the trusted checkpoint so it needs an ODR with
 	// indexers already set but not started yet
 	// TODO make the params.MainnetTrustedCheckpoint in the config
-	if leth.blockchain, err = light.NewLightChain(leth.odr, leth.chainConfig, leth.engine, params.MainnetTrustedCheckpoint); err != nil {
+	if labey.blockchain, err = light.NewLightChain(labey.odr, labey.chainConfig, labey.engine, params.MainnetTrustedCheckpoint); err != nil {
 		return nil, err
 	}
+	labey.election = NewLightElection(labey.blockchain)
+	labey.engine.SetElection(labey.election)
 	// Note: AddChildIndexer starts the update process for the child
-	leth.bloomIndexer.AddChildIndexer(leth.bloomTrieIndexer)
-	leth.chtIndexer.Start(leth.blockchain)
-	leth.bloomIndexer.Start(leth.blockchain)
+	labey.bloomIndexer.AddChildIndexer(labey.bloomTrieIndexer)
+	labey.chtIndexer.Start(labey.blockchain)
+	labey.bloomIndexer.Start(labey.blockchain)
 
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
-		leth.blockchain.SetHead(compat.RewindTo)
+		labey.blockchain.SetHead(compat.RewindTo)
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
 
-	leth.txPool = light.NewTxPool(leth.chainConfig, leth.blockchain, leth.relay)
-	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, light.DefaultClientIndexerConfig, true,
-		config.NetworkId, leth.eventMux, leth.engine, leth.peers, leth.blockchain, nil,
-		chainDb, leth.odr, leth.relay, leth.serverPool, quitSync, &leth.wg); err != nil {
+	labey.txPool = light.NewTxPool(labey.chainConfig, labey.blockchain, labey.relay)
+	if labey.protocolManager, err = NewProtocolManager(labey.chainConfig, light.DefaultClientIndexerConfig, true,
+		config.NetworkId, labey.eventMux, labey.engine, labey.peers, labey.blockchain, nil,
+		chainDb, labey.odr, labey.relay, labey.serverPool, quitSync, &labey.wg); err != nil {
 		return nil, err
 	}
-	leth.ApiBackend = &LesApiBackend{leth, nil}
+	labey.ApiBackend = &LesApiBackend{labey, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.GasPrice
 	}
-	leth.ApiBackend.gpo = gasprice.NewOracle(leth.ApiBackend, gpoParams)
-	return leth, nil
+	labey.ApiBackend.gpo = gasprice.NewOracle(labey.ApiBackend, gpoParams)
+	return labey, nil
 }
 
 func lesTopic(genesisHash common.Hash, protocolVersion uint) discv5.Topic {
@@ -236,6 +239,9 @@ func (s *LightAbey) EventMux() *event.TypeMux               { return s.eventMux 
 // network protocols to start.
 func (s *LightAbey) Protocols() []p2p.Protocol {
 	return s.makeProtocols(ClientProtocolVersions)
+}
+func (s *LightAbey) GenesisHash() common.Hash {
+	return s.genesisHash
 }
 
 // Start implements node.Service, starting all internal goroutines needed by the
