@@ -530,3 +530,5 @@ func (lc *LightChain) LoadLastState() {
 func (lc *LightChain) GetHeaderChain() *core.HeaderChain {
 	return lc.hc
 }
+func (bc *LightChain) SetCommitteeInfo(hash common.Hash, number uint64, infos []*types.CommitteeMember) {
+}

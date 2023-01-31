@@ -81,6 +81,7 @@ type BlockChain interface {
 	GetAncestor(hash common.Hash, number, ancestor uint64, maxNonCanonical *uint64) (common.Hash, uint64)
 	Genesis() *types.Block
 	SubscribeChainHeadEvent(ch chan<- types.FastChainHeadEvent) event.Subscription
+	SetCommitteeInfo(hash common.Hash, number uint64, infos []*types.CommitteeMember)
 }
 
 type txPool interface {
@@ -491,16 +492,26 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// A batch of headers arrived to one of our previous requests
 		var resp struct {
 			ReqID, BV uint64
-			Headers   []*types.Header
+			Headers   IncompleteBlocks
 		}
 		if err := msg.Decode(&resp); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		p.fcServer.GotReply(resp.ReqID, resp.BV)
+		heads := make([]*types.Header, len(resp.Headers.Blocks))
+		signs := make([][]*types.PbftSign, len(resp.Headers.Blocks))
+		p.Log().Trace("Received block header response message", "count", len(resp.Headers.Blocks))
+		for i, block := range resp.Headers.Blocks {
+			heads[i] = block.Head
+			signs[i] = block.Signs
+			if block.Head.CommitteeHash != (types.EmptySignHash) {
+				pm.blockchain.SetCommitteeInfo(block.Head.Hash(), block.Head.Number.Uint64(), block.Infos)
+			}
+		}
 		if pm.fetcher != nil && pm.fetcher.requestedID(resp.ReqID) {
-			pm.fetcher.deliverHeaders(p, resp.ReqID, resp.Headers)
+			pm.fetcher.deliverHeaders(p, resp.ReqID, &HeaderWithSigns{Heads: heads, Signs: signs})
 		} else {
-			err := pm.downloader.DeliverHeaders(p.id, resp.Headers, types.DownloaderCall)
+			err := pm.downloader.DeliverHeaders(p.id, heads, types.DownloaderCall)
 			if err != nil {
 				log.Debug(fmt.Sprint(err))
 			}
