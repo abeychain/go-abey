@@ -226,6 +226,9 @@ func (p *peer) SendAnnounce(request announceData) error {
 func (p *peer) SendBlockHeaders(reqID, bv uint64, headers []*types.Header) error {
 	return sendResponse(p.rw, BlockHeadersMsg, reqID, bv, headers)
 }
+func (p *peer) SendBlockHeaders2(reqID, bv uint64, headerdata IncompleteBlocks) error {
+	return sendResponse(p.rw, BlockHeadersMsg, reqID, bv, headerdata)
+}
 
 // SendBlockBodiesRLP sends a batch of block contents to the remote peer from
 // an already RLP encoded format.

@@ -406,12 +406,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Gather headers until the fetch or network limits is reached
 		var (
 			bytes   common.StorageSize
-			headers []*types.Header
+			blocks  []*IncompleteBlock
 			unknown bool
 		)
-		for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit {
+		for !unknown && len(blocks) < int(query.Amount) && bytes < softResponseLimit {
 			// Retrieve the next header satisfying the query
 			var origin *types.Header
+			block := &IncompleteBlock{}
+
 			if hashMode {
 				if first {
 					first = false
@@ -428,7 +430,20 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if origin == nil {
 				break
 			}
-			headers = append(headers, origin)
+			var body *types.Body
+			if origin.CommitteeHash != (types.EmptySignHash) {
+				body = rawdb.ReadBody(pm.chainDb, origin.Hash(), origin.Number.Uint64())
+				if body != nil {
+					block.Infos = make([]*types.CommitteeMember, len(body.Infos))
+					block.Signs = make([]*types.PbftSign, len(body.Signs))
+					copy(block.Signs, body.Signs)
+					copy(block.Infos, body.Infos)
+				} else {
+					log.Warn("GetBlockHeadersMsg-getbody", "height", origin.Number, "hash", origin.Hash())
+				}
+			}
+			block.Head = origin
+			blocks = append(blocks, block)
 			bytes += estHeaderRlpSize
 
 			// Advance to the next header of the query
@@ -481,7 +496,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		bv, rcost := p.fcClient.RequestProcessed(costs.baseCost + query.Amount*costs.reqCost)
 		pm.server.fcCostStats.update(msg.Code, query.Amount, rcost)
-		return p.SendBlockHeaders(req.ReqID, bv, headers)
+		return p.SendBlockHeaders2(req.ReqID, bv, IncompleteBlocks{blocks})
 
 	case BlockHeadersMsg:
 		if pm.downloader == nil {
