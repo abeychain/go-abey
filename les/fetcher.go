@@ -100,7 +100,7 @@ type fetchRequest struct {
 // fetchResponse represents a header download response
 type fetchResponse struct {
 	reqID   uint64
-	headers []*types.Header
+	headers *HeaderWithSigns
 	peer    *peer
 }
 
@@ -505,19 +505,21 @@ func (f *lightFetcher) nextRequest() (*distReq, uint64, bool) {
 }
 
 // deliverHeaders delivers header download request responses for processing
-func (f *lightFetcher) deliverHeaders(peer *peer, reqID uint64, headers []*types.Header) {
+func (f *lightFetcher) deliverHeaders(peer *peer, reqID uint64, headers *HeaderWithSigns) {
 	f.deliverChn <- fetchResponse{reqID: reqID, headers: headers, peer: peer}
 }
 
 // processResponse processes header download request responses, returns true if successful
 func (f *lightFetcher) processResponse(req fetchRequest, resp fetchResponse) bool {
-	if uint64(len(resp.headers)) != req.amount || resp.headers[0].Hash() != req.hash {
-		req.peer.Log().Debug("Response content mismatch", "requested", len(resp.headers), "reqfrom", resp.headers[0], "delivered", req.amount, "delfrom", req.hash)
+	if uint64(len(resp.headers.Heads)) != req.amount || resp.headers.Heads[0].Hash() != req.hash {
+		req.peer.Log().Debug("Response content mismatch", "requested", len(resp.headers.Heads), "reqfrom", resp.headers.Heads[0], "delivered", req.amount, "delfrom", req.hash)
 		return false
 	}
 	headers := make([]*types.Header, req.amount)
-	for i, header := range resp.headers {
+	signs := make([][]*types.PbftSign, req.amount)
+	for i, header := range resp.headers.Heads {
 		headers[int(req.amount)-1-i] = header
+		signs[int(req.amount)-1-i] = resp.headers.Signs[i]
 	}
 	if _, err := f.chain.InsertHeaderChain(headers, 1); err != nil {
 		if err == consensus.ErrFutureBlock {

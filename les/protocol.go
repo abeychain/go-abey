@@ -228,3 +228,12 @@ type HeaderWithSigns struct {
 	Heads []*types.Header
 	Signs [][]*types.PbftSign
 }
+type IncompleteBlocks struct {
+	Blocks []*IncompleteBlock
+}
+
+type IncompleteBlock struct {
+	Head  *types.Header
+	Signs []*types.PbftSign
+	Infos []*types.CommitteeMember
+}
