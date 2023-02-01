@@ -520,6 +520,11 @@ func (f *lightFetcher) processResponse(req fetchRequest, resp fetchResponse) boo
 	for i, header := range resp.headers.Heads {
 		headers[int(req.amount)-1-i] = header
 		signs[int(req.amount)-1-i] = resp.headers.Signs[i]
+		hash := header.Hash()
+		if err := f.chain.Engine().VerifySigns(header.Number, hash, signs[int(req.amount)-1-i]); err != nil {
+			log.Info("VerifySigns error", "num", header.Number, "hash", hash, "err", err)
+			return false
+		}
 	}
 	if _, err := f.chain.InsertHeaderChain(headers, 1); err != nil {
 		if err == consensus.ErrFutureBlock {

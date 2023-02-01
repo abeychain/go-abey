@@ -581,6 +581,17 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&resp); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
+		// store the signs and infos of the body
+		for _, body := range resp.Data {
+			if len(body.Signs) > 0 {
+				hash, num := body.Signs[0].FastHash, body.Signs[0].FastHeight
+				rlpbody := &types.Body{
+					Signs: body.Signs,
+					Infos: body.Infos,
+				}
+				rawdb.WriteBody(pm.chainDb, hash, num.Uint64(), rlpbody)
+			}
+		}
 		p.fcServer.GotReply(resp.ReqID, resp.BV)
 		deliverMsg = &Msg{
 			MsgType: MsgBlockBodies,
