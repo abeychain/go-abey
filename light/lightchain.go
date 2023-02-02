@@ -94,7 +94,7 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 	if err != nil {
 		return nil, err
 	}
-	bc.genesisBlock, _ = bc.GetBlockByNumber(NoOdr, 0)
+	bc.genesisBlock, _ = bc.GetBlockByNumber(NoOdr, params.LesProtocolGenesisBlock)
 	if bc.genesisBlock == nil {
 		return nil, core.ErrNoGenesis
 	}
