@@ -23,7 +23,6 @@ import (
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/core"
-	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/les/flowcontrol"
 	"github.com/abeychain/go-abey/light"
@@ -33,6 +32,7 @@ import (
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rlp"
 	"math"
+	"math/big"
 	"sync"
 )
 
@@ -49,7 +49,10 @@ type LesServer struct {
 
 func NewLesServer(abey *abey.Abeychain, config *abey.Config) (*LesServer, error) {
 	quitSync := make(chan struct{})
-	pm, err := NewProtocolManager(abey.BlockChain().Config(), light.DefaultServerIndexerConfig, false, config.NetworkId, abey.EventMux(), abey.Engine(), newPeerSet(), abey.BlockChain(), abey.TxPool(), abey.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
+	pm, err := NewProtocolManager(abey.BlockChain().Config(), light.DefaultServerIndexerConfig, false,
+		config.NetworkId, abey.EventMux(), abey.Engine(), newPeerSet(), abey.BlockChain(),
+		abey.TxPool(), abey.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
+	
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +334,8 @@ func (pm *ProtocolManager) blockLoop() {
 					header := ev.Block.Header()
 					hash := header.Hash()
 					number := header.Number.Uint64()
-					td := rawdb.ReadTd(pm.chainDb, hash, number)
+					//td := rawdb.ReadTd(pm.chainDb, hash, number)
+					td := big.NewInt(int64(number + 1)) // td = number + 1
 					if td != nil && td.Cmp(lastBroadcastTd) > 0 {
 						lastBroadcastTd = td
 
