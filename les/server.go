@@ -47,12 +47,19 @@ type LesServer struct {
 	quitSync    chan struct{}
 }
 
+func getGenesisHash(abey *abey.Abeychain) common.Hash {
+	block := abey.BlockChain().GetBlockByNumber(params.LesProtocolGenesisBlock)
+	hash := block.Hash()
+	return hash
+}
+
 func NewLesServer(abey *abey.Abeychain, config *abey.Config) (*LesServer, error) {
 	quitSync := make(chan struct{})
+	genesisHash := getGenesisHash(abey)
 	pm, err := NewProtocolManager(abey.BlockChain().Config(), light.DefaultServerIndexerConfig, false,
 		config.NetworkId, abey.EventMux(), abey.Engine(), newPeerSet(), abey.BlockChain(),
-		abey.TxPool(), abey.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
-	
+		abey.TxPool(), abey.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup), genesisHash)
+
 	if err != nil {
 		return nil, err
 	}
