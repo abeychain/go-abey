@@ -117,6 +117,7 @@ type ProtocolManager struct {
 	quitSync    chan struct{}
 	noMorePeers chan struct{}
 
+	genesisHash common.Hash
 	// wait group is used for graceful shutdowns during downloading
 	// and processing
 	wg *sync.WaitGroup
@@ -126,7 +127,7 @@ type ProtocolManager struct {
 // with the abeychain network.
 func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.IndexerConfig, lightSync bool, networkId uint64,
 	mux *event.TypeMux, engine consensus.Engine, peers *peerSet, blockchain BlockChain, txpool txPool, chainDb abeydb.Database,
-	odr *LesOdr, txrelay *LesTxRelay, serverPool *serverPool, quitSync chan struct{}, wg *sync.WaitGroup) (*ProtocolManager, error) {
+	odr *LesOdr, txrelay *LesTxRelay, serverPool *serverPool, quitSync chan struct{}, wg *sync.WaitGroup, genesisHash common.Hash) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		lightSync:   lightSync,
@@ -145,6 +146,7 @@ func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.In
 		quitSync:    quitSync,
 		wg:          wg,
 		noMorePeers: make(chan struct{}),
+		genesisHash: genesisHash,
 	}
 	if odr != nil {
 		manager.retriever = odr.retriever
@@ -248,13 +250,12 @@ func (pm *ProtocolManager) handle(p *peer) error {
 
 	// Execute the LES handshake
 	var (
-		genesis = pm.blockchain.Genesis()
-		head    = pm.blockchain.CurrentHeader()
-		hash    = head.Hash()
-		number  = head.Number.Uint64()
-		td      = big.NewInt(int64(number + 1))
+		head   = pm.blockchain.CurrentHeader()
+		hash   = head.Hash()
+		number = head.Number.Uint64()
+		td     = big.NewInt(int64(number + 1))
 	)
-	if err := p.Handshake(td, hash, number, genesis.Hash(), pm.server); err != nil {
+	if err := p.Handshake(td, hash, number, pm.genesisHash, pm.server); err != nil {
 		p.Log().Debug("Light Abeychain handshake failed", "err", err)
 		return err
 	}

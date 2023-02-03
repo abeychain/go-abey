@@ -147,7 +147,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	labey.txPool = light.NewTxPool(labey.chainConfig, labey.blockchain, labey.relay)
 	if labey.protocolManager, err = NewProtocolManager(labey.chainConfig, light.DefaultClientIndexerConfig, true,
 		config.NetworkId, labey.eventMux, labey.engine, labey.peers, labey.blockchain, nil,
-		chainDb, labey.odr, labey.relay, labey.serverPool, quitSync, &labey.wg); err != nil {
+		chainDb, labey.odr, labey.relay, labey.serverPool, quitSync, &labey.wg, labey.genesisHash); err != nil {
 		return nil, err
 	}
 	labey.ApiBackend = &LesApiBackend{labey, nil}
