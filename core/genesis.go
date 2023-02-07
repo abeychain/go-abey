@@ -67,6 +67,10 @@ type Genesis struct {
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
 }
+type LesGenesis struct {
+	Header    *types.Header            `json:"header"`
+	Committee []*types.CommitteeMember `json:"committee"`
+}
 
 // GenesisAccount is an account in the state of the genesis block.
 type GenesisAccount struct {
@@ -696,17 +700,63 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		},
 	}
 }
-func DefaultGenesisBlockForLes() *Genesis {
-	return &Genesis{
-		Config:     params.MainnetChainConfig,
-		Number:     params.LesProtocolGenesisBlock,
-		Nonce:      402,
-		ExtraData:  hexutil.MustDecode("0x0123456789"),
-		GasLimit:   16777216,
-		Difficulty: big.NewInt(8388608),
-		//Timestamp:  1553918400,
-		Coinbase:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
-		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+func DefaultGenesisBlockForLes() *LesGenesis {
+	key1 := hexutil.MustDecode("0x04600254af4ce74276f54b4f9df193f2cb72ed76b7341cb144f4d6f1408402dc10719eebdcb947ced9ac6fe9a690e004692db6222de7867cbab712246eb23a50b7")
+	// priv2: a0eb966cae593e0d85c7eda4ad4815d0c857bee9a7085a8b19e52e3227138ae4
+	// addr2: 0xf353ab1417177F766497bF716D7aAd4ECd5f36C8
+	key2 := hexutil.MustDecode("0x043ae657860b05d119351eac9d2f4531811ade3895ee2df00661368ca528ee36ceb850315f7bb566c6bbebf765e2c15f6af16b253a4d3d930cca7a191ae14af80d")
+	// priv3: 5b743d4234c54710a644ff93a6f5284af065d2a42fff5b51de73a7c13d427b1c
+	// addr3: 0x8fF345746C3d3435a105538E4c024Af5FE700598
+	key3 := hexutil.MustDecode("0x049e0a67955d69e28faabe654b4a8f85e7d32b32fd2687a080e6357b53ec9413ad4f472d979bdccfe21cb135c7e144ca90f2beeb728b06e59f80918c7e52fbc6ff")
+	// priv4: 229ca04fb83ec698296037c7d2b04a731905df53b96c260555cbeed9e4c64036
+	// addr4: 0xf0C8898B2016Afa0Ec5912413ebe403930446779
+	key4 := hexutil.MustDecode("0x04718502f879a949ca5fa29f78f1d3cef362ecdc36ee42a3023cca80371c2e1936d1f632a0ec5bf5edb2af228a5ba1669d31ea55df87548de172e5767b9201097d")
+
+	logs := common.FromHex("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	return &LesGenesis{
+		Header: &types.Header{
+			ParentHash:    common.HexToHash("0xf741dc3d4861af7d5ebb6d2fb70da444027f6345bdfecc1d27fbd71839dd52b4"),
+			Root:          common.HexToHash("0xc6d054d6132d77257344a97dcc100ef645fb55840e787af46d96ccb0df5b404c"),
+			TxHash:        common.HexToHash("0x16645d96c08755c115738139ff9d84002f04fb076b1d1384c063cdc83cb67e32"),
+			ReceiptHash:   common.HexToHash("0xd95b673818fa493deec414e01e610d97ee287c9421c8eff4102b1647c1a184e4"),
+			CommitteeHash: common.HexToHash("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"),
+			Proposer:      common.HexToAddress("0x3dde9f28c3ec9eef3e5bf8b510be506513226e2e"),
+			Bloom:         types.BytesToBloom(logs),
+			SnailHash:     common.HexToHash("0x7578c65cb797565143b1f84a3c4bbe30687f3200cb279bed59fcde344a1fe4eb"),
+			SnailNumber:   big.NewInt(0),
+			Number:        big.NewInt(9000000),
+			GasLimit:      16000000,
+			GasUsed:       42000,
+			Time:          big.NewInt(1663377377),
+			Extra:         hexutil.MustDecode(""),
+		},
+		Committee: []*types.CommitteeMember{
+			{Coinbase: common.HexToAddress("0x3e3429F72450A39CE227026E8DdeF331E9973E4d"), Publickey: key1},
+			{Coinbase: common.HexToAddress("0xf353ab1417177F766497bF716D7aAd4ECd5f36C8"), Publickey: key2},
+			{Coinbase: common.HexToAddress("0x8fF345746C3d3435a105538E4c024Af5FE700598"), Publickey: key3},
+			{Coinbase: common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"), Publickey: key4},
+		},
 	}
+}
+func (g *LesGenesis) ToLesFastBlock(db abeydb.Database) *types.Block {
+	if db == nil {
+		db = abeydb.NewMemDatabase()
+	}
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+
+	root := statedb.IntermediateRoot(false)
+
+	head := g.Header
+	statedb.Commit(false)
+	statedb.Database().TrieDB().Commit(root, true)
+
+	// All genesis committee members are included in switchinfo of block #0
+	committee := &types.SwitchInfos{CID: common.Big0, Members: g.Committee, BackMembers: make([]*types.CommitteeMember, 0), Vals: make([]*types.SwitchEnter, 0)}
+	for _, member := range committee.Members {
+		pubkey, _ := crypto.UnmarshalPubkey(member.Publickey)
+		member.Flag = types.StateUsedFlag
+		member.MType = types.TypeFixed
+		member.CommitteeBase = crypto.PubkeyToAddress(*pubkey)
+	}
+	return types.NewBlock(head, nil, nil, nil, committee.Members)
 }
