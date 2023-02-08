@@ -84,7 +84,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockForLes(chainDb, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockForLes(chainDb)
 	if genesisErr != nil {
 		return nil, genesisErr
 	}

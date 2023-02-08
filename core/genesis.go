@@ -157,15 +157,8 @@ func SetupGenesisBlock(db abeydb.Database, genesis *Genesis) (*params.ChainConfi
 	return fastConfig, fastHash, snailHash, fastErr
 
 }
-func SetupGenesisBlockForLes(db abeydb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
-	if genesis != nil && genesis.Config == nil {
-		return params.AllMinervaProtocolChanges, common.Hash{}, errGenesisNoConfig
-	}
-
-	fastConfig, fastHash, fastErr := setupFastGenesisBlockForLes(db, genesis)
-
-	return fastConfig, fastHash, fastErr
-
+func SetupGenesisBlockForLes(db abeydb.Database) (*params.ChainConfig, common.Hash, error) {
+	return setupFastGenesisBlockForLes(db)
 }
 
 // setupFastGenesisBlock writes or updates the fast genesis block in db.
@@ -235,11 +228,7 @@ func setupFastGenesisBlock(db abeydb.Database, genesis *Genesis) (*params.ChainC
 	rawdb.WriteChainConfig(db, stored, newcfg)
 	return newcfg, stored, nil
 }
-func setupFastGenesisBlockForLes(db abeydb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
-	if genesis != nil && genesis.Config == nil {
-		return params.AllMinervaProtocolChanges, common.Hash{}, errGenesisNoConfig
-	}
-
+func setupFastGenesisBlockForLes(db abeydb.Database) (*params.ChainConfig, common.Hash, error) {
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, params.LesProtocolGenesisBlock)
 	if (stored == common.Hash{}) {
@@ -248,7 +237,6 @@ func setupFastGenesisBlockForLes(db abeydb.Database, genesis *Genesis) (*params.
 		block, err := Lesgenesis.CommitFast(db)
 		return Lesgenesis.Config, block.Hash(), err
 	}
-
 	// Get the existing chain configuration.
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
