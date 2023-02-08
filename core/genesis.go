@@ -68,6 +68,7 @@ type Genesis struct {
 	ParentHash common.Hash `json:"parentHash"`
 }
 type LesGenesis struct {
+	Config    *params.ChainConfig      `json:"config"`
 	Header    *types.Header            `json:"header"`
 	Committee []*types.CommitteeMember `json:"committee"`
 }
@@ -710,6 +711,7 @@ func DefaultGenesisBlockForLes() *LesGenesis {
 
 	logs := common.FromHex("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	return &LesGenesis{
+		Config: params.MainnetChainConfig,
 		Header: &types.Header{
 			ParentHash:    common.HexToHash("0xf741dc3d4861af7d5ebb6d2fb70da444027f6345bdfecc1d27fbd71839dd52b4"),
 			Root:          common.HexToHash("0xc6d054d6132d77257344a97dcc100ef645fb55840e787af46d96ccb0df5b404c"),
@@ -748,8 +750,8 @@ func (g *LesGenesis) ToLesFastBlock() *types.Block {
 }
 func (g *LesGenesis) CommitFast(db abeydb.Database) (*types.Block, error) {
 	block := g.ToLesFastBlock()
-	if block.Number().Sign() != 0 {
-		return nil, fmt.Errorf("can't commit genesis block with number > 0")
+	if block.Number().Uint64() != params.LesProtocolGenesisBlock {
+		return nil, fmt.Errorf("can't commit genesis block with number != %d", params.LesProtocolGenesisBlock)
 	}
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
