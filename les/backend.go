@@ -85,10 +85,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 		return nil, err
 	}
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlockForLes(chainDb, config.Genesis)
-	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
-		return nil, genesisErr
-	}
-	if _, isCompat := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !isCompat {
+	if genesisErr != nil {
 		return nil, genesisErr
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
