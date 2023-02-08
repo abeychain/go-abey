@@ -242,13 +242,9 @@ func setupFastGenesisBlockForLes(db abeydb.Database, genesis *Genesis) (*params.
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, params.LesProtocolGenesisBlock)
 	if (stored == common.Hash{}) {
-		if genesis == nil {
-			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlockForLes()
-		} else {
-			log.Info("Writing custom genesis block")
-		}
-		block, err := genesis.CommitFast(db)
+		Lesgenesis := DefaultGenesisBlockForLes()
+		log.Info("Writing default main-net les genesis block and Writing genesis block")
+		block, err := Lesgenesis.CommitFast(db)
 		return genesis.Config, block.Hash(), err
 	}
 
@@ -738,18 +734,8 @@ func DefaultGenesisBlockForLes() *LesGenesis {
 		},
 	}
 }
-func (g *LesGenesis) ToLesFastBlock(db abeydb.Database) *types.Block {
-	if db == nil {
-		db = abeydb.NewMemDatabase()
-	}
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
-
-	root := statedb.IntermediateRoot(false)
-
+func (g *LesGenesis) ToLesFastBlock() *types.Block {
 	head := g.Header
-	statedb.Commit(false)
-	statedb.Database().TrieDB().Commit(root, true)
-
 	// All genesis committee members are included in switchinfo of block #0
 	committee := &types.SwitchInfos{CID: common.Big0, Members: g.Committee, BackMembers: make([]*types.CommitteeMember, 0), Vals: make([]*types.SwitchEnter, 0)}
 	for _, member := range committee.Members {
@@ -759,4 +745,23 @@ func (g *LesGenesis) ToLesFastBlock(db abeydb.Database) *types.Block {
 		member.CommitteeBase = crypto.PubkeyToAddress(*pubkey)
 	}
 	return types.NewBlock(head, nil, nil, nil, committee.Members)
+}
+func (g *LesGenesis) CommitFast(db abeydb.Database) (*types.Block, error) {
+	block := g.ToLesFastBlock()
+	if block.Number().Sign() != 0 {
+		return nil, fmt.Errorf("can't commit genesis block with number > 0")
+	}
+	rawdb.WriteBlock(db, block)
+	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
+	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
+	rawdb.WriteHeadBlockHash(db, block.Hash())
+	rawdb.WriteHeadHeaderHash(db, block.Hash())
+	rawdb.WriteStateGcBR(db, block.NumberU64())
+
+	config := g.Config
+	if config == nil {
+		config = params.AllMinervaProtocolChanges
+	}
+	rawdb.WriteChainConfig(db, block.Hash(), config)
+	return block, nil
 }
