@@ -246,34 +246,20 @@ func setupFastGenesisBlockForLes(db abeydb.Database, genesis *Genesis) (*params.
 		Lesgenesis := DefaultGenesisBlockForLes()
 		log.Info("Writing default main-net les genesis block and Writing genesis block")
 		block, err := Lesgenesis.CommitFast(db)
-		return genesis.Config, block.Hash(), err
-	}
-
-	// Check whether the genesis block is already written.
-	if genesis != nil {
-		hash := genesis.ToFastBlock(nil).Hash()
-		if hash != stored {
-			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
-		}
+		return Lesgenesis.Config, block.Hash(), err
 	}
 
 	// Get the existing chain configuration.
-	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
-		log.Warn("Found genesis block without chain config")
-		rawdb.WriteChainConfig(db, stored, newcfg)
-		return newcfg, stored, nil
+		log.Error("Found les genesis block without chain config")
+		return params.AllMinervaProtocolChanges, stored, fmt.Errorf("cann't found chain config from genesis")
 	}
-	// Special case: don't change the existing config of a non-mainnet chain if no new
-	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
-	// if we just continued here.
-	if genesis == nil && stored != params.MainnetGenesisHashForLes {
-		return storedcfg, stored, nil
+	if stored != params.MainnetGenesisHashForLes {
+		log.Error("genesis hash not equal......")
+		return params.AllMinervaProtocolChanges, stored, fmt.Errorf("default genesis hash not equal")
 	}
-	// remove check config compatibility
-	rawdb.WriteChainConfig(db, stored, newcfg)
-	return newcfg, stored, nil
+	return storedcfg, stored, nil
 }
 
 // CommitFast writes the block and state of a genesis specification to the database.
