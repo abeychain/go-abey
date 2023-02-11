@@ -19,10 +19,12 @@ package core
 //
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/abeychain/go-abey/abeyclient"
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus"
@@ -61,10 +63,27 @@ func TestDefaultGenesisBlock(t *testing.T) {
 	}
 }
 func TestDefaultLesGenesisBlock(t *testing.T) {
+	client, err := abeyclient.Dial("https://rpc.abeychain.com")
+	if err != nil {
+		t.Errorf("dail failed,%v", err)
+	}
+	block0, err := client.BlockByNumber(context.Background(), big.NewInt(int64(params.LesProtocolGenesisBlock)))
+	if err != nil {
+		t.Errorf("dail failed,%v", err)
+	}
+	if block0.Hash() != params.MainnetGenesisHashForLes {
+		fmt.Println(block0.Hash().Hex())
+		t.Errorf("wrong mainnet genesis hash, got %v, want %v", common.ToHex(block0.Hash().Bytes()), params.MainnetGenesisHashForLes.Hex())
+	}
 	block := DefaultGenesisBlockForLes().ToLesFastBlock()
+
+	fmt.Println("txhash", block0.Header().TxHash.Hex(), block.Header().TxHash.Hex())
+	fmt.Println("CommitteeHash", block0.Header().CommitteeHash.Hex(), block.Header().CommitteeHash.Hex())
+	fmt.Println("ReceiptHash", block0.Header().ReceiptHash.Hex(), block.Header().ReceiptHash.Hex())
+
 	if block.Hash() != params.MainnetGenesisHashForLes {
 		fmt.Println(block.Hash().Hex())
-		t.Errorf("wrong mainnet genesis hash, got %v, want %v", common.ToHex(block.Hash().Bytes()), params.MainnetGenesisHash)
+		t.Errorf("wrong mainnet genesis hash, got %v, want %v", common.ToHex(block.Hash().Bytes()), params.MainnetGenesisHashForLes.Hex())
 	}
 }
 
