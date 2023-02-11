@@ -672,16 +672,16 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	}
 }
 func DefaultGenesisBlockForLes() *LesGenesis {
-	key1 := hexutil.MustDecode("0x04600254af4ce74276f54b4f9df193f2cb72ed76b7341cb144f4d6f1408402dc10719eebdcb947ced9ac6fe9a690e004692db6222de7867cbab712246eb23a50b7")
-	// priv2: a0eb966cae593e0d85c7eda4ad4815d0c857bee9a7085a8b19e52e3227138ae4
-	// addr2: 0xf353ab1417177F766497bF716D7aAd4ECd5f36C8
-	key2 := hexutil.MustDecode("0x043ae657860b05d119351eac9d2f4531811ade3895ee2df00661368ca528ee36ceb850315f7bb566c6bbebf765e2c15f6af16b253a4d3d930cca7a191ae14af80d")
-	// priv3: 5b743d4234c54710a644ff93a6f5284af065d2a42fff5b51de73a7c13d427b1c
-	// addr3: 0x8fF345746C3d3435a105538E4c024Af5FE700598
-	key3 := hexutil.MustDecode("0x049e0a67955d69e28faabe654b4a8f85e7d32b32fd2687a080e6357b53ec9413ad4f472d979bdccfe21cb135c7e144ca90f2beeb728b06e59f80918c7e52fbc6ff")
-	// priv4: 229ca04fb83ec698296037c7d2b04a731905df53b96c260555cbeed9e4c64036
-	// addr4: 0xf0C8898B2016Afa0Ec5912413ebe403930446779
-	key4 := hexutil.MustDecode("0x04718502f879a949ca5fa29f78f1d3cef362ecdc36ee42a3023cca80371c2e1936d1f632a0ec5bf5edb2af228a5ba1669d31ea55df87548de172e5767b9201097d")
+	key1 := hexutil.MustDecode("0x04e9dd750f5a409ae52533241c0b4a844c000613f34320c737f787b69ebaca45f10703f77a1b78ed00a8bd5c0bc22508262a33a81e65b2e90a4eb9a8f5a6391db3")
+	key2 := hexutil.MustDecode("0x04c042a428a7df304ac7ea81c1555da49310cebb079a905c8256080e8234af804dad4ad9995771f96fba8182b117f62d2f1a6643e27f5f272c293a8301b6a84442")
+	key3 := hexutil.MustDecode("0x04dc1da011509b6ea17527550cc480f6eb076a225da2bcc87ec7a24669375f229945d76e4f9dbb4bd26c72392050a18c3922bd7ef38c04e018192b253ef4fc9dcb")
+	key4 := hexutil.MustDecode("0x04952af3d04c0b0ba3d16eea8ca0ab6529f5c6e2d08f4aa954ae2296d4ded9f04c8a9e1d52be72e6cebb86b4524645fafac04ac8633c4b33638254b2eb64a89c6a")
+	key5 := hexutil.MustDecode("0x04290cdc7fe53df0f93d43264302337751a58bcf67ee56799abea93b0a6205be8b3c8f1c9dac281f4d759475076596d30aa360d0c3b160dc28ea300b7e4925fb32")
+	key6 := hexutil.MustDecode("0x04427e32084f7565970d74a3df317b68de59e62f28b86700c8a5e3ae83a781ec163c4c83544bd8f88b8d70c4d71f2827b7b279bfc25481453dd35533cf234b2dfe")
+	key7 := hexutil.MustDecode("0x04dd9980aac0edead2de77cc6cde74875c14ac21d95a1cb49d36b810246b50420f1dc7c19f5296d739fcfceb454a18f250fa7802280f5298e5e2b2a591faa15cf9")
+	key8 := hexutil.MustDecode("0x04039dd0fb3869e7d2a1eeb95c9a6475771883614b289c604bf6fef2e1e9dd57340d888f59db0129d250394909d4a3b041bd66e6b83f345b38a397fdeb036b3e1c")
+	key9 := hexutil.MustDecode("0x042ec25823b375f655117d1a7003f9526e9adc0d6d50150812e0408fbfb3256810c912d7cd7e5441bc5e54ac143fb6274ac496548e1a2aaaf370e8aa8b5b1ced4d")
+	key10 := hexutil.MustDecode("0x043e3014c29e42015fe891ca3e97e5fb05961beca9e349b821c6738eadd17d9b784295638e26c1d7ca71beb8703ec8cf944c67f3835bf5119f78192b535ac6a5e0")
 
 	logs := common.FromHex("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	return &LesGenesis{
@@ -703,22 +703,27 @@ func DefaultGenesisBlockForLes() *LesGenesis {
 			//Extra:         hexutil.MustDecode(""),
 		},
 		Committee: []*types.CommitteeMember{
-			{Coinbase: common.HexToAddress("0x3e3429F72450A39CE227026E8DdeF331E9973E4d"), Publickey: key1},
-			{Coinbase: common.HexToAddress("0xf353ab1417177F766497bF716D7aAd4ECd5f36C8"), Publickey: key2},
-			{Coinbase: common.HexToAddress("0x8fF345746C3d3435a105538E4c024Af5FE700598"), Publickey: key3},
-			{Coinbase: common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"), Publickey: key4},
+			{Coinbase: common.HexToAddress("0x80f0a40f60f08a4d7345a8411ff1721e25d23df5"), Publickey: key1},
+			{Coinbase: common.HexToAddress("0x1cfe2a1d7b9cbfce14d06baffa338b2465216255"), Publickey: key2},
+			{Coinbase: common.HexToAddress("0x1275db492b0d02855a38bd3cdf73c92137cd1691"), Publickey: key3},
+			{Coinbase: common.HexToAddress("0xf11a544f74a2f4faa2af8aa38f9388a4cc2f3acc"), Publickey: key4},
+			{Coinbase: common.HexToAddress("0xc30e75016f5a82ee6f0a7989f9dcd5f030c83b3a"), Publickey: key5},
+			{Coinbase: common.HexToAddress("0x1e2e48fa3cc3417474ec264de53d6305109af1b9"), Publickey: key6},
+			{Coinbase: common.HexToAddress("0x7adc129c637f93c9392c59e9c4d406fdc28aab43"), Publickey: key7},
+			{Coinbase: common.HexToAddress("0xf9621aea3d6492d43dc96b5472c4680021793109"), Publickey: key8},
+			{Coinbase: common.HexToAddress("0x5552fac84cd38dedaf8c80a195591cbced1f4a8d"), Publickey: key9},
+			{Coinbase: common.HexToAddress("0xba9779b7173099354630bd87b5b972441e3605bd"), Publickey: key10},
 		},
 	}
 }
 func (g *LesGenesis) ToLesFastBlock() *types.Block {
 	head := g.Header
-	fmt.Println(head.TxHash.Hex())
 	// All genesis committee members are included in switchinfo of block #0
 	committee := &types.SwitchInfos{CID: common.Big0, Members: g.Committee, BackMembers: make([]*types.CommitteeMember, 0), Vals: make([]*types.SwitchEnter, 0)}
 	for _, member := range committee.Members {
 		pubkey, _ := crypto.UnmarshalPubkey(member.Publickey)
 		member.Flag = types.StateUsedFlag
-		member.MType = types.TypeFixed
+		member.MType = types.TypeWorked
 		member.CommitteeBase = crypto.PubkeyToAddress(*pubkey)
 	}
 	return types.NewLesRawBlock(head, committee.Members)
