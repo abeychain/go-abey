@@ -60,6 +60,13 @@ func TestDefaultGenesisBlock(t *testing.T) {
 		t.Errorf("wrong testnet genesis hash, got %v, want %v", common.ToHex(block.Hash().Bytes()), params.TestnetGenesisHash)
 	}
 }
+func TestDefaultLesGenesisBlock(t *testing.T) {
+	block := DefaultGenesisBlockForLes().ToLesFastBlock()
+	if block.Hash() != params.MainnetGenesisHashForLes {
+		fmt.Println(block.Hash().Hex())
+		t.Errorf("wrong mainnet genesis hash, got %v, want %v", common.ToHex(block.Hash().Bytes()), params.MainnetGenesisHash)
+	}
+}
 
 func TestSetupGenesis(t *testing.T) {
 	var (
