@@ -712,6 +712,7 @@ func DefaultGenesisBlockForLes() *LesGenesis {
 }
 func (g *LesGenesis) ToLesFastBlock() *types.Block {
 	head := g.Header
+	fmt.Println(head.TxHash.Hex())
 	// All genesis committee members are included in switchinfo of block #0
 	committee := &types.SwitchInfos{CID: common.Big0, Members: g.Committee, BackMembers: make([]*types.CommitteeMember, 0), Vals: make([]*types.SwitchEnter, 0)}
 	for _, member := range committee.Members {
@@ -720,7 +721,7 @@ func (g *LesGenesis) ToLesFastBlock() *types.Block {
 		member.MType = types.TypeFixed
 		member.CommitteeBase = crypto.PubkeyToAddress(*pubkey)
 	}
-	return types.NewBlock(head, nil, nil, nil, committee.Members)
+	return types.NewLesRawBlock(head, committee.Members)
 }
 func (g *LesGenesis) CommitFast(db abeydb.Database) (*types.Block, error) {
 	block := g.ToLesFastBlock()

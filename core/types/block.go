@@ -270,6 +270,17 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, signs []*
 	b.header.CommitteeHash = rlpHash(b.infos)
 	return b
 }
+func NewLesRawBlock(header *Header, infos []*CommitteeMember) *Block {
+	b := &Block{
+		header: CopyHeader(header),
+	}
+
+	if len(infos) != 0 {
+		b.infos = make([]*CommitteeMember, len(infos))
+		copy(b.infos, infos)
+	}
+	return b
+}
 
 // SetLeaderSign keep the sign on the head for proposal
 func (b *Body) SetLeaderSign(sign *PbftSign) {
