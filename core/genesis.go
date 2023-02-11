@@ -700,7 +700,7 @@ func DefaultGenesisBlockForLes() *LesGenesis {
 			GasLimit:      16000000,
 			GasUsed:       42000,
 			Time:          big.NewInt(1663377377),
-			Extra:         hexutil.MustDecode(""),
+			//Extra:         hexutil.MustDecode(""),
 		},
 		Committee: []*types.CommitteeMember{
 			{Coinbase: common.HexToAddress("0x3e3429F72450A39CE227026E8DdeF331E9973E4d"), Publickey: key1},
