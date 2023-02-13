@@ -716,6 +716,7 @@ func DefaultGenesisBlockForLes() *LesGenesis {
 		},
 	}
 }
+
 func (g *LesGenesis) ToLesFastBlock() *types.Block {
 	head := g.Header
 	// All genesis committee members are included in switchinfo of block #0

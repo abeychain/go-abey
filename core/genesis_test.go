@@ -76,7 +76,10 @@ func TestDefaultLesGenesisBlock(t *testing.T) {
 		t.Errorf("wrong mainnet genesis hash, got %v, want %v", common.ToHex(block0.Hash().Bytes()), params.MainnetGenesisHashForLes.Hex())
 	}
 	block := DefaultGenesisBlockForLes().ToLesFastBlock()
-
+	chash := types.RlpHash(block0.SwitchInfos())
+	chash2 := types.RlpHash(block.SwitchInfos())
+	fmt.Println("chash", chash.Hex())
+	fmt.Println("chash2", chash2.Hex())
 	fmt.Println("txhash", block0.Header().TxHash.Hex(), block.Header().TxHash.Hex())
 	fmt.Println("CommitteeHash", block0.Header().CommitteeHash.Hex(), block.Header().CommitteeHash.Hex())
 	fmt.Println("ReceiptHash", block0.Header().ReceiptHash.Hex(), block.Header().ReceiptHash.Hex())
