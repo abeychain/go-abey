@@ -194,6 +194,10 @@ func (lc *LightChain) ResetWithGenesisBlock(genesis *types.Block) {
 	lc.genesisBlock = genesis
 	lc.hc.SetGenesis(lc.genesisBlock.Header())
 	lc.hc.SetCurrentHeader(lc.genesisBlock.Header())
+	infos := genesis.SwitchInfos()
+	if infos != nil {
+		lc.SetSwitchInfos(genesis.NumberU64(), genesis.Header().Hash(), infos)
+	}
 }
 
 // Accessors
@@ -438,6 +442,9 @@ func (lc *LightChain) GetSwitchInfo(number uint64) []*types.CommitteeMember {
 	}
 
 	return rawdb.ReadCommitteeInfo(lc.chainDb, head.Hash(), number)
+}
+func (lc *LightChain) SetSwitchInfos(number uint64, hash common.Hash, infos []*types.CommitteeMember) {
+	rawdb.WriteCommitteeInfo(lc.chainDb, hash, number, infos)
 }
 
 // GetHeaderByNumberOdr retrieves a block header from the database or network
