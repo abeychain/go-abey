@@ -183,7 +183,7 @@ func (lc *LightChain) Reset() {
 // specified genesis state.
 func (lc *LightChain) ResetWithGenesisBlock(genesis *types.Block) {
 	// Dump the entire block chain and purge the caches
-	lc.SetHead(0)
+	lc.SetHead(genesis.NumberU64())
 
 	lc.chainmu.Lock()
 	defer lc.chainmu.Unlock()
