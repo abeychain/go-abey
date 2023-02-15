@@ -127,6 +127,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	if labey.blockchain, err = light.NewLightChain(labey.odr, labey.chainConfig, labey.engine, params.MainnetTrustedCheckpoint); err != nil {
 		return nil, err
 	}
+
 	labey.election = NewLightElection(labey.blockchain)
 	labey.engine.SetElection(labey.election)
 	// Note: AddChildIndexer starts the update process for the child

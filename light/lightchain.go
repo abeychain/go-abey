@@ -94,7 +94,7 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 	if err != nil {
 		return nil, err
 	}
-	bc.genesisBlock, _ = bc.GetBlockByNumber(NoOdr, params.LesProtocolGenesisBlock)
+	bc.genesisBlock, _ = bc.getGenesisFromDB(NoOdr)
 	if bc.genesisBlock == nil {
 		return nil, core.ErrNoGenesis
 	}
@@ -297,6 +297,13 @@ func (lc *LightChain) GetBlockByNumber(ctx context.Context, number uint64) (*typ
 		return nil, err
 	}
 	return lc.GetBlock(ctx, hash, number)
+}
+func (lc *LightChain) getGenesisFromDB(ctx context.Context) (*types.Block, error) {
+	hash, err := GetCanonicalHash(ctx, lc.odr, params.LesProtocolGenesisBlock)
+	if hash == (common.Hash{}) || err != nil {
+		return nil, err
+	}
+	return rawdb.ReadBlock(lc.odr.Database(), hash, params.LesProtocolGenesisBlock), nil
 }
 
 // Stop stops the blockchain service. If any imports are currently in progress
