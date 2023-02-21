@@ -140,3 +140,13 @@ func LesEpochFromHeight(height uint64) (begin, end, id uint64) {
 	end = id * params.NewEpochLength
 	return
 }
+func LesEpochToHeight(id uint64) (begin, end uint64) {
+	f_b, f_e, f_id := LesFirstEpoch()
+	if id <= f_id {
+		begin, end = f_b, f_e
+		return
+	}
+	begin = (id-1)*params.NewEpochLength - 1
+	end = id * params.NewEpochLength
+	return
+}
