@@ -18,6 +18,7 @@ package les
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"math/big"
@@ -302,9 +303,20 @@ func (e *Election) filterWithSwitchInfo(c *types.ElectionCommittee, fastNumber *
 
 	return
 }
-func GetCommitteeFromFullnode(id *big.Int) *types.ElectionCommittee {
+func (e *Election) GetCommitteeFromFullnode(id *big.Int) *types.ElectionCommittee {
 	// TODO get the committee from the full node by rpc
-	return nil
+	height, _ := LesEpochToHeight(id.Uint64())
+	if block, err := e.fastchain.GetBlockByNumber(context.Background(), height); err != nil {
+		log.Error("light chain GetBlockByNumber err", "height", height, "err", err)
+		return &types.ElectionCommittee{Members: e.defaultMembers}
+	} else {
+		infos := block.SwitchInfos()
+		if infos != nil {
+			return &types.ElectionCommittee{Members: infos}
+		} else {
+			return &types.ElectionCommittee{Members: e.defaultMembers}
+		}
+	}
 }
 func (e *Election) getCommittee(id *big.Int) *types.ElectionCommittee {
 	if cache, ok := e.commiteeCache.Get(id.Uint64()); ok {
@@ -317,7 +329,7 @@ func (e *Election) getCommittee(id *big.Int) *types.ElectionCommittee {
 		// genesis committee for committee 0
 		c = &types.ElectionCommittee{Members: e.genesisCommittee}
 	} else {
-		c = GetCommitteeFromFullnode(id)
+		c = e.GetCommitteeFromFullnode(id)
 		log.Info("Committee members", "committee", id, "count", len(c.Members), "backup", len(c.Backups))
 	}
 	e.commiteeCache.Add(id.Uint64(), c)
