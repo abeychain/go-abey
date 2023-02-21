@@ -30,6 +30,11 @@ import (
 	"github.com/abeychain/go-abey/params"
 )
 
+var (
+	LesFirstBlock   = uint64(90000)
+	LesFirstEpochID = uint64(65)
+)
+
 // lesCommons contains fields needed by both server and client.
 type lesCommons struct {
 	config                       *abey.Config
@@ -116,4 +121,22 @@ func (c *lesCommons) nodeInfo() interface{} {
 		Head:       chain.CurrentHeader().Hash(),
 		CHT:        cht,
 	}
+}
+
+func LesFirstEpoch() (begin, end, id uint64) {
+	begin, end, id = LesFirstBlock, LesFirstEpochID+params.NewEpochLength, LesFirstEpochID
+	return
+}
+
+func LesEpochFromHeight(height uint64) (begin, end, id uint64) {
+	f_b, f_e, f_id := LesFirstEpoch()
+	if height <= f_e {
+		begin, end, id = f_b, f_e, f_id
+		return
+	}
+	rang := height - f_e
+	id = rang/params.NewEpochLength + f_id
+	begin = (id-1)*params.NewEpochLength + 1
+	end = id * params.NewEpochLength
+	return
 }
