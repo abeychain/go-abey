@@ -19,7 +19,6 @@ package les
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"errors"
 	"math/big"
 
@@ -35,7 +34,7 @@ import (
 const (
 	committeeCacheLimit = 256
 	// The sha3 of empy switchinfo rlp encoded data
-	emptyCommittee = "1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
+	emptyCommittee = "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
 )
 
 var (
@@ -222,7 +221,7 @@ func (e *Election) GetCommittee(fastNumber *big.Int) []*types.CommitteeMember {
 	}
 }
 
-func (e *Election) loadSwitchPoint(id *big.Int, beginFruit *big.Int, fastNumber *big.Int) []uint64 {
+func (e *Election) loadSwitchPoint(id *big.Int, begin *big.Int, fastNumber *big.Int) []uint64 {
 	var (
 		switches     []uint64
 		switchBlocks *switchPoint
@@ -230,20 +229,20 @@ func (e *Election) loadSwitchPoint(id *big.Int, beginFruit *big.Int, fastNumber 
 
 	if cache, ok := e.switchCache.Get(id.Uint64()); ok {
 		switchBlocks = cache.(*switchPoint)
-		beginFruit = switchBlocks.checkNumber
+		begin = switchBlocks.checkNumber
 		switches = switchBlocks.switches
 	}
-
+	emptyCommitteeHash := common.HexToHash("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")
 	// Retrieve block including switchinfo
-	for i := beginFruit.Uint64(); i < fastNumber.Uint64(); i++ {
+	for i := begin.Uint64() + 1; i < fastNumber.Uint64(); i++ {
 		head := e.fastchain.GetHeaderByNumber(i)
-		if hex.EncodeToString(head.CommitteeHash[:]) == emptyCommittee {
+		if head.CommitteeHash == emptyCommitteeHash {
 			continue
 		}
 		log.Info("Light committee apply switchinfo", "number", i)
 		switches = append(switches, i)
 	}
-	if fastNumber.Cmp(beginFruit) > 0 && (switchBlocks == nil || fastNumber.Cmp(switchBlocks.checkNumber) > 0) {
+	if fastNumber.Cmp(begin) > 0 && (switchBlocks == nil || fastNumber.Cmp(switchBlocks.checkNumber) > 0) {
 		switchBlocks = &switchPoint{
 			checkNumber: fastNumber,
 			switches:    switches,
