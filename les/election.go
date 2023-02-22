@@ -265,12 +265,12 @@ func (e *Election) filterWithSwitchInfo(c *types.ElectionCommittee, fastNumber *
 		if num >= fastNumber.Uint64() {
 			break
 		}
-		b := e.fastchain.GetSwitchInfo(num)
+		b := e.GetCommitteeFromFullnode(big.NewInt(int64(num)))
 		if b == nil {
 			log.Warn("Switch block not exists", "number", num)
 			break
 		}
-		for _, s := range b {
+		for _, s := range b.Members {
 			switch s.Flag {
 			case types.StateAppendFlag:
 				states[s.CommitteeBase] = types.StateAppendFlag
