@@ -85,7 +85,7 @@ func NewLightElection(fastBlockChain *light.LightChain) *Election {
 	election.genesisCommittee = election.getGenesisCommittee()
 	for _, m := range election.genesisCommittee {
 		var member = *m
-		member.Flag = types.StateUnusedFlag
+		//member.Flag = types.StateUnusedFlag
 		election.defaultMembers = append(election.defaultMembers, &member)
 	}
 	return election
