@@ -33,9 +33,7 @@ import (
 )
 
 const (
-	snailchainHeadSize  = 64
 	committeeCacheLimit = 256
-	startFastHeight     = 8800000
 	// The sha3 of empy switchinfo rlp encoded data
 	emptyCommittee = "1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
 )
@@ -208,16 +206,15 @@ func (e *Election) VerifySwitchInfo(fastNumber *big.Int, info []*types.Committee
 
 // GetCommittee gets committee members which propose the fast block
 func (e *Election) GetCommittee(fastNumber *big.Int) []*types.CommitteeMember {
-
-	if startFastHeight > fastNumber.Uint64() {
+	if params.LesProtocolGenesisBlock > fastNumber.Uint64() {
 		return nil
 	}
-	epochInfo := types.GetEpochFromHeight(fastNumber.Uint64())
+	begin, _, epochid := LesEpochFromHeight(fastNumber.Uint64())
 
-	c := e.getCommittee(big.NewInt(int64(epochInfo.EpochID)))
+	c := e.getCommittee(big.NewInt(int64(epochid)))
 
 	// Load switch block to calculate committee members
-	switches := e.loadSwitchPoint(big.NewInt(int64(epochInfo.EpochID)), big.NewInt(int64(epochInfo.BeginHeight)), fastNumber)
+	switches := e.loadSwitchPoint(big.NewInt(int64(epochid)), big.NewInt(int64(begin)), fastNumber)
 	if len(switches) > 0 {
 		return e.filterWithSwitchInfo(c, fastNumber, switches)
 	} else {
