@@ -58,17 +58,6 @@ type switchPoint struct {
 	checkNumber *big.Int
 }
 
-func ElectionEpoch(id *big.Int) (begin *big.Int, end *big.Int) {
-	end = new(big.Int).Mul(id, params.ElectionPeriodNumber)
-	end = end.Sub(end, params.SnailConfirmInterval)
-	if id.Cmp(common.Big1) <= 0 {
-		begin = big.NewInt(1)
-	} else {
-		begin = new(big.Int).Add(new(big.Int).Sub(end, params.ElectionPeriodNumber), common.Big1)
-	}
-	return
-}
-
 // NewLightElection create the instance of committee electioin
 func NewLightElection(fastBlockChain *light.LightChain) *Election {
 	// init

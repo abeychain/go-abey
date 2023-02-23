@@ -255,6 +255,7 @@ func (s *LightAbey) Start(srvr *p2p.Server) error {
 	protocolVersion := AdvertiseProtocolVersions[0]
 	s.serverPool.start(srvr, lesTopic(s.SnailBlockChain().Genesis().Hash(), protocolVersion))
 	s.protocolManager.Start(s.config.LightPeers)
+	s.election.Start()
 	return nil
 }
 
