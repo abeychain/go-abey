@@ -200,6 +200,20 @@ func (e *Election) VerifySigns(signs []*types.PbftSign) ([]*types.CommitteeMembe
 
 // VerifySwitchInfo verify committee members and it's state
 func (e *Election) VerifySwitchInfo(fastNumber *big.Int, info []*types.CommitteeMember) error {
+	c := e.getCommittee(fastNumber)
+	begin, _, _ := LesEpochFromHeight(fastNumber.Uint64())
+	if c == nil {
+		log.Error("Failed to fetch elected committee", "fast", fastNumber)
+		return ErrCommittee
+	}
+	if begin == fastNumber.Uint64() && len(c.Members) == len(info) {
+		for i := range info {
+			if !info[i].Compared(c.Members[i]) {
+				log.Error("SwitchInfo members invalid", "num", fastNumber)
+				return ErrInvalidSwitch
+			}
+		}
+	}
 	return nil
 }
 
