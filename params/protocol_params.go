@@ -201,5 +201,6 @@ var (
 	ElectionMinLimitForStaking        = new(big.Int).Mul(big.NewInt(200000), big.NewInt(1e18))
 )
 var (
-	LesProtocolGenesisBlock uint64 = 9000000
+	// 361 epoch begin=9000001,end=9025000
+	LesProtocolGenesisBlock uint64 = 9000001
 )

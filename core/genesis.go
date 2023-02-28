@@ -671,6 +671,8 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		},
 	}
 }
+
+//
 func DefaultGenesisBlockForLes() *LesGenesis {
 	key1 := hexutil.MustDecode("0x04e9dd750f5a409ae52533241c0b4a844c000613f34320c737f787b69ebaca45f10703f77a1b78ed00a8bd5c0bc22508262a33a81e65b2e90a4eb9a8f5a6391db3")
 	key2 := hexutil.MustDecode("0x04c042a428a7df304ac7ea81c1555da49310cebb079a905c8256080e8234af804dad4ad9995771f96fba8182b117f62d2f1a6643e27f5f272c293a8301b6a84442")
@@ -687,19 +689,19 @@ func DefaultGenesisBlockForLes() *LesGenesis {
 	return &LesGenesis{
 		Config: params.MainnetChainConfig,
 		Header: &types.Header{
-			ParentHash:    common.HexToHash("0xf741dc3d4861af7d5ebb6d2fb70da444027f6345bdfecc1d27fbd71839dd52b4"),
+			ParentHash:    common.HexToHash("0x91b52204707de3a918e0ad3a4184678e8e8f55c91fb4e25e164e962c07b9667b"),
 			Root:          common.HexToHash("0xc6d054d6132d77257344a97dcc100ef645fb55840e787af46d96ccb0df5b404c"),
-			TxHash:        common.HexToHash("0x16645d96c08755c115738139ff9d84002f04fb076b1d1384c063cdc83cb67e32"),
-			ReceiptHash:   common.HexToHash("0xd95b673818fa493deec414e01e610d97ee287c9421c8eff4102b1647c1a184e4"),
-			CommitteeHash: common.HexToHash("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"),
+			TxHash:        common.HexToHash("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
+			ReceiptHash:   common.HexToHash("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
+			CommitteeHash: common.HexToHash("0xf1d923cbd1afa526462842638819540fc0dcf468b34977f48752e5371efdc7d2"),
 			Proposer:      common.HexToAddress("0x3dde9f28c3ec9eef3e5bf8b510be506513226e2e"),
 			Bloom:         types.BytesToBloom(logs),
-			SnailHash:     common.HexToHash("0x7578c65cb797565143b1f84a3c4bbe30687f3200cb279bed59fcde344a1fe4eb"),
+			SnailHash:     common.HexToHash("0xcf9889da04ee54233bb43be2de0770df5852427c38ec26c1ec2f62092a0310cc"),
 			SnailNumber:   big.NewInt(0),
-			Number:        big.NewInt(9000000),
+			Number:        big.NewInt(9000001),
 			GasLimit:      16000000,
-			GasUsed:       42000,
-			Time:          big.NewInt(1663377377),
+			GasUsed:       0,
+			Time:          big.NewInt(1663377382),
 			//Extra:         hexutil.MustDecode(""),
 		},
 		Committee: []*types.CommitteeMember{

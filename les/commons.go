@@ -31,8 +31,9 @@ import (
 )
 
 var (
-	LesFirstBlock   = uint64(90000)
-	LesFirstEpochID = uint64(65)
+	// 361 epoch begin=9000001,end=9025000
+	LesFirstBlock   = uint64(9000001)
+	LesFirstEpochID = uint64(361)
 )
 
 // lesCommons contains fields needed by both server and client.
