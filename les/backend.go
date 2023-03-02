@@ -226,7 +226,7 @@ func (s *LightAbey) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *LightAbey) SnailBlockChain() *light.LightChain     { return s.blockchain }
+func (s *LightAbey) BlockChain() *light.LightChain          { return s.blockchain }
 func (s *LightAbey) TxPool() *light.TxPool                  { return s.txPool }
 func (s *LightAbey) Engine() consensus.Engine               { return s.engine }
 func (s *LightAbey) LesVersion() int                        { return int(ClientProtocolVersions[0]) }
@@ -253,7 +253,7 @@ func (s *LightAbey) Start(srvr *p2p.Server) error {
 	s.netRPCService = abeyapi.NewPublicNetAPI(srvr, s.networkId)
 	// clients are searching for the first advertised protocol in the list
 	protocolVersion := AdvertiseProtocolVersions[0]
-	s.serverPool.start(srvr, lesTopic(s.SnailBlockChain().Genesis().Hash(), protocolVersion))
+	s.serverPool.start(srvr, lesTopic(s.BlockChain().Genesis().Hash(), protocolVersion))
 	s.protocolManager.Start(s.config.LightPeers)
 	s.election.Start()
 	return nil
