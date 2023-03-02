@@ -38,7 +38,7 @@ var (
 
 	DevnetSnailGenesisHash = common.HexToHash("0xfd5f70dd4b70763c0fe9d5238d6ce1c5e86712813775fe6b1654ce0f8129587f")
 	// the hash of block number LesProtocolGenesisBlock
-	MainnetGenesisHashForLes = common.HexToHash("0x91b52204707de3a918e0ad3a4184678e8e8f55c91fb4e25e164e962c07b9667b")
+	MainnetGenesisHashForLes = common.HexToHash("0x7d6610099712bead931d1cf1a4f316f79974a79d6ccf0094da3053dc4122b763")
 )
 
 // TrustedCheckpoints associates each known checkpoint with the genesis hash of
