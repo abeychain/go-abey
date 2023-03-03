@@ -90,7 +90,7 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 		engine:        engine,
 	}
 	var err error
-	bc.hc, err = core.NewHeaderChain(odr.Database(), config, bc.engine, bc.getProcInterrupt)
+	bc.hc, err = core.NewHeaderChainForLes(odr.Database(), config, bc.engine, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
 	}
