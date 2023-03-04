@@ -125,7 +125,7 @@ func (c *lesCommons) nodeInfo() interface{} {
 }
 
 func LesFirstEpoch() (begin, end, id uint64) {
-	begin, end, id = LesFirstBlock, LesFirstEpochID+params.NewEpochLength, LesFirstEpochID
+	begin, end, id = LesFirstBlock, LesFirstBlock+params.NewEpochLength-1, LesFirstEpochID
 	return
 }
 
