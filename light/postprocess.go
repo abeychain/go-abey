@@ -155,7 +155,7 @@ func NewChtIndexer(db abeydb.Database, odr OdrBackend, size, confirms uint64) *c
 		triedb:      trie.NewDatabaseWithCache(trieTable, 1), // Use a tiny cache only to keep memory down
 		sectionSize: size,
 	}
-	return core.NewChainIndexer(db, abeydb.NewTable(db, "chtIndex-"), backend, size, confirms, time.Millisecond*100, "cht")
+	return core.NewChainIndexer(db, abeydb.NewTable(db, "chtIndex-"), backend, size, confirms, time.Millisecond*100, "cht", true)
 }
 
 // fetchMissingNodes tries to retrieve the last entry of the latest trusted CHT from the
@@ -280,7 +280,7 @@ func NewBloomTrieIndexer(db abeydb.Database, odr OdrBackend, parentSize, size ui
 	}
 	backend.bloomTrieRatio = size / parentSize
 	backend.sectionHeads = make([]common.Hash, backend.bloomTrieRatio)
-	return core.NewChainIndexer(db, abeydb.NewTable(db, "bltIndex-"), backend, size, 0, time.Millisecond*100, "bloomtrie")
+	return core.NewChainIndexer(db, abeydb.NewTable(db, "bltIndex-"), backend, size, 0, time.Millisecond*100, "bloomtrie", true)
 }
 
 // fetchMissingNodes tries to retrieve the last entries of the latest trusted bloom trie from the

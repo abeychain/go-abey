@@ -268,7 +268,7 @@ func (e *Election) filterWithSwitchInfo(c *types.ElectionCommittee, fastNumber *
 		if num >= fastNumber.Uint64() {
 			break
 		}
-		b := e.GetCommitteeFromFullnode(big.NewInt(int64(num)))
+		b := e.GetCommitteeFromFullnodeByNumber(big.NewInt(int64(num)))
 		if b == nil {
 			log.Warn("Switch block not exists", "number", num)
 			break
@@ -307,6 +307,19 @@ func (e *Election) GetCommitteeFromFullnode(id *big.Int) *types.ElectionCommitte
 	height, _ := LesEpochToHeight(id.Uint64())
 	if block, err := e.fastchain.GetBlockByNumber(context.Background(), height); err != nil {
 		log.Error("light chain GetBlockByNumber err", "height", height, "err", err)
+		return &types.ElectionCommittee{Members: e.defaultMembers}
+	} else {
+		infos := block.SwitchInfos()
+		if infos != nil {
+			return &types.ElectionCommittee{Members: infos}
+		} else {
+			return &types.ElectionCommittee{Members: e.defaultMembers}
+		}
+	}
+}
+func (e *Election) GetCommitteeFromFullnodeByNumber(height *big.Int) *types.ElectionCommittee {
+	if block, err := e.fastchain.GetBlockByNumber(context.Background(), height.Uint64()); err != nil {
+		log.Error("light chain GetBlockByNumber err", "height", height.Uint64(), "err", err)
 		return &types.ElectionCommittee{Members: e.defaultMembers}
 	} else {
 		infos := block.SwitchInfos()

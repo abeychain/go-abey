@@ -19,9 +19,9 @@ package les
 import (
 	"context"
 	"github.com/abeychain/go-abey/abey/fastdownloader"
+	"math/big"
 	"time"
 
-	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/light"
 )
 
@@ -56,7 +56,7 @@ func (pm *ProtocolManager) syncer() {
 
 func (pm *ProtocolManager) needToSync(peerHead blockInfo) bool {
 	head := pm.blockchain.CurrentHeader()
-	currentTd := rawdb.ReadTd(pm.chainDb, head.Hash(), head.Number.Uint64())
+	currentTd := big.NewInt(int64(head.Number.Uint64() + 1))
 	return currentTd != nil && peerHead.Td.Cmp(currentTd) > 0
 }
 

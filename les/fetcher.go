@@ -574,6 +574,9 @@ func (f *lightFetcher) checkAnnouncedHeaders(fp *fetcherPeerInfo, headers []*typ
 	)
 
 	for i := len(headers) - 1; ; i-- {
+		if headers[i] == nil {
+			continue
+		}
 		if i < 0 {
 			if n == nil {
 				// no more headers and nothing to match
