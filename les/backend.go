@@ -109,7 +109,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 		shutdownChan:   make(chan bool),
 		networkId:      config.NetworkId,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
-		bloomIndexer:   abey.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
+		bloomIndexer:   abey.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations, true),
 	}
 
 	labey.relay = NewLesTxRelay(peers, labey.reqDist)
@@ -124,7 +124,7 @@ func New(ctx *node.ServiceContext, config *abey.Config) (*LightAbey, error) {
 	// Note: NewLightChain adds the trusted checkpoint so it needs an ODR with
 	// indexers already set but not started yet
 	// TODO make the params.MainnetTrustedCheckpoint in the config
-	if labey.blockchain, err = light.NewLightChain(labey.odr, labey.chainConfig, labey.engine, params.MainnetTrustedCheckpoint); err != nil {
+	if labey.blockchain, err = light.NewLightChain(labey.odr, labey.chainConfig, labey.engine, nil); err != nil {
 		return nil, err
 	}
 

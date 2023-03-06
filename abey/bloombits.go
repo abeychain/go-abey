@@ -20,13 +20,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/bitutil"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/bloombits"
 	"github.com/abeychain/go-abey/core/rawdb"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -91,7 +91,7 @@ const (
 type BloomIndexer struct {
 	size uint64 // section size to generate bloombits for
 
-	db  abeydb.Database     // database instance to write index data and metadata into
+	db  abeydb.Database      // database instance to write index data and metadata into
 	gen *bloombits.Generator // generator to rotate the bloom bits crating the bloom index
 
 	section uint64      // Section is the section number being processed currently
@@ -100,14 +100,14 @@ type BloomIndexer struct {
 
 // NewBloomIndexer returns a chain indexer that generates bloom bits data for the
 // canonical chain for fast logs filtering.
-func NewBloomIndexer(db abeydb.Database, size, confirms uint64) *core.ChainIndexer {
+func NewBloomIndexer(db abeydb.Database, size, confirms uint64, light bool) *core.ChainIndexer {
 	backend := &BloomIndexer{
 		db:   db,
 		size: size,
 	}
 	table := abeydb.NewTable(db, string(rawdb.BloomBitsIndexPrefix))
 
-	return core.NewChainIndexer(db, table, backend, size, confirms, bloomThrottling, "bloombits")
+	return core.NewChainIndexer(db, table, backend, size, confirms, bloomThrottling, "bloombits", light)
 }
 
 // Reset implements core.ChainIndexerBackend, starting a new bloombits index

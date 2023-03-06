@@ -156,7 +156,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 		gasPrice:       config.GasPrice,
 		etherbase:      config.Etherbase,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
-		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms, false),
 	}
 
 	log.Info("Initialising Abeychain protocol", "versions", ProtocolVersions, "network", config.NetworkId, "syncmode", config.SyncMode)
