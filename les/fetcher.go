@@ -668,9 +668,6 @@ func (f *lightFetcher) checkKnownNode(p *peer, n *fetcherTreeNode) bool {
 		return true
 	}
 	td := big.NewInt(int64(n.number + 1))
-	if td == nil {
-		return false
-	}
 	header := f.chain.GetHeader(n.hash, n.number)
 	// check the availability of both header and td because reads are not protected by chain db mutex
 	// Note: returning false is always safe here
