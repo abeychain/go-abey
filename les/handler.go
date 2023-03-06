@@ -246,7 +246,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		return p2p.DiscTooManyPeers
 	}
 
-	p.Log().Debug("Light Abeychain peer connected", "name", p.Name())
+	p.Log().Info("Light Abeychain peer connected", "name", p.Name())
 
 	// Execute the LES handshake
 	var (
