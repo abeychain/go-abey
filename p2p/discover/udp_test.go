@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/abeychain/go-abey/log"
+	"github.com/abeychain/go-abey/p2p/discover/v4wire"
 	"io"
 	"math/rand"
 	"net"
@@ -94,7 +95,7 @@ func (test *udpTest) packetIn(wantError error, ptype byte, data packetV4) error 
 
 // handles a packet as if it had been sent to the transport by the key/endpoint.
 func (test *udpTest) packetInFrom(wantError error, key *ecdsa.PrivateKey, addr *net.UDPAddr, ptype byte, data packetV4) error {
-	enc, _, err := encodePacket(key, ptype, data)
+	enc, _, err := v4wire.Encode(key, data)
 	if err != nil {
 		return test.errorf("packet (%d) encode error: %v", ptype, err)
 	}
