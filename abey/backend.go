@@ -172,17 +172,19 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 		vmConfig    = vm.Config{EnablePreimageRecording: config.EnablePreimageRecording}
 		cacheConfig = &core.CacheConfig{Deleted: config.DeletedState, Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
-
+	log.Info("begin NewBlockChain")
 	abey.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, abey.chainConfig, abey.engine, vmConfig)
 	if err != nil {
 		return nil, err
 	}
+	log.Info("end NewBlockChain")
 
+	log.Info("begin NewSnailBlockChain")
 	abey.snailblockchain, err = chain.NewSnailBlockChain(chainDb, abey.chainConfig, abey.engine, abey.blockchain)
 	if err != nil {
 		return nil, err
 	}
-
+	log.Info("end NewSnailBlockChain")
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
