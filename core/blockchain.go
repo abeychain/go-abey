@@ -268,6 +268,7 @@ func (bc *BlockChain) loadLastState() error {
 		log.Warn("Head block missing, resetting chain", "hash", head)
 		return bc.Reset()
 	}
+	log.Info("begin new state")
 	// Make sure the state associated with the block is available
 	if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
 		// Dangling block without a state associated, init from scratch
@@ -277,9 +278,11 @@ func (bc *BlockChain) loadLastState() error {
 			return err
 		}
 	}
+	log.Info("end new state")
 	// Everything seems to be fine, set as the head block
 	bc.currentBlock.Store(currentBlock)
 
+	log.Info("loadLastState 1")
 	// Restore the last known head header
 	currentHeader := currentBlock.Header()
 	if head := rawdb.ReadHeadHeaderHash(bc.db); head != (common.Hash{}) {
@@ -287,6 +290,7 @@ func (bc *BlockChain) loadLastState() error {
 			currentHeader = header
 		}
 	}
+	log.Info("loadLastState 2")
 	bc.hc.SetCurrentHeader(currentHeader)
 
 	// Restore the last known head fast block
@@ -296,9 +300,11 @@ func (bc *BlockChain) loadLastState() error {
 			bc.currentFastBlock.Store(block)
 		}
 	}
+	log.Info("loadLastState 3")
 	// Restore the last known currentReward
 	rewardHead := bc.GetLastRowByFastCurrentBlock()
 
+	log.Info("loadLastState 4")
 	if rewardHead != nil {
 		bc.currentReward.Store(rewardHead)
 		rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
@@ -308,6 +314,7 @@ func (bc *BlockChain) loadLastState() error {
 		rawdb.WriteHeadRewardNumber(bc.db, 0)
 	}
 
+	log.Info("loadLastState 5")
 	// Restore the last known currentReward
 	bc.lastBlock.Store(currentBlock)
 	if head := rawdb.ReadLastBlockHash(bc.db); head != (common.Hash{}) {
@@ -315,7 +322,7 @@ func (bc *BlockChain) loadLastState() error {
 			bc.lastBlock.Store(block)
 		}
 	}
-
+	log.Info("loadLastState 6")
 	// Issue a status log for the user
 	currentFastBlock := bc.CurrentFastBlock()
 	lastBlock := bc.CurrentLastBlock()
