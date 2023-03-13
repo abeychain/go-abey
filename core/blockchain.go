@@ -302,17 +302,17 @@ func (bc *BlockChain) loadLastState() error {
 	}
 	log.Info("loadLastState 3")
 	// Restore the last known currentReward
-	rewardHead := bc.GetLastRowByFastCurrentBlock()
-
-	log.Info("loadLastState 4")
-	if rewardHead != nil {
-		bc.currentReward.Store(rewardHead)
-		rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
-	} else {
-		reward := &types.BlockReward{SnailNumber: big.NewInt(0)}
-		bc.currentReward.Store(reward)
-		rawdb.WriteHeadRewardNumber(bc.db, 0)
-	}
+	//rewardHead := bc.GetLastRowByFastCurrentBlock()
+	//
+	//log.Info("loadLastState 4")
+	//if rewardHead != nil {
+	//	bc.currentReward.Store(rewardHead)
+	//	rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
+	//} else {
+	//	reward := &types.BlockReward{SnailNumber: big.NewInt(0)}
+	//	bc.currentReward.Store(reward)
+	//	rawdb.WriteHeadRewardNumber(bc.db, 0)
+	//}
 
 	log.Info("loadLastState 5")
 	// Restore the last known currentReward
