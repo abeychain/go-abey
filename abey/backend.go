@@ -224,6 +224,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 	abey.engine.SetSnailChainReader(abey.snailblockchain)
 	abey.election.SetEngine(abey.engine)
 
+	log.Info("begin NewProtocolManager")
 	//coinbase, _ := abey.Etherbase()
 	abey.agent = NewPbftAgent(abey, abey.chainConfig, abey.engine, abey.election, config.MinerGasFloor, config.MinerGasCeil)
 	if abey.protocolManager, err = NewProtocolManager(
@@ -233,7 +234,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 		chainDb, abey.agent); err != nil {
 		return nil, err
 	}
-
+	log.Info("end NewProtocolManager")
 	abey.miner = miner.New(abey, abey.chainConfig, abey.EventMux(), abey.engine, abey.election, abey.Config().MineFruit, abey.Config().NodeType, abey.Config().RemoteMine, abey.Config().Mine)
 	abey.miner.SetExtra(makeExtraData(config.ExtraData))
 
