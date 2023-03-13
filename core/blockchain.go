@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/common/prque"
@@ -36,13 +36,13 @@ import (
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/metrics"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rlp"
 	"github.com/abeychain/go-abey/trie"
+	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -103,8 +103,8 @@ type BlockChain struct {
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
 	db     abeydb.Database // Low level persistent database to store final content in
-	triegc *prque.Prque     // Priority queue mapping block numbers to tries to gc
-	gcproc time.Duration    // Accumulates canonical block processing for trie dumping
+	triegc *prque.Prque    // Priority queue mapping block numbers to tries to gc
+	gcproc time.Duration   // Accumulates canonical block processing for trie dumping
 
 	hc               *HeaderChain
 	rmLogsFeed       event.Feed
@@ -204,18 +204,22 @@ func NewBlockChain(db abeydb.Database, cacheConfig *CacheConfig,
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
 
+	log.Info("begin NewHeaderChain")
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
 	}
+	log.Info("end NewHeaderChain")
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
+	log.Info("begin loadLastState")
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
+	log.Info("end loadLastState")
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
 	for hash := range BadHashes {
 		if header := bc.GetHeaderByHash(hash); header != nil {
