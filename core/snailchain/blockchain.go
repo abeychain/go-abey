@@ -28,19 +28,19 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/log"
-	"github.com/abeychain/go-abey/rlp"
-	"github.com/hashicorp/golang-lru"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/snailchain/rawdb"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/metrics"
 	"github.com/abeychain/go-abey/params"
+	"github.com/abeychain/go-abey/rlp"
+	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -74,7 +74,7 @@ const (
 // canonical chain.
 type SnailBlockChain struct {
 	chainConfig *params.ChainConfig // Chain & network configuration
-	db          abeydb.Database    // Low level persistent database to store final content in
+	db          abeydb.Database     // Low level persistent database to store final content in
 
 	hc            *HeaderChain
 	chainFeed     event.Feed
@@ -191,6 +191,7 @@ func (bc *SnailBlockChain) loadLastState() error {
 	}
 	remove := make(types.Fruits, 0, len(currentBlock.Fruits()))
 	maxFruitNumber := currentBlock.Fruits()[len(currentBlock.Fruits())-1].FastNumber()
+	log.Info("begin snail loadLastState", "maxFruitNumber", maxFruitNumber, "Number", bc.blockchain.CurrentHeader().Number)
 	for maxFruitNumber != nil && maxFruitNumber.Cmp(bc.blockchain.CurrentHeader().Number) > 0 {
 		log.Debug("rollback snailBlock", "snailBlock number", currentBlock.Number(), "maxFruitNumber", maxFruitNumber, "current fastblock number", bc.blockchain.CurrentBlock().Number())
 		parentHash := currentBlock.ParentHash()

@@ -18,11 +18,10 @@ package les
 
 import (
 	"context"
-	"github.com/abeychain/go-abey/log"
+	"github.com/abeychain/go-abey/abey/fastdownloader"
+	"math/big"
 	"time"
 
-	"github.com/abeychain/go-abey/core/snailchain/rawdb"
-	"github.com/abeychain/go-abey/abey/downloader"
 	"github.com/abeychain/go-abey/light"
 )
 
@@ -55,40 +54,34 @@ func (pm *ProtocolManager) syncer() {
 	}
 }
 
+func (pm *ProtocolManager) needToSync(peerHead blockInfo) bool {
+	head := pm.blockchain.CurrentHeader()
+	currentTd := big.NewInt(int64(head.Number.Uint64() + 1))
+	return currentTd != nil && peerHead.Td.Cmp(currentTd) > 0
+}
+
 // synchronise tries to sync up our local block chain with a remote peer.
 func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Short circuit if no peers are available
 	if peer == nil {
 		return
 	}
-
+	currentHead := pm.blockchain.CurrentHeader()
+	currentNumber := currentHead.Number.Uint64()
+	remote := uint64(0)
+	if peer.Td().Sign() > 0 {
+		remote = peer.Td().Uint64() - 1 // TD = number + 1
+	}
+	if currentNumber > remote {
+		return
+	}
 	// Make sure the peer's TD is higher than our own.
-	head := pm.blockchain.CurrentHeader()
-	currentTd := rawdb.ReadTd(pm.chainDb, head.Hash(), head.Number.Uint64())
-	headBlockInfo := peer.headBlockInfo()
-	pTd := headBlockInfo.Td
-
-	fhead := pm.fblockchain.CurrentHeader()
-	currentNumber := fhead.Number.Uint64()
-	fastHeight := headBlockInfo.FastNumber
-	pHead := headBlockInfo.FastHash
-
-	if currentTd == nil {
+	if !pm.needToSync(peer.headBlockInfo()) {
 		return
 	}
 
-	if pTd.Cmp(currentTd) <= 0 {
-		log.Info("synchronise fast", "fastHeight", fastHeight, "currentNumber", currentNumber)
-		if fastHeight > currentNumber {
-			if err := pm.downloader.SyncFast(peer.id, pHead, fastHeight, downloader.LightSync); err != nil {
-				log.Error("ProtocolManager fast sync: ", "err", err)
-				return
-			}
-		}
-		return
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	pm.blockchain.(*light.LightChain).SyncCht(ctx)
-	pm.downloader.Synchronise(peer.id, peer.Head(), peer.Td(), downloader.LightSync)
+	pm.downloader.Synchronise(peer.id, peer.Head(), fastdownloader.LightSync, currentNumber, remote)
 }

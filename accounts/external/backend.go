@@ -21,14 +21,14 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/common/hexutil"
-	"github.com/abeychain/go-abey/log"
 	abeychain "github.com/abeychain/go-abey"
 	"github.com/abeychain/go-abey/accounts"
+	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/common/hexutil"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/internal/abeyapi"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/rpc"
 	"github.com/abeychain/go-abey/signer/core"
 )
@@ -39,16 +39,6 @@ type ExternalBackend struct {
 
 func (eb *ExternalBackend) Wallets() []accounts.Wallet {
 	return eb.signers
-}
-
-func NewExternalBackend(endpoint string) (*ExternalBackend, error) {
-	signer, err := NewExternalSigner(endpoint)
-	if err != nil {
-		return nil, err
-	}
-	return &ExternalBackend{
-		signers: []accounts.Wallet{signer},
-	}, nil
 }
 
 func (eb *ExternalBackend) Subscribe(sink chan<- accounts.WalletEvent) event.Subscription {
@@ -162,9 +152,9 @@ func (api *ExternalSigner) SignData(account accounts.Account, mimeType string, d
 		return nil, err
 	}
 	// If V is on 27/28-form, convert to to 0/1 for Clique
-	if mimeType == accounts.MimetypeClique && (res[64] == 27 || res[64] == 28) {
-		res[64] -= 27 // Transform V from 27/28 to 0/1 for Clique use
-	}
+	//if mimeType == accounts.MimetypeClique && (res[64] == 27 || res[64] == 28) {
+	//	res[64] -= 27 // Transform V from 27/28 to 0/1 for Clique use
+	//}
 	return res, nil
 }
 
@@ -172,7 +162,7 @@ func (api *ExternalSigner) SignText(account accounts.Account, text []byte) ([]by
 	var res hexutil.Bytes
 	var signAddress = common.NewMixedcaseAddress(account.Address)
 	if err := api.client.Call(&res, "account_signData",
-		accounts.MimetypeTextPlain,
+		//accounts.MimetypeTextPlain,
 		&signAddress, // Need to use the pointer here, because of how MarshalJSON is defined
 		hexutil.Encode(text)); err != nil {
 		return nil, err

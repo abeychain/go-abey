@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package public
+package light
 
 import (
 	"errors"
 	"sync"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/rlp"
-	"github.com/abeychain/go-abey/abeydb"
 )
 
 // NodeSet stores a set of trie nodes. It implements trie.Database and can also

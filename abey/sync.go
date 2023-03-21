@@ -17,16 +17,15 @@
 package abey
 
 import (
-	"github.com/abeychain/go-abey/params"
 	"math/rand"
 	"sync/atomic"
 	"time"
 
-	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
-	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/abey/downloader"
 	dtype "github.com/abeychain/go-abey/abey/types"
+	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/p2p/enode"
 )
 
@@ -299,7 +298,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		fastHeight, "currentNumber", currentNumber, "snailHeight", currentBlock.Number())
 
 	// sync the fast blocks
-	if pTd.Cmp(td) <= 0 || currentBlock.Number().Cmp(params.StopSnailMiner) >= 0 {
+	if pTd.Cmp(td) <= 0 || currentBlock.Number().Cmp(pm.chainconfig.TIP9.SnailNumber) >= 0 {
 		if fastHeight > currentNumber {
 			pm.eventMux.Post(downloader.StartEvent{})
 			defer sendEvent()
@@ -324,7 +323,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		//else if atomic.LoadUint32(&pm.snapSync) == 1 {
 		//	mode = downloader.SnapShotSync
 		//}
-	}else if pm.blockchain.CurrentBlock().NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
+	} else if pm.blockchain.CurrentBlock().NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
 		// The database  seems empty as the current block is the genesis. Yet the fast
 		// block is ahead, so fast sync was enabled for this node at a certain point.
 		// The only scenario where this can happen is if the user manually (or via a
@@ -355,15 +354,15 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 
 	pm.eventMux.Post(downloader.StartEvent{})
 	defer sendEvent()
-	log.Debug("ProtocolManager1","mode",mode)
-	if params.StopSnailMiner.Cmp(currentBlock.Number()) > 0 {
+	log.Debug("ProtocolManager1", "mode", mode)
+	if pm.chainconfig.TIP9.SnailNumber.Cmp(currentBlock.Number()) > 0 {
 		// Run the sync cycle, and disable fast sync if we've went past the pivot block
 		if err = pm.downloader.Synchronise(peer.id, pHeadHash, pTd, mode); err != nil {
 			log.Error("ProtocolManager end", "err", err)
 			return
 		}
-		log.Debug("ProtocolManager2","mode",mode)
-		if atomic.LoadUint32(&pm.fastSync) == 1 ||  atomic.LoadUint32(&pm.snapSync) == 1 {
+		log.Debug("ProtocolManager2", "mode", mode)
+		if atomic.LoadUint32(&pm.fastSync) == 1 || atomic.LoadUint32(&pm.snapSync) == 1 {
 			if pm.blockchain.CurrentBlock().NumberU64() == 0 && pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
 				if err := pm.downloader.SyncFast(peer.id, pHeadHash, fastHeight, downloader.FastSync); err != nil {
 					log.Error("ProtocolManager fast sync: ", "err", err)

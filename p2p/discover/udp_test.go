@@ -23,6 +23,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/abeychain/go-abey/log"
+	"github.com/abeychain/go-abey/p2p/discover/v4wire"
 	"io"
 	"math/rand"
 	"net"
@@ -33,8 +35,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/abeychain/go-abey/p2p/enode"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -55,7 +57,7 @@ type udpTest struct {
 	pipe                *dgramPipe
 	table               *Table
 	db                  *enode.DB
-	udp                 *udp
+	udp                 *UDPv4
 	sent                [][]byte
 	localkey, remotekey *ecdsa.PrivateKey
 	remoteaddr          *net.UDPAddr
@@ -71,25 +73,29 @@ func newUDPTest(t *testing.T) *udpTest {
 	}
 	test.db, _ = enode.OpenDB("")
 	ln := enode.NewLocalNode(test.db, test.localkey)
-	test.table, test.udp, _ = newUDP(test.pipe, ln, Config{PrivateKey: test.localkey})
+	test.udp, _ = ListenV4(test.pipe, ln, Config{
+		PrivateKey: test.localkey,
+		Log:        log.New("v4UDPTest"),
+	})
+	test.table = test.udp.tab
 	// Wait for initial refresh so the table doesn't send unexpected findnode.
 	<-test.table.initDone
 	return test
 }
 
 func (test *udpTest) close() {
-	test.table.Close()
+	test.table.close()
 	test.db.Close()
 }
 
 // handles a packet as if it had been sent to the transport.
-func (test *udpTest) packetIn(wantError error, ptype byte, data packet) error {
+func (test *udpTest) packetIn(wantError error, ptype byte, data packetV4) error {
 	return test.packetInFrom(wantError, test.remotekey, test.remoteaddr, ptype, data)
 }
 
 // handles a packet as if it had been sent to the transport by the key/endpoint.
-func (test *udpTest) packetInFrom(wantError error, key *ecdsa.PrivateKey, addr *net.UDPAddr, ptype byte, data packet) error {
-	enc, _, err := encodePacket(key, ptype, data)
+func (test *udpTest) packetInFrom(wantError error, key *ecdsa.PrivateKey, addr *net.UDPAddr, ptype byte, data packetV4) error {
+	enc, _, err := v4wire.Encode(key, data)
 	if err != nil {
 		return test.errorf("packet (%d) encode error: %v", ptype, err)
 	}

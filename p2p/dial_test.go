@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/abeychain/go-abey/p2p/enode"
 	"github.com/abeychain/go-abey/p2p/enr"
 	"github.com/abeychain/go-abey/p2p/netutil"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -90,7 +90,7 @@ func (t fakeTable) ReadRandomNodes(buf []*enode.Node) int { return copy(buf, t) 
 // This test checks that dynamic dials are launched from discovery results.
 func TestDialStateDynDial(t *testing.T) {
 	runDialTest(t, dialtest{
-		init: newDialState(enode.ID{}, nil, nil, fakeTable{}, 5, nil),
+		init: newDialState(enode.ID{}, nil, 5, nil),
 		rounds: []round{
 			// A discovery query is launched.
 			{
@@ -224,11 +224,7 @@ func TestDialStateDynDial(t *testing.T) {
 
 // Tests that bootnodes are dialed if no peers are connectd, but not otherwise.
 func TestDialStateDynDialBootnode(t *testing.T) {
-	bootnodes := []*enode.Node{
-		newNode(uintID(1), nil),
-		newNode(uintID(2), nil),
-		newNode(uintID(3), nil),
-	}
+
 	table := fakeTable{
 		newNode(uintID(4), nil),
 		newNode(uintID(5), nil),
@@ -237,7 +233,7 @@ func TestDialStateDynDialBootnode(t *testing.T) {
 		newNode(uintID(8), nil),
 	}
 	runDialTest(t, dialtest{
-		init: newDialState(enode.ID{}, nil, bootnodes, table, 5, nil),
+		init: newDialState(enode.ID{}, table, 5, nil),
 		rounds: []round{
 			// 2 dynamic dials attempted, bootnodes pending fallback interval
 			{
@@ -325,7 +321,7 @@ func TestDialStateDynDialFromTable(t *testing.T) {
 	}
 
 	runDialTest(t, dialtest{
-		init: newDialState(enode.ID{}, nil, nil, table, 10, nil),
+		init: newDialState(enode.ID{}, table, 10, nil),
 		rounds: []round{
 			// 5 out of 8 of the nodes returned by ReadRandomNodes are dialed.
 			{
@@ -431,7 +427,7 @@ func TestDialStateNetRestrict(t *testing.T) {
 	restrict.Add("127.0.2.0/24")
 
 	runDialTest(t, dialtest{
-		init: newDialState(enode.ID{}, nil, nil, table, 10, restrict),
+		init: newDialState(enode.ID{}, table, 10, nil),
 		rounds: []round{
 			{
 				new: []task{
@@ -445,16 +441,16 @@ func TestDialStateNetRestrict(t *testing.T) {
 
 // This test checks that static dials are launched.
 func TestDialStateStaticDial(t *testing.T) {
-	wantStatic := []*enode.Node{
-		newNode(uintID(1), nil),
-		newNode(uintID(2), nil),
-		newNode(uintID(3), nil),
-		newNode(uintID(4), nil),
-		newNode(uintID(5), nil),
-	}
+	//wantStatic := []*enode.Node{
+	//	newNode(uintID(1), nil),
+	//	newNode(uintID(2), nil),
+	//	newNode(uintID(3), nil),
+	//	newNode(uintID(4), nil),
+	//	newNode(uintID(5), nil),
+	//}
 
 	runDialTest(t, dialtest{
-		init: newDialState(enode.ID{}, wantStatic, nil, fakeTable{}, 0, nil),
+		init: newDialState(enode.ID{}, fakeTable{}, 0, nil),
 		rounds: []round{
 			// Static dials are launched for the nodes that
 			// aren't yet connected.
@@ -558,7 +554,7 @@ func TestDialStaticAfterReset(t *testing.T) {
 		},
 	}
 	dTest := dialtest{
-		init:   newDialState(enode.ID{}, wantStatic, nil, fakeTable{}, 0, nil),
+		init:   newDialState(enode.ID{}, fakeTable{}, 0, nil),
 		rounds: rounds,
 	}
 	runDialTest(t, dTest)
@@ -572,14 +568,14 @@ func TestDialStaticAfterReset(t *testing.T) {
 
 // This test checks that past dials are not retried for some time.
 func TestDialStateCache(t *testing.T) {
-	wantStatic := []*enode.Node{
-		newNode(uintID(1), nil),
-		newNode(uintID(2), nil),
-		newNode(uintID(3), nil),
-	}
+	//wantStatic := []*enode.Node{
+	//	newNode(uintID(1), nil),
+	//	newNode(uintID(2), nil),
+	//	newNode(uintID(3), nil),
+	//}
 
 	runDialTest(t, dialtest{
-		init: newDialState(enode.ID{}, wantStatic, nil, fakeTable{}, 0, nil),
+		init: newDialState(enode.ID{}, fakeTable{}, 0, nil),
 		rounds: []round{
 			// Static dials are launched for the nodes that
 			// aren't yet connected.
@@ -641,7 +637,7 @@ func TestDialStateCache(t *testing.T) {
 func TestDialResolve(t *testing.T) {
 	resolved := newNode(uintID(1), net.IP{127, 0, 55, 234})
 	table := &resolveMock{answer: resolved}
-	state := newDialState(enode.ID{}, nil, nil, table, 0, nil)
+	state := newDialState(enode.ID{}, table, 0, nil)
 
 	// Check that the task is generated with an incomplete ID.
 	dest := newNode(uintID(1), nil)

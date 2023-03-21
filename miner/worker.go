@@ -30,6 +30,7 @@ import (
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
+
 	//"github.com/abeychain/go-abey/core/vm"
 	//"crypto/rand"
 	chain "github.com/abeychain/go-abey/core/snailchain"
@@ -188,10 +189,10 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, coinbase com
 	worker.fruitSub = abey.SnailPool().SubscribeNewFruitEvent(worker.fruitCh)
 	worker.fastchainEventSub = worker.fastchain.SubscribeChainEvent(worker.fastchainEventCh)
 
-	if worker.freezeMiner() {
-		go worker.update()
-		go worker.wait()
+	go worker.update()
+	go worker.wait()
 
+	if !worker.freezeMiner() {
 		worker.commitNewWork()
 	}
 
@@ -200,7 +201,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, coinbase com
 
 func (w *worker) freezeMiner() bool {
 	cur := w.chain.CurrentBlock().Number()
-	if cur.Cmp(params.StopSnailMiner) >= 0 {
+	if cur.Cmp(w.config.TIP9.SnailNumber) >= 0 {
 		return true
 	}
 	return false

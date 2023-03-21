@@ -14,18 +14,18 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package fast
+package light
 
 import (
 	"context"
 	"errors"
 	"fmt"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/trie"
 )
 
@@ -76,7 +76,7 @@ func (db *odrDatabase) ContractCode(addrHash, codeHash common.Hash) ([]byte, err
 	id := *db.id
 	id.AccKey = addrHash[:]
 	req := &CodeRequest{Id: &id, Hash: codeHash}
-	err := db.backend.FastRetrieve(db.ctx, req)
+	err := db.backend.Retrieve(db.ctx, req)
 	return req.Data, err
 }
 
@@ -160,7 +160,7 @@ func (t *odrTrie) do(key []byte, fn func() error) error {
 			return err
 		}
 		r := &TrieRequest{Id: t.id, Key: key}
-		if err := t.db.backend.FastRetrieve(t.db.ctx, r); err != nil {
+		if err := t.db.backend.Retrieve(t.db.ctx, r); err != nil {
 			return err
 		}
 	}
@@ -215,7 +215,7 @@ func (it *nodeIterator) do(fn func() error) {
 		}
 		lasthash = missing.NodeHash
 		r := &TrieRequest{Id: it.t.id, Key: nibblesToKey(missing.Path)}
-		if it.err = it.t.db.backend.FastRetrieve(it.t.db.ctx, r); it.err != nil {
+		if it.err = it.t.db.backend.Retrieve(it.t.db.ctx, r); it.err != nil {
 			return
 		}
 	}

@@ -26,9 +26,9 @@ import (
 
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/prque"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core/types"
+	"github.com/abeychain/go-abey/log"
 	"math/big"
 	"sync"
 )
@@ -383,7 +383,7 @@ func (f *Fetcher) loop() {
 						committeeNumber := f.agentFetcher.GetCommitteeNumber(block.Number())
 						if f.agreeAtSameHeight(block.Signs(), hash, committeeNumber) {
 							log.Debug("Block come agreement", "num", number, "height", height, "same block", len(blocks), "sign", len(block.Signs()), "hash", hash)
-							f.verifyComeAgreement(peer, block, block.Signs())
+							f.verifyComeAgreement(peer, block, block.AllSigns())
 							finished = true
 						}
 					}

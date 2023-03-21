@@ -88,8 +88,8 @@ func (i *ImpawnImpl) GetAllStakingAccountRPC(height uint64) map[string]interface
 			}
 			attr["modify"] = ai
 		}
-		attr["staking"] = weiToTrue(sa.getAllStaking(height))
-		attr["validStaking"] = weiToTrue(sa.getValidStaking(height))
+		attr["staking"] = weitoABEY(sa.getAllStaking(height))
+		attr["validStaking"] = weitoABEY(sa.getValidStaking(height))
 		attrs = append(attrs, attr)
 		count = count + len(sa.Delegation)
 	}
@@ -291,7 +291,7 @@ func (i *ImpawnImpl) GetAllCancelableAssetRPC(addr common.Address) []CancelableA
 	assets := i.GetAllCancelableAsset(addr)
 	var attrs []CancelableAsset
 	for key, value := range assets {
-		attr := CancelableAsset{Value: weiToTrue(value), Address: key}
+		attr := CancelableAsset{Value: weitoABEY(value), Address: key}
 		attrs = append(attrs, attr)
 	}
 	return attrs
@@ -355,8 +355,8 @@ func (i *ImpawnImpl) GetStakingAccountRPC(height uint64, address common.Address)
 		}
 		attr["modify"] = ai
 	}
-	attr["staking"] = weiToTrue(sa.getAllStaking(height))
-	attr["validStaking"] = weiToTrue(sa.getValidStaking(height))
+	attr["staking"] = weitoABEY(sa.getAllStaking(height))
+	attr["validStaking"] = weitoABEY(sa.getValidStaking(height))
 	return attr
 }
 
@@ -378,8 +378,8 @@ func daSDisplay(das []*DelegationAccount, height uint64) []map[string]interface{
 	for _, da := range das {
 		attr := make(map[string]interface{})
 		attr["saAddress"] = da.SaAddress.StringToAbey()
-		attr["delegate"] = weiToTrue(da.getAllStaking(height))
-		attr["validDelegate"] = weiToTrue(da.getValidStaking(height))
+		attr["delegate"] = weitoABEY(da.getAllStaking(height))
+		attr["validDelegate"] = weitoABEY(da.getValidStaking(height))
 		attr["unit"] = unitDisplay(da.Unit)
 		attrs = append(attrs, attr)
 	}
@@ -398,7 +398,7 @@ func pvSDisplay(pvs []*PairstakingValue) []map[string]interface{} {
 	var attrs []map[string]interface{}
 	for _, pv := range pvs {
 		attr := make(map[string]interface{})
-		attr["amount"] = weiToTrue(pv.Amount)
+		attr["amount"] = weitoABEY(pv.Amount)
 		attr["height"] = pv.Height
 		attr["state"] = uint64(pv.State)
 		attrs = append(attrs, attr)
@@ -410,7 +410,7 @@ func riSDisplay(ris []*RedeemItem) []map[string]interface{} {
 	var attrs []map[string]interface{}
 	for _, ri := range ris {
 		attr := make(map[string]interface{})
-		attr["amount"] = weiToTrue(ri.Amount)
+		attr["amount"] = weitoABEY(ri.Amount)
 		attr["epochID"] = ri.EpochID
 		attr["state"] = uint64(ri.State)
 		attrs = append(attrs, attr)
@@ -423,7 +423,7 @@ func lockValueDisplay(lv *types.LockedValue) []*LockValue {
 	for epoch, value := range lv.Value {
 		attrs = append(attrs, &LockValue{
 			EpochID: epoch,
-			Amount:  weiToTrue(value.Amount),
+			Amount:  weitoABEY(value.Amount),
 			Height:  new(big.Int).SetUint64(types.MinCalcRedeemHeight(epoch)),
 			Locked:  value.Locked,
 		})
@@ -436,7 +436,7 @@ func stakingValueDisplay(sv *types.StakingValue) []*StakingValue {
 	for height, value := range sv.Value {
 		attrs = append(attrs, &StakingValue{
 			Height: height,
-			Amount: weiToTrue(value),
+			Amount: weitoABEY(value),
 		})
 	}
 	return attrs
@@ -447,6 +447,6 @@ var (
 	fbaseUnit = new(big.Float).SetFloat64(float64(baseUnit.Int64()))
 )
 
-func weiToTrue(val *big.Int) string {
+func weitoABEY(val *big.Int) string {
 	return new(big.Float).Quo(new(big.Float).SetInt(val), fbaseUnit).Text('f', 8)
 }

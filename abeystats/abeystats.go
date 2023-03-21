@@ -30,14 +30,14 @@ import (
 	"time"
 
 	"encoding/json"
+	"github.com/abeychain/go-abey/abey"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/mclock"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abey"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/les"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/p2p"
 	"github.com/abeychain/go-abey/rpc"
 	"golang.org/x/net/websocket"
@@ -79,8 +79,8 @@ type snailBlockChain interface {
 // chain statistics up to a monitoring server.
 type Service struct {
 	server *p2p.Server      // Peer-to-peer server to retrieve networking infos
-	abey  *abey.Abeychain // Full Abeychain service if monitoring a full node
-	les    *les.LightAbey  // Light Abeychain service if monitoring a light node
+	abey   *abey.Abeychain  // Full Abeychain service if monitoring a full node
+	les    *les.LightAbey   // Light Abeychain service if monitoring a light node
 	engine consensus.Engine // Consensus engine to retrieve variadic block fields
 
 	node string // Name of the node to display on the monitoring page
@@ -108,7 +108,7 @@ func New(url string, ethServ *abey.Abeychain, lesServ *les.LightAbey) (*Service,
 		engine = lesServ.Engine()
 	}
 	return &Service{
-		abey:       ethServ,
+		abey:        ethServ,
 		les:         lesServ,
 		engine:      engine,
 		node:        parts[1],
@@ -150,6 +150,8 @@ func (s *Service) loop() {
 	var blockchain blockChain
 	var txpool txPool
 	var snailBlockChain snailBlockChain
+	var snailheadSub event.Subscription
+
 	if s.abey != nil {
 		blockchain = s.abey.BlockChain()
 		txpool = s.abey.TxPool()
@@ -157,7 +159,6 @@ func (s *Service) loop() {
 	} else {
 		blockchain = s.les.BlockChain()
 		txpool = s.les.TxPool()
-		snailBlockChain = s.les.SnailBlockChain()
 	}
 	//fastBlock
 	chainHeadCh := make(chan types.FastChainHeadEvent, chainHeadChanSize)
@@ -169,10 +170,12 @@ func (s *Service) loop() {
 	txSub := txpool.SubscribeNewTxsEvent(txEventCh)
 	defer txSub.Unsubscribe()
 
-	//snailBlock
 	chainsnailHeadCh := make(chan types.SnailChainHeadEvent, chainSnailHeadChanSize)
-	snailheadSub := snailBlockChain.SubscribeChainHeadEvent(chainsnailHeadCh)
-	defer snailheadSub.Unsubscribe()
+	//snailBlock
+	if s.abey != nil {
+		snailheadSub = snailBlockChain.SubscribeChainHeadEvent(chainsnailHeadCh)
+		defer snailheadSub.Unsubscribe()
+	}
 
 	//fruit
 	/*chainFruitCh := make(chan types.NewMinedFruitEvent, chainSnailHeadChanSize)
@@ -672,31 +675,18 @@ func (s *Service) assembleSnailBlockStats(block *types.SnailBlock) *snailBlockSt
 		diff        string
 		maxFruit    *big.Int
 	)
-	if s.abey != nil {
-		// Full nodes have all needed information available
-		if block == nil {
-			block = s.abey.SnailBlockChain().CurrentBlock()
-		}
-		header = block.Header()
-		td = s.abey.SnailBlockChain().GetTd(header.Hash(), header.Number.Uint64())
-		fruitNumber = big.NewInt(int64(len(block.Fruits())))
-		diff = block.Difficulty().String()
-		maxFruit = block.MaxFruitNumber()
-	} else {
-		// Light nodes would need on-demand lookups for transactions/uncles, skip
-		if block != nil {
-			header = block.Header()
-			fruitNumber = big.NewInt(int64(len(block.Fruits())))
-		} else {
-			header = s.les.SnailBlockChain().CurrentHeader()
-		}
-		td = s.les.SnailBlockChain().GetTd(header.Hash(), header.Number.Uint64())
-		heads := s.les.SnailBlockChain().GetFruitsHead(header.Number.Uint64())
-		if len(heads) > 0 {
-			fruitNumber = big.NewInt(int64(len(heads)))
-			maxFruit = heads[len(heads)-1].FastNumber
-		}
+	if s.abey == nil {
+		return nil
 	}
+	// Full nodes have all needed information available
+	if block == nil {
+		block = s.abey.SnailBlockChain().CurrentBlock()
+	}
+	header = block.Header()
+	td = s.abey.SnailBlockChain().GetTd(header.Hash(), header.Number.Uint64())
+	fruitNumber = big.NewInt(int64(len(block.Fruits())))
+	diff = block.Difficulty().String()
+	maxFruit = block.MaxFruitNumber()
 	// Assemble and return the block stats
 	author, _ := s.engine.AuthorSnail(header)
 	return &snailBlockStats{
@@ -784,15 +774,13 @@ func (s *Service) reportSnailHistory(conn *websocket.Conn, list []uint64) error 
 		var head int64
 		if s.abey != nil {
 			head = s.abey.SnailBlockChain().CurrentHeader().Number.Int64()
-		} else {
-			head = s.les.SnailBlockChain().CurrentHeader().Number.Int64()
-		}
-		start := head - historyUpdateRange + 1
-		if start < 0 {
-			start = 0
-		}
-		for i := uint64(start); i <= uint64(head); i++ {
-			indexes = append(indexes, i)
+			start := head - historyUpdateRange + 1
+			if start < 0 {
+				start = 0
+			}
+			for i := uint64(start); i <= uint64(head); i++ {
+				indexes = append(indexes, i)
+			}
 		}
 	}
 	// Gather the batch of blocks to report
@@ -802,18 +790,14 @@ func (s *Service) reportSnailHistory(conn *websocket.Conn, list []uint64) error 
 		var snailBlock *types.SnailBlock
 		if s.abey != nil {
 			snailBlock = s.abey.SnailBlockChain().GetBlockByNumber(number)
-		} else {
-			if header := s.les.SnailBlockChain().GetHeaderByNumber(number); header != nil {
-				snailBlock = types.NewSnailBlockWithHeader(header)
+			// If we do have the block, add to the history and continue
+			if snailBlock != nil {
+				history[len(history)-1-i] = s.assembleSnailBlockStats(snailBlock)
+				continue
 			}
+			// Ran out of blocks, cut the report short and send
+			history = history[len(history)-i:]
 		}
-		// If we do have the block, add to the history and continue
-		if snailBlock != nil {
-			history[len(history)-1-i] = s.assembleSnailBlockStats(snailBlock)
-			continue
-		}
-		// Ran out of blocks, cut the report short and send
-		history = history[len(history)-i:]
 		break
 	}
 	// Assemble the history report and send it to the server

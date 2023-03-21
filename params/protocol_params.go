@@ -183,15 +183,24 @@ var (
 	MaximumCommitteeNumber  = big.NewInt(50)
 	ProposalCommitteeNumber = 20
 	MinimumCommitteeNumber  = 4
-	StopSnailMiner = big.NewInt(2000000)
+	StopSnailMiner          = big.NewInt(2000000)
+	// set 250 epochs(epoch in one year),250*25000*4 = 25000000
+	BlocksInFourYear = big.NewInt(25000000)
+	// 29959200 abey of one year, about 1.5 day of one epoch
+	// 29959200/250 = 119836.8
+	InitReward = new(big.Int).Mul(big.NewInt(1198368), big.NewInt(1e17))
 )
 
 var (
 	CountInEpoch                      = 20
-	MaxRedeemHeight            uint64 = 250000   // about 15 days
+	MaxRedeemHeight            uint64 = 250000 // about 15 days
 	NewEpochLength             uint64 = 25000  // about 1.5 days
 	ElectionPoint              uint64 = 200
 	FirstNewEpochID            uint64 = 1
 	DposForkPoint              uint64 = 0
 	ElectionMinLimitForStaking        = new(big.Int).Mul(big.NewInt(200000), big.NewInt(1e18))
+)
+var (
+	// 361 epoch begin=9000001,end=9025000
+	LesProtocolGenesisBlock uint64 = 9000001
 )

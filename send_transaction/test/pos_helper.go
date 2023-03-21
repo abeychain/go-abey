@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts/abi"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
@@ -19,7 +20,6 @@ import (
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 )
@@ -219,6 +219,7 @@ func newTestPOSManager(sBlocks int, executableTx func(uint64, *core.BlockGen, *c
 
 	gspec.Config.TIP7 = &params.BlockConfig{FastNumber: big.NewInt(0)}
 	gspec.Config.TIP8 = &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)}
+	gspec.Config.TIP9 = &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)}
 
 	genesis := gspec.MustFastCommit(db)
 	blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{})

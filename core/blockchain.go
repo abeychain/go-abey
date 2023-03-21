@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/mclock"
 	"github.com/abeychain/go-abey/common/prque"
@@ -36,13 +36,13 @@ import (
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/metrics"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rlp"
 	"github.com/abeychain/go-abey/trie"
+	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -103,8 +103,8 @@ type BlockChain struct {
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
 	db     abeydb.Database // Low level persistent database to store final content in
-	triegc *prque.Prque     // Priority queue mapping block numbers to tries to gc
-	gcproc time.Duration    // Accumulates canonical block processing for trie dumping
+	triegc *prque.Prque    // Priority queue mapping block numbers to tries to gc
+	gcproc time.Duration   // Accumulates canonical block processing for trie dumping
 
 	hc               *HeaderChain
 	rmLogsFeed       event.Feed
@@ -209,10 +209,12 @@ func NewBlockChain(db abeydb.Database, cacheConfig *CacheConfig,
 	if err != nil {
 		return nil, err
 	}
+
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
+
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
@@ -293,16 +295,16 @@ func (bc *BlockChain) loadLastState() error {
 		}
 	}
 	// Restore the last known currentReward
-	rewardHead := bc.GetLastRowByFastCurrentBlock()
-
-	if rewardHead != nil {
-		bc.currentReward.Store(rewardHead)
-		rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
-	} else {
-		reward := &types.BlockReward{SnailNumber: big.NewInt(0)}
-		bc.currentReward.Store(reward)
-		rawdb.WriteHeadRewardNumber(bc.db, 0)
-	}
+	//rewardHead := bc.GetLastRowByFastCurrentBlock()
+	//
+	//if rewardHead != nil {
+	//	bc.currentReward.Store(rewardHead)
+	//	rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
+	//} else {
+	//	reward := &types.BlockReward{SnailNumber: big.NewInt(0)}
+	//	bc.currentReward.Store(reward)
+	//	rawdb.WriteHeadRewardNumber(bc.db, 0)
+	//}
 
 	// Restore the last known currentReward
 	bc.lastBlock.Store(currentBlock)

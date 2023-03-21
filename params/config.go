@@ -37,6 +37,8 @@ var (
 	TestnetSnailGenesisHash = common.HexToHash("0x4da60af319dd178c440c33f230f54b9c2537b9ff43d0ac051bc503ee773f223b")
 
 	DevnetSnailGenesisHash = common.HexToHash("0xfd5f70dd4b70763c0fe9d5238d6ce1c5e86712813775fe6b1654ce0f8129587f")
+	// the hash of block number LesProtocolGenesisBlock
+	MainnetGenesisHashForLes = common.HexToHash("0x7d6610099712bead931d1cf1a4f316f79974a79d6ccf0094da3053dc4122b763")
 )
 
 // TrustedCheckpoints associates each known checkpoint with the genesis hash of
@@ -60,6 +62,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(8742700), SnailNumber: big.NewInt(73000)},
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -95,6 +98,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(2660000), SnailNumber: big.NewInt(21400)},
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
@@ -120,16 +124,17 @@ var (
 
 	// DevnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
 	DevnetChainConfig = &ChainConfig{
-		ChainID: big.NewInt(177),
+		ChainID: big.NewInt(17700),
 		Minerva: &(MinervaConfig{
-			MinimumDifficulty:      big.NewInt(10000),
-			MinimumFruitDifficulty: big.NewInt(100),
+			MinimumDifficulty:      big.NewInt(3000),
+			MinimumFruitDifficulty: big.NewInt(20),
 			DurationLimit:          big.NewInt(150),
 		}),
 		TIP3: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(50000), SnailNumber: big.NewInt(50)},
 	}
 
 	SingleNodeChainConfig = &ChainConfig{
@@ -143,6 +148,7 @@ var (
 		TIP5: &BlockConfig{SnailNumber: big.NewInt(0)},
 		TIP7: &BlockConfig{FastNumber: big.NewInt(0)},
 		TIP8: &BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)},
+		TIP9: &BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
@@ -160,14 +166,14 @@ var (
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 	AllMinervaProtocolChanges = &ChainConfig{ChainID: chainId, Minerva: new(MinervaConfig), TIP3: &BlockConfig{FastNumber: big.NewInt(0)},
-		TIP5: nil, TIP7: nil, TIP8: nil,
+		TIP5: nil, TIP7: nil, TIP8: nil, TIP9: nil,
 	}
 
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 
 	TestChainConfig = &ChainConfig{ChainID: chainId, Minerva: &MinervaConfig{MinimumDifficulty, MinimumFruitDifficulty, DurationLimit}, TIP3: &BlockConfig{FastNumber: big.NewInt(0)},
-		TIP5: nil, TIP7: nil, TIP8: nil,
+		TIP5: nil, TIP7: nil, TIP8: nil, TIP9: nil,
 	}
 )
 
@@ -233,6 +239,7 @@ type ChainConfig struct {
 	TIP5 *BlockConfig `json:"tip5"`
 	TIP7 *BlockConfig `json:"tip7"`
 	TIP8 *BlockConfig `json:"tip8"`
+	TIP9 *BlockConfig `json:"tip9"`
 
 	TIPStake *BlockConfig `json:"tipstake"`
 }
@@ -475,4 +482,13 @@ func (c *ChainConfig) IsTIP8(cid, num *big.Int) bool {
 		return true
 	}
 	return false
+}
+func (c *ChainConfig) IsTIP9(num *big.Int) bool {
+	if c.TIP9 == nil || num.Sign() == 0 {
+		return false
+	}
+	if c.TIP9.FastNumber.Sign() < 0 {
+		return false
+	}
+	return isForked(c.TIP9.FastNumber, num)
 }

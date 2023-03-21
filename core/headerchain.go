@@ -26,14 +26,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
-	"github.com/hashicorp/golang-lru"
 	"github.com/abeychain/go-abey/consensus"
 	"github.com/abeychain/go-abey/core/rawdb"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
+	"github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -55,7 +55,7 @@ type HeaderChain struct {
 
 	currentHeader     atomic.Value // Current head of the header chain (may be above the block chain!)
 	currentHeaderHash common.Hash  // Hash of the current head of the header chain (prevent recomputing all the time)
-	currentReward    atomic.Value // Current head of the currentReward
+	currentReward     atomic.Value // Current head of the currentReward
 
 	headerCache *lru.Cache // Cache for the most recent block headers
 	tdCache     *lru.Cache // Cache for the most recent block total difficulties
@@ -96,6 +96,45 @@ func NewHeaderChain(chainDb abeydb.Database, config *params.ChainConfig, engine 
 	}
 
 	fhc.genesisHeader = fhc.GetHeaderByNumber(0)
+	if fhc.genesisHeader == nil {
+		return nil, ErrNoGenesis
+	}
+
+	fhc.currentHeader.Store(fhc.genesisHeader)
+	if head := rawdb.ReadHeadBlockHash(chainDb); head != (common.Hash{}) {
+		if chead := fhc.GetHeaderByHash(head); chead != nil {
+			fhc.currentHeader.Store(chead)
+		}
+	}
+	fhc.currentHeaderHash = fhc.CurrentHeader().Hash()
+
+	return fhc, nil
+}
+
+func NewHeaderChainForLes(chainDb abeydb.Database, config *params.ChainConfig, engine consensus.Engine, procInterrupt func() bool) (*HeaderChain, error) {
+	headerCache, _ := lru.New(headerCacheLimit)
+	tdCache, _ := lru.New(tdCacheLimit)
+	numberCache, _ := lru.New(numberCacheLimit)
+	rewardCache, _ := lru.New(headerCacheLimit)
+	// Seed a fast but crypto originating random generator
+	seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+	if err != nil {
+		return nil, err
+	}
+
+	fhc := &HeaderChain{
+		config:        config,
+		chainDb:       chainDb,
+		headerCache:   headerCache,
+		tdCache:       tdCache,
+		numberCache:   numberCache,
+		rewardCache:   rewardCache,
+		procInterrupt: procInterrupt,
+		rand:          mrand.New(mrand.NewSource(seed.Int64())),
+		engine:        engine,
+	}
+
+	fhc.genesisHeader = fhc.GetHeaderByNumber(params.LesProtocolGenesisBlock)
 	if fhc.genesisHeader == nil {
 		return nil, ErrNoGenesis
 	}

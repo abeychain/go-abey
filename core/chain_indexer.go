@@ -20,16 +20,17 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/abeychain/go-abey/params"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/core/rawdb"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
+	"github.com/abeychain/go-abey/log"
 )
 
 // ChainIndexerBackend defines the methods needed to process chain segments in
@@ -67,8 +68,8 @@ type ChainIndexerChain interface {
 // after an entire section has been finished or in case of rollbacks that might
 // affect already finished sections.
 type ChainIndexer struct {
-	chainDb  abeydb.Database    // Chain database to index the data from
-	indexDb  abeydb.Database    // Prefixed table-view of the db to write index metadata into
+	chainDb  abeydb.Database     // Chain database to index the data from
+	indexDb  abeydb.Database     // Prefixed table-view of the db to write index metadata into
 	backend  ChainIndexerBackend // Background processor generating the index data content
 	children []*ChainIndexer     // Child indexers to cascade chain updates to
 
@@ -90,14 +91,15 @@ type ChainIndexer struct {
 
 	throttling time.Duration // Disk throttling to prevent a heavy upgrade from hogging resources
 
-	log  log.Logger
-	lock sync.RWMutex
+	lightmode bool
+	log       log.Logger
+	lock      sync.RWMutex
 }
 
 // NewChainIndexer creates a new chain indexer to do background processing on
 // chain segments of a given size after certain number of confirmations passed.
 // The throttling parameter might be used to prevent database thrashing.
-func NewChainIndexer(chainDb, indexDb abeydb.Database, backend ChainIndexerBackend, section, confirm uint64, throttling time.Duration, kind string) *ChainIndexer {
+func NewChainIndexer(chainDb, indexDb abeydb.Database, backend ChainIndexerBackend, section, confirm uint64, throttling time.Duration, kind string, light bool) *ChainIndexer {
 	c := &ChainIndexer{
 		chainDb:     chainDb,
 		indexDb:     indexDb,
@@ -108,6 +110,7 @@ func NewChainIndexer(chainDb, indexDb abeydb.Database, backend ChainIndexerBacke
 		confirmsReq: confirm,
 		throttling:  throttling,
 		log:         log.New("type", kind),
+		lightmode:   light,
 	}
 	// Initialize database dependent fields and start the updater
 	c.loadValidSections()
@@ -116,6 +119,15 @@ func NewChainIndexer(chainDb, indexDb abeydb.Database, backend ChainIndexerBacke
 	go c.updateLoop()
 
 	return c
+}
+func (c *ChainIndexer) checkSomeRun(num uint64) bool {
+	if !c.lightmode {
+		return true
+	}
+	if c.lightmode && params.LesProtocolGenesisBlock <= num {
+		return false
+	}
+	return true
 }
 
 // AddCheckpoint adds a checkpoint. Sections are never processed and the chain
@@ -276,7 +288,7 @@ func (c *ChainIndexer) newHead(head uint64, reorg bool) {
 		if sections < c.checkpointSections {
 			sections = 0
 		}
-		if sections > c.knownSections {
+		if sections > c.knownSections && c.checkSomeRun(c.checkpointSections*c.sectionSize-1) {
 			if c.knownSections < c.checkpointSections {
 				// syncing reached the checkpoint, verify section head
 				syncedHead := rawdb.ReadCanonicalHash(c.chainDb, c.checkpointSections*c.sectionSize-1)

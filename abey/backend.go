@@ -28,6 +28,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/abeychain/go-abey/abey/downloader"
+	"github.com/abeychain/go-abey/abey/filters"
+	"github.com/abeychain/go-abey/abey/gasprice"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/common/hexutil"
@@ -41,10 +45,6 @@ import (
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abey/downloader"
-	"github.com/abeychain/go-abey/abey/filters"
-	"github.com/abeychain/go-abey/abey/gasprice"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/event"
 	"github.com/abeychain/go-abey/internal/abeyapi"
 	"github.com/abeychain/go-abey/log"
@@ -156,7 +156,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 		gasPrice:       config.GasPrice,
 		etherbase:      config.Etherbase,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
-		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms, false),
 	}
 
 	log.Info("Initialising Abeychain protocol", "versions", ProtocolVersions, "network", config.NetworkId, "syncmode", config.SyncMode)
@@ -224,6 +224,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 	abey.engine.SetSnailChainReader(abey.snailblockchain)
 	abey.election.SetEngine(abey.engine)
 
+	log.Info("begin NewProtocolManager")
 	//coinbase, _ := abey.Etherbase()
 	abey.agent = NewPbftAgent(abey, abey.chainConfig, abey.engine, abey.election, config.MinerGasFloor, config.MinerGasCeil)
 	if abey.protocolManager, err = NewProtocolManager(
@@ -233,7 +234,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Abeychain, error) {
 		chainDb, abey.agent); err != nil {
 		return nil, err
 	}
-
+	log.Info("end NewProtocolManager")
 	abey.miner = miner.New(abey, abey.chainConfig, abey.EventMux(), abey.engine, abey.election, abey.Config().MineFruit, abey.Config().NodeType, abey.Config().RemoteMine, abey.Config().Mine)
 	abey.miner.SetExtra(makeExtraData(config.ExtraData))
 
@@ -465,7 +466,7 @@ func (s *Abeychain) SnailPool() *chain.SnailPool { return s.snailPool }
 
 func (s *Abeychain) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Abeychain) Engine() consensus.Engine           { return s.engine }
-func (s *Abeychain) ChainDb() abeydb.Database          { return s.chainDb }
+func (s *Abeychain) ChainDb() abeydb.Database           { return s.chainDb }
 func (s *Abeychain) IsListening() bool                  { return true } // Always listening
 func (s *Abeychain) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
 func (s *Abeychain) NetVersion() uint64                 { return s.networkID }
@@ -502,9 +503,6 @@ func (s *Abeychain) Start(srvr *p2p.Server) error {
 	}
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
-	if s.lesServer != nil {
-		s.lesServer.Start(srvr)
-	}
 	s.startPbftServer()
 	if s.pbftServer == nil {
 		log.Error("start pbft server failed.")

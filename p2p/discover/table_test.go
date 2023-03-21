@@ -52,7 +52,7 @@ func testPingReplace(t *testing.T, newNodeIsResponding, lastInBucketIsResponding
 	transport := newPingRecorder()
 	tab, db := newTestTable(transport)
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	<-tab.initDone
 
@@ -117,7 +117,7 @@ func TestBucket_bumpNoDuplicates(t *testing.T) {
 	prop := func(nodes []*node, bumps []int) (ok bool) {
 		tab, db := newTestTable(newPingRecorder())
 		defer db.Close()
-		defer tab.Close()
+		defer tab.close()
 
 		b := &bucket{entries: make([]*node, len(nodes))}
 		copy(b.entries, nodes)
@@ -144,7 +144,7 @@ func TestTable_IPLimit(t *testing.T) {
 	transport := newPingRecorder()
 	tab, db := newTestTable(transport)
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	for i := 0; i < tableIPLimit+1; i++ {
 		n := nodeAtDistance(tab.self().ID(), i, net.IP{172, 0, 1, byte(i)})
@@ -161,7 +161,7 @@ func TestTable_BucketIPLimit(t *testing.T) {
 	transport := newPingRecorder()
 	tab, db := newTestTable(transport)
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	d := 3
 	for i := 0; i < bucketIPLimit+1; i++ {
@@ -198,11 +198,11 @@ func TestTable_closest(t *testing.T) {
 		transport := newPingRecorder()
 		tab, db := newTestTable(transport)
 		defer db.Close()
-		defer tab.Close()
+		defer tab.close()
 		fillTable(tab, test.All)
 
 		// check that closest(Target, N) returns nodes
-		result := tab.closest(test.Target, test.N).entries
+		result := tab.closest(test.Target, test.N, true).entries
 		if hasDuplicates(result) {
 			t.Errorf("result contains duplicates")
 			return false
@@ -259,7 +259,7 @@ func TestTable_ReadRandomNodesGetAll(t *testing.T) {
 		transport := newPingRecorder()
 		tab, db := newTestTable(transport)
 		defer db.Close()
-		defer tab.Close()
+		defer tab.close()
 		<-tab.initDone
 
 		for i := 0; i < len(buf); i++ {
@@ -309,7 +309,7 @@ func TestTable_addVerifiedNode(t *testing.T) {
 	tab, db := newTestTable(newPingRecorder())
 	<-tab.initDone
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	// Insert two nodes.
 	n1 := nodeAtDistance(tab.self().ID(), 256, net.IP{88, 77, 66, 1})
@@ -341,7 +341,7 @@ func TestTable_addSeenNode(t *testing.T) {
 	tab, db := newTestTable(newPingRecorder())
 	<-tab.initDone
 	defer db.Close()
-	defer tab.Close()
+	defer tab.close()
 
 	// Insert two nodes.
 	n1 := nodeAtDistance(tab.self().ID(), 256, net.IP{88, 77, 66, 1})
@@ -366,38 +366,6 @@ func TestTable_addSeenNode(t *testing.T) {
 		t.Fatalf("wrong bucket content after update: %v", tab.bucket(n1.ID()).entries)
 	}
 	checkIPLimitInvariant(t, tab)
-}
-
-func TestTable_Lookup(t *testing.T) {
-	tab, db := newTestTable(lookupTestnet)
-	defer db.Close()
-	defer tab.Close()
-
-	// lookup on empty table returns no nodes
-	if results := tab.lookup(lookupTestnet.target, false); len(results) > 0 {
-		t.Fatalf("lookup on empty table returned %d results: %#v", len(results), results)
-	}
-	// seed table with initial node (otherwise lookup will terminate immediately)
-	seedKey, _ := decodePubkey(lookupTestnet.dists[256][0])
-	seed := wrapNode(enode.NewV4(seedKey, net.IP{127, 0, 0, 1}, 0, 256))
-	seed.livenessChecks = 1
-	fillTable(tab, []*node{seed})
-
-	results := tab.lookup(lookupTestnet.target, true)
-	t.Logf("results:")
-	for _, e := range results {
-		t.Logf("  ld=%d, %x", enode.LogDist(lookupTestnet.targetSha, e.ID()), e.ID().Bytes())
-	}
-	if len(results) != bucketSize {
-		t.Errorf("wrong number of results: got %d, want %d", len(results), bucketSize)
-	}
-	if hasDuplicates(results) {
-		t.Errorf("result set contains duplicate entries")
-	}
-	if !sortedByDistanceTo(lookupTestnet.targetSha, results) {
-		t.Errorf("result set not sorted by distance to target")
-	}
-	// TODO: check result nodes are actually closest
 }
 
 // This is the test network for the Lookup test.
@@ -601,10 +569,18 @@ type preminedTestnet struct {
 	dists     [hashBits + 1][]encPubkey
 }
 
-func (tn *preminedTestnet) self() *enode.Node {
+func (tn *preminedTestnet) Self() *enode.Node {
 	return nullNode
 }
-
+func (tn *preminedTestnet) RequestENR(*enode.Node) (*enode.Node, error) {
+	return nullNode, nil
+}
+func (tn *preminedTestnet) lookupRandom() []*enode.Node {
+	return nil
+}
+func (tn *preminedTestnet) lookupSelf() []*enode.Node {
+	return nil
+}
 func (tn *preminedTestnet) findnode(toid enode.ID, toaddr *net.UDPAddr, target encPubkey) ([]*node, error) {
 	// current log distance is encoded in port number
 	// fmt.Println("findnode query at dist", toaddr.Port)
@@ -621,8 +597,10 @@ func (tn *preminedTestnet) findnode(toid enode.ID, toaddr *net.UDPAddr, target e
 	return result, nil
 }
 
-func (*preminedTestnet) close()                                        {}
-func (*preminedTestnet) ping(toid enode.ID, toaddr *net.UDPAddr) error { return nil }
+func (*preminedTestnet) close() {}
+
+//func (*preminedTestnet) ping(toid enode.ID, toaddr *net.UDPAddr) error { return nil }
+func (*preminedTestnet) ping(*enode.Node) (seq uint64, err error) { return 0, nil }
 
 var _ = (*preminedTestnet).mine // avoid linter warning about mine being dead code.
 

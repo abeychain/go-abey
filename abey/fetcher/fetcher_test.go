@@ -26,12 +26,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/crypto"
 	ethash "github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/types"
-	"github.com/abeychain/go-abey/abeydb"
+	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -218,7 +218,7 @@ func (f *fetcherTester) makeBodyFetcher(peer string, blocks map[common.Hash]*typ
 		for _, hash := range hashes {
 			if block, ok := closure[hash]; ok {
 				transactions = append(transactions, block.Transactions())
-				signs = append(signs, block.Signs())
+				signs = append(signs, block.AllSigns())
 				infos = append(infos, block.SwitchInfos())
 			}
 		}

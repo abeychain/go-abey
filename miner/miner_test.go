@@ -3,6 +3,11 @@ package miner
 import (
 	"errors"
 	"fmt"
+	"log"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/common"
@@ -13,10 +18,6 @@ import (
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/params"
-	"log"
-	"math/big"
-	"testing"
-	"time"
 )
 
 type mockBackend struct {
@@ -140,7 +141,9 @@ func TestMakeSnailBlock(t *testing.T) {
 
 func TestStopMiningForHeight(t *testing.T) {
 	backend := newMockBackend(params.DevnetChainConfig, minerva.NewFaker())
-	for i := 0; i < 10; i++ {
+	params.StopSnailMiner = big.NewInt(1)
+
+	for i := uint64(0); i < params.StopSnailMiner.Uint64(); i++ {
 		parent := backend.SnailBlockChain().CurrentBlock()
 		block, _ := makeSnailBlock(parent)
 		c, err := backend.SnailBlockChain().InsertChain(types.SnailBlocks{block})
@@ -148,5 +151,126 @@ func TestStopMiningForHeight(t *testing.T) {
 			log.Fatal(err)
 		}
 		fmt.Println("insert snail block", c)
+	}
+
+	// make snail block after stop mining
+	snailAfterStopMining := 10
+	for i := 0; i < snailAfterStopMining; i++ {
+		parent := backend.SnailBlockChain().CurrentBlock()
+		block, _ := makeSnailBlock(parent)
+		c, err := backend.SnailBlockChain().InsertChain(types.SnailBlocks{block})
+		if err == nil || c > 0 {
+			log.Fatal("cann't insert snail block on stop miner")
+		}
+	}
+}
+
+func testWorker(chainConfig *params.ChainConfig, engine consensus.Engine) (*worker, *mockBackend) {
+	backend := newMockBackend(chainConfig, engine)
+
+	w := newWorker(chainConfig, engine, coinbase, backend, nil)
+
+	return w, backend
+}
+
+func TestStopCommitFastBlock(t *testing.T) {
+	fmt.Println("it's stop more than two snail block ")
+	var (
+		//fruitset1 []*types.SnailBlock  // nil situation
+		fruitset2 []*types.SnailBlock // contine but not have 60
+		fruitset3 []*types.SnailBlock // not contine   1 2 3  5 7 8
+		fruitset4 []*types.SnailBlock // contine and langer then 60
+		fruitset5 []*types.SnailBlock // frist one big then snailfruitslast fast numbe 10000 10001...
+	)
+	engine := minerva.NewFaker()
+
+	chainDb := abeydb.NewMemDatabase()
+	chainConfig, _, _, _ := core.SetupGenesisBlock(chainDb, core.DefaultGenesisBlock())
+	//Miner := New(snailChainLocal, nil, nil, snailChainLocal.Engine(), nil, false, nil)
+	worker, _ := testWorker(chainConfig, engine)
+
+	startFastNum := blockNum*params.MinimumFruits + 1
+	gensisSnail := snailChainLocal.GetBlockByNumber(0)
+	worker.commitNewWork()
+	// situation 1   nil
+	//fruitset1 = nil
+	err0 := worker.CommitFastBlocksByWoker(nil, snailChainLocal, fastChainLocal, nil)
+	if err0 != nil {
+		fmt.Println("1 is err", err0)
+	}
+
+	// situation 2   1 2 3 4
+	for i := startFastNum; i < (10 + startFastNum); i++ {
+
+		fruit, _ := snailchain.MakeSnailBlockFruit(snailChainLocal, fastChainLocal, blockNum, i, gensisSnail.PublicKey(), gensisSnail.Coinbase(), false, nil)
+		if fruit == nil {
+			fmt.Println("fruit is nil  2")
+		}
+		fruitset2 = append(fruitset2, fruit)
+	}
+
+	err := worker.CommitFastBlocksByWoker(fruitset2, snailChainLocal, fastChainLocal, nil)
+	if err != nil {
+		fmt.Println("2 is err", err)
+	}
+
+	// situation 3   1 2 3 5 7
+	j := 0
+	for i := startFastNum; i < startFastNum+20; i++ {
+		j++
+		if j == 10 {
+			continue
+		}
+		fruit, _ := snailchain.MakeSnailBlockFruit(snailChainLocal, fastChainLocal, blockNum, i, gensisSnail.PublicKey(), gensisSnail.Coinbase(), false, nil)
+		if fruit == nil {
+			fmt.Println("fruit is nil  3")
+		}
+		fruitset3 = append(fruitset3, fruit)
+	}
+
+	err2 := worker.CommitFastBlocksByWoker(fruitset3, snailChainLocal, fastChainLocal, nil)
+	if err != nil {
+		fmt.Println("3 is err", err2)
+	}
+	// situation 4   1 2 3...60
+	for i := startFastNum; i < startFastNum+60; i++ {
+
+		fruit, _ := snailchain.MakeSnailBlockFruit(snailChainLocal, fastChainLocal, blockNum, i, gensisSnail.PublicKey(), gensisSnail.Coinbase(), false, nil)
+		if fruit == nil {
+			fmt.Println("fruit is nil 4 ")
+		}
+		fruitset4 = append(fruitset4, fruit)
+	}
+	err3 := worker.CommitFastBlocksByWoker(fruitset4, snailChainLocal, fastChainLocal, nil)
+	if err != nil {
+		fmt.Println("4 is err", err3)
+	}
+
+	// situation 5   10000 10001...
+	for i := fastChainHight; i < startFastNum+60; i++ {
+
+		fruit, _ := snailchain.MakeSnailBlockFruit(snailChainLocal, fastChainLocal, blockNum, i, gensisSnail.PublicKey(), gensisSnail.Coinbase(), false, nil)
+		if fruit == nil {
+			fmt.Println("fruit is nil  5")
+		}
+		fruitset5 = append(fruitset5, fruit)
+	}
+	err5 := worker.CommitFastBlocksByWoker(fruitset5, snailChainLocal, fastChainLocal, nil)
+	if err != nil {
+		fmt.Println("5 is err", err5)
+	}
+
+	snail_blocks := snailChainLocal.GetBlocksFromNumber(1)
+	for _, block := range snail_blocks {
+		fmt.Printf("snail %d => %x\n", block.Number(), block.Hash())
+	}
+
+	for i := uint64(0); i <= fastChainLocal.CurrentBlock().Number().Uint64(); i++ {
+		block := fastChainLocal.GetBlockByNumber(i)
+		if block == nil {
+			break
+		} else {
+			fmt.Printf("fast %d => %x\n", block.Number(), block.Hash())
+		}
 	}
 }

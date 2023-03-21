@@ -18,52 +18,20 @@
 package web3ext
 
 var Modules = map[string]string{
-	"admin":      Admin_JS,
-	"chequebook": Chequebook_JS,
-	"clique":     Clique_JS,
-	"debug":      Debug_JS,
-	"abey":       Abey_JS,
-	"miner":      Miner_JS,
-	"net":        Net_JS,
-	"personal":   Personal_JS,
-	"rpc":        RPC_JS,
-	"shh":        Shh_JS,
-	"swarmfs":    SWARMFS_JS,
-	"txpool":     TxPool_JS,
-	"fruitpool":  FruitPool_JS,
-	"impawn":     Impawn_JS,
+	"admin":     Admin_JS,
+	"clique":    Clique_JS,
+	"debug":     Debug_JS,
+	"abey":      Abey_JS,
+	"miner":     Miner_JS,
+	"net":       Net_JS,
+	"personal":  Personal_JS,
+	"rpc":       RPC_JS,
+	"shh":       Shh_JS,
+	"swarmfs":   SWARMFS_JS,
+	"txpool":    TxPool_JS,
+	"fruitpool": FruitPool_JS,
+	"impawn":    Impawn_JS,
 }
-
-const Chequebook_JS = `
-web3._extend({
-	property: 'chequebook',
-	methods: [
-		new web3._extend.Method({
-			name: 'deposit',
-			call: 'chequebook_deposit',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Property({
-			name: 'balance',
-			getter: 'chequebook_balance',
-			outputFormatter: web3._extend.utils.toDecimal
-		}),
-		new web3._extend.Method({
-			name: 'cash',
-			call: 'chequebook_cash',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Method({
-			name: 'issue',
-			call: 'chequebook_issue',
-			params: 2,
-			inputFormatter: [null, null]
-		}),
-	]
-});
-`
 
 const Clique_JS = `
 web3._extend({

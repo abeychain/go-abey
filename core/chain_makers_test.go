@@ -19,13 +19,13 @@ package core
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/consensus/minerva"
 	"github.com/abeychain/go-abey/core/state"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/core/vm"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abeydb"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/params"
 	"math/big"
@@ -51,7 +51,8 @@ func ExampleGenerateChain() {
 		gspec   = &Genesis{
 			Config: &params.ChainConfig{ChainID: chainId,
 				TIP7: &params.BlockConfig{FastNumber: big.NewInt(0)},
-				TIP8: &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)}},
+				TIP8: &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)},
+				TIP9: &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)}},
 			Alloc: types.GenesisAlloc{addr1: {Balance: big.NewInt(3000000)}},
 		}
 		genesis = gspec.MustFastCommit(db)
