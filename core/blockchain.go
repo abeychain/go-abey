@@ -204,22 +204,20 @@ func NewBlockChain(db abeydb.Database, cacheConfig *CacheConfig,
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
 
-	log.Info("begin NewHeaderChain")
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
 	}
-	log.Info("end NewHeaderChain")
+
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
-	log.Info("begin loadLastState")
+
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
-	log.Info("end loadLastState")
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
 	for hash := range BadHashes {
 		if header := bc.GetHeaderByHash(hash); header != nil {
