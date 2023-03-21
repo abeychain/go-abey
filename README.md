@@ -2,20 +2,29 @@
 ## ABEY Chain
 
 
+Processing up to 3,000 TPS while featuring ultra-low gas fees, ABEYCHAIN 3.0 is a multi-Layered programmable blockchain with a DPoS consensus specializing in building decentralized applications, business use cases, and achieving cross-chain Interoperability.  It is based on parallel transaction execution and the ABEY Virtual Machine (AVM). 
+
+Why ABEY:
+
+ABEYCHAIN is the first fully operational, third-generation public chain to solve one of the most pressing challenges in the public chain space: the ability to achieve simultaneously a high degree of both decentralization, security, and efficiency, which is commonly known as the “Impossible Triangle.”
+
+High-Speed Transactions:
+
+ABEYCHAIN 3.0 features a Delegated Proof-of-Stake consensus in order to boost throughput to a whole new level. ABEYCHAIN’s DPoS committee is responsible for transaction validation.  Committee members are elected by ABEY token holders. Membership will be on a rotating basis in order to prevent corruption in a timely manner.
+
+The dPoS consensus is currently capable of processing up to 3,000 transactions per second (TPS) with the ability to scale to even greater processing power with an eventual upgrade to “sharding”. Sharding allows the ABEY blockchain to be broken up into smaller pieces called “shards.” These shards act as semi-autonomous fragments of the main blockchain and can process transactions on their own. With sharding, ABEYCHAIN’s TPS is estimated to increase to 100,000. Further, unrelated transactions are splitted and executed them in parallel to greatly optimize execution efficiency and throughput.
+
+Cross-Chain Interoperability:
+
+Although many different blockchains exist in 2021, very few can achieve interoperability with other chains like ABEYCHAIN. ABEYCHAIN was created with maximum interoperability in mind – this means that a variety of high-quality crypto assets native to other blockchains can be seamlessly transferred onto or processed through the ABEYCHAIN without experiencing any significant delays.
+
+Current state:
+
+ABEYCHAIN 3.0 is quickly becoming the go-to smart contract platform for Metaverse, GameFi & DeFi dApp developers around the globe.
+
+
 Click to visit [ABEY developer documents](https://docs.abeychain.com)
 
-ABEY chain is a truly fast, permissionless, secure and scalable public blockchain platform 
-which is supported by hybrid consensus technology called Minerva and a global developer community. 
- 
-ABEY chain uses hybrid consensus combining PBFT and fPoW to solve the biggest problem confronting public blockchain: 
-the contradiction between decentralization and efficiency. 
-
-ABEY chain uses PBFT as fast-chain to process transactions, and leave the oversight and election of PBFT to the hands of PoW nodes. 
-Besides, Abeychain integrates fruitchain technology into the traditional PoW protocol to become fPoW, 
-to make the chain even more decentralized and fair. 
- 
-ABEY chain also creates a hybrid consensus incentive model and a stable gas fee mechanism to lower the cost for the developers 
-and operators of DApps, and provide better infrastructure for decentralized eco-system. 
 
 <a href="https://github.com/abeychain/go-abey/blob/master/COPYING"><img src="https://img.shields.io/badge/license-GPL%20%20Abeychain-lightgrey.svg"></a>
 
