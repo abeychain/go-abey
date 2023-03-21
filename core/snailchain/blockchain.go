@@ -202,7 +202,6 @@ func (bc *SnailBlockChain) loadLastState() error {
 		currentBlock = bc.GetBlockByHash(parentHash)
 		maxFruitNumber = currentBlock.Fruits()[len(currentBlock.Fruits())-1].FastNumber()
 	}
-	log.Info("end snail loadLastState")
 	rawdb.WriteHeadBlockHash(bc.db, currentBlock.Hash())
 	rawdb.WriteHeadHeaderHash(bc.db, currentBlock.Header().Hash())
 	rawdb.WriteHeadFastBlockHash(bc.db, bc.blockchain.CurrentBlock().Hash())
