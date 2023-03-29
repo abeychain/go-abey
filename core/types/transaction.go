@@ -398,20 +398,25 @@ func (tx *Transaction) Hash() common.Hash {
 	return v
 }
 func (tx *Transaction) Hash2() common.Hash {
-	if hash := tx.hash.Load(); hash != nil {
-		return hash.(common.Hash)
+	if tx.Payer() == nil {
+		rawTx := tx.copyTxWithoutPayer()
+		if hash := rawTx.hash.Load(); hash != nil {
+			return hash.(common.Hash)
+		}
+		v := rlpHash(rawTx)
+		rawTx.hash.Store(v)
+		return v
+	} else {
+		if hash := tx.hash.Load(); hash != nil {
+			return hash.(common.Hash)
+		}
+		v := rlpHash(tx)
+		tx.hash.Store(v)
+		return v
 	}
-	v := rlpHash(tx)
-	tx.hash.Store(v)
-	return v
 }
-func (tx *Transaction) copyTxWithoutPayer() *Transaction {
-	return &Transaction{
-		data: txdata{
-			AccountNonce: tx.data.AccountNonce,
-			Price:        tx.data.Price,
-		},
-	}
+func (tx *Transaction) copyTxWithoutPayer() *RawTransaction {
+	return tx.ConvertRawTransaction()
 }
 
 // Size returns the true RLP encoded storage size of the transaction, either by
