@@ -9,6 +9,7 @@ import (
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/rlp"
 	"math/big"
+	"testing"
 )
 
 // The values in those tests are from the Transaction Tests
@@ -22,8 +23,23 @@ var (
 		big.NewInt(0), 0, big.NewInt(0),
 		nil,
 	)
+	standardTx, _ = NewTransaction(
+		3,
+		testAddr,
+		big.NewInt(10),
+		2000,
+		big.NewInt(1),
+		common.FromHex("5544"),
+	).WithSignature(
+		NewTIP1Signer(big.NewInt(1)),
+		common.Hex2Bytes("98ff921201554726367d2be8c804a7ff89ccf285ebc57dff8ae4c44b9c19ac4a8887321be575c8095f789dd4c743dfe42c1820f9231f98a962b210e3ac2452a301"),
+	)
 )
 
+func Test01(t *testing.T) {
+	// 0x4da580fd2e4c04f328d9f947ecf356411eb8e4a3a5c745f383b3ccd79c36a8d4
+	fmt.Println(standardTx.Hash().Hex())
+}
 func decodeTx(data []byte) (*Transaction, error) {
 	var tx Transaction
 	t, err := &tx, rlp.Decode(bytes.NewReader(data), &tx)
