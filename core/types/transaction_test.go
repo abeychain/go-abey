@@ -40,9 +40,9 @@ func Test01(t *testing.T) {
 	// 0x4da580fd2e4c04f328d9f947ecf356411eb8e4a3a5c745f383b3ccd79c36a8d4
 	tx := standardTx
 	tx.data.V = big.NewInt(28)
-	fmt.Println(tx.Hash().Hex())
+	fmt.Println(tx.HashOld().Hex())
 	// equal the hash 0x4da580fd2e4c04f328d9f947ecf356411eb8e4a3a5c745f383b3ccd79c36a8d4
-	fmt.Println(tx.Hash2().Hex())
+	fmt.Println(tx.Hash().Hex())
 }
 func decodeTx(data []byte) (*Transaction, error) {
 	var tx Transaction
