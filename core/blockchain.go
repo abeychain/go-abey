@@ -1862,8 +1862,12 @@ func (bc *BlockChain) stateGcBodyAndReceipt(gcNumber uint64) {
 		block := bc.GetBlockByNumber(gcNumber + i)
 		if bc.HasBlock(block.Hash(), block.NumberU64()) {
 			for _, tx := range block.Transactions() {
-				if rawdb.HasTxLookupEntry(bc.db, tx.Hash()) {
-					rawdb.DeleteTxLookupEntry(bc.db, tx.Hash())
+				h := tx.HashOld()
+				if bc.chainConfig.IsTIP10(block.Number()) {
+					h = tx.Hash()
+				}
+				if rawdb.HasTxLookupEntry(bc.db, h) {
+					rawdb.DeleteTxLookupEntry(bc.db, h)
 				}
 			}
 			rawdb.DeleteBody(bc.db, block.Hash(), block.NumberU64())
