@@ -41,7 +41,7 @@ var (
 	deleEValue   = new(big.Int).SetInt64(0)
 )
 
-//epoch  [id:1,begin:1,end:2000]   [id:2,begin:2001,end:4000]   [id:3,begin:4001,end:6000]   [id:4,begin:6001,end:8000]   [id:5,begin:8001,end:10000]
+// epoch  [id:1,begin:1,end:2000]   [id:2,begin:2001,end:4000]   [id:3,begin:4001,end:6000]   [id:4,begin:6001,end:8000]   [id:5,begin:8001,end:10000]
 func SendTX(header *types.Header, propagate bool, blockchain *core.BlockChain, tx txPool, config *params.ChainConfig, gen *core.BlockGen, statedb *state.StateDB, comKey *ecdsa.PrivateKey) {
 	if !propagate {
 		return
@@ -220,7 +220,7 @@ func newTestPOSManager(sBlocks int, executableTx func(uint64, *core.BlockGen, *c
 	gspec.Config.TIP7 = &params.BlockConfig{FastNumber: big.NewInt(0)}
 	gspec.Config.TIP8 = &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)}
 	gspec.Config.TIP9 = &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)}
-
+	gspec.Config.TIP10 = &params.BlockConfig{FastNumber: big.NewInt(0)}
 	genesis := gspec.MustFastCommit(db)
 	blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{})
 
@@ -274,7 +274,7 @@ func newTestPOSManager(sBlocks int, executableTx func(uint64, *core.BlockGen, *c
 	return manager
 }
 
-//generate rewardSnailHegiht
+// generate rewardSnailHegiht
 func rewardSnailBlock(chain consensus.SnailChainReader, fastChain *core.BlockChain, header *types.Header) {
 	rewardSnailHegiht := fastChain.NextSnailNumberReward()
 	space := new(big.Int).Sub(chain.CurrentHeader().Number, rewardSnailHegiht).Int64()
