@@ -390,11 +390,11 @@ func (tx *Transaction) Payer() *common.Address {
 // Hash hashes the RLP encoding of tx.
 // It uniquely identifies the transaction.
 func (tx *Transaction) HashOld() common.Hash {
-	if hash := tx.hash.Load(); hash != nil {
-		return hash.(common.Hash)
-	}
+	//if hash := tx.hash.Load(); hash != nil {
+	//	return hash.(common.Hash)
+	//}
 	v := rlpHash(tx)
-	tx.hash.Store(v)
+	//tx.hash.Store(v)
 	return v
 }
 func (tx *Transaction) Hash() common.Hash {
@@ -407,7 +407,12 @@ func (tx *Transaction) Hash() common.Hash {
 		rawTx.hash.Store(v)
 		return v
 	} else {
-		return tx.HashOld()
+		if hash := tx.hash.Load(); hash != nil {
+			return hash.(common.Hash)
+		}
+		v := rlpHash(tx)
+		tx.hash.Store(v)
+		return v
 	}
 }
 func (tx *Transaction) copyTxWithoutPayer() *RawTransaction {

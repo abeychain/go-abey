@@ -328,7 +328,7 @@ func (bc *BlockChain) loadLastState() error {
 	return nil
 }
 
-//Gets the nearest reward block based on the current height of the fast chain
+// Gets the nearest reward block based on the current height of the fast chain
 func (bc *BlockChain) GetLastRowByFastCurrentBlock() *types.BlockReward {
 	block := bc.CurrentBlock()
 	for i := block.NumberU64(); i > 0; i-- {
@@ -909,8 +909,11 @@ func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts ty
 
 	for j := 0; j < len(receipts); j++ {
 		// The transaction hash can be retrieved from the transaction itself
-		receipts[j].TxHash = transactions[j].Hash()
-
+		if config.IsTIP10(block.Number()) {
+			receipts[j].TxHash = transactions[j].Hash()
+		} else {
+			receipts[j].TxHash = transactions[j].HashOld()
+		}
 		// block location fields
 		receipts[j].BlockHash = block.Hash()
 		receipts[j].BlockNumber = block.Number()
@@ -1506,6 +1509,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		commonBlock *types.Block
 		deletedTxs  types.Transactions
 		deletedLogs []*types.Log
+		tmp         = make(map[common.Hash](uint64))
 		// collectLogs collects the logs that were generated during the
 		// processing of the block that corresponds with the given hash.
 		// These logs are later announced as deleted.
@@ -1557,6 +1561,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		oldChain = append(oldChain, oldBlock)
 		newChain = append(newChain, newBlock)
 		deletedTxs = append(deletedTxs, oldBlock.Transactions()...)
+		for _, tx := range oldBlock.Transactions() {
+			tmp[tx.Hash()] = oldBlock.NumberU64()
+		}
 		collectLogs(oldBlock.Hash())
 
 		oldBlock, newBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1), bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1)
@@ -1586,6 +1593,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		// write lookup entries for hash based transaction/receipt searches
 		rawdb.WriteTxLookupEntries(bc.db, newChain[i])
 		addedTxs = append(addedTxs, newChain[i].Transactions()...)
+		for _, tx := range newChain[i].Transactions() {
+			tmp[tx.Hash()] = newChain[i].NumberU64()
+		}
 	}
 	// calculate the difference between deleted and added transactions
 	diff := types.TxDifference(deletedTxs, addedTxs)
@@ -1593,7 +1603,15 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	// receipts that were created in the fork must also be deleted
 	batch := bc.db.NewBatch()
 	for _, tx := range diff {
-		rawdb.DeleteTxLookupEntry(batch, tx.Hash())
+		if h, ok := tmp[tx.Hash()]; ok {
+			if bc.chainConfig.IsTIP10(big.NewInt(int64(h))) {
+				rawdb.DeleteTxLookupEntry(batch, tx.Hash())
+			} else {
+				rawdb.DeleteTxLookupEntry(batch, tx.HashOld())
+			}
+		} else {
+			rawdb.DeleteTxLookupEntry(batch, tx.Hash())
+		}
 	}
 	batch.Write()
 
