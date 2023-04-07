@@ -1005,7 +1005,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		// Write all the data out into the database
 		rawdb.WriteBody(batch, block.Hash(), block.NumberU64(), block.Body())
 		rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receipts)
-		rawdb.WriteTxLookupEntries(batch, block)
+		rawdb.WriteTxLookupEntries2(batch, block, bc.chainConfig.TIP10.FastNumber)
 
 		stats.processed++
 
@@ -1154,7 +1154,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		}
 	}
 	// Write the positional metadata for transaction/receipt lookups and preimages
-	rawdb.WriteTxLookupEntries(batch, block)
+	rawdb.WriteTxLookupEntries2(batch, block, bc.chainConfig.TIP10.FastNumber)
 	rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
 
 	status = CanonStatTy
@@ -1591,7 +1591,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		// insert the block in the canonical way, re-writing history
 		bc.insert(newChain[i])
 		// write lookup entries for hash based transaction/receipt searches
-		rawdb.WriteTxLookupEntries(bc.db, newChain[i])
+		rawdb.WriteTxLookupEntries2(bc.db, newChain[i], bc.chainConfig.TIP10.FastNumber)
 		addedTxs = append(addedTxs, newChain[i].Transactions()...)
 		for _, tx := range newChain[i].Transactions() {
 			tmp[tx.Hash()] = newChain[i].NumberU64()

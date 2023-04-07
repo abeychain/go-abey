@@ -18,9 +18,10 @@ package rawdb
 
 import (
 	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/log"
 	"github.com/abeychain/go-abey/rlp"
-	"github.com/abeychain/go-abey/core/types"
+	"math/big"
 )
 
 // ReadTxLookupEntry retrieves the positional metadata associated with a transaction
@@ -54,6 +55,28 @@ func WriteTxLookupEntries(db DatabaseWriter, block *types.Block) {
 			log.Crit("Failed to encode transaction lookup entry", "err", err)
 		}
 		if err := db.Put(txLookupKey(tx.Hash()), data); err != nil {
+			log.Crit("Failed to store transaction lookup entry", "err", err)
+		}
+	}
+}
+func WriteTxLookupEntries2(db DatabaseWriter, block *types.Block, forkBlock *big.Int) {
+	for i, tx := range block.Transactions() {
+		entry := TxLookupEntry{
+			BlockHash:  block.Hash(),
+			BlockIndex: block.NumberU64(),
+			Index:      uint64(i),
+		}
+		data, err := rlp.EncodeToBytes(entry)
+		//log.Info("=========   size of TX",len(data),"number of fast",block.NumberU64())
+
+		if err != nil {
+			log.Crit("Failed to encode transaction lookup entry", "err", err)
+		}
+		txhash := tx.HashOld()
+		if forkBlock.Cmp(block.Number()) <= 0 {
+			txhash = tx.Hash()
+		}
+		if err := db.Put(txLookupKey(txhash), data); err != nil {
 			log.Crit("Failed to store transaction lookup entry", "err", err)
 		}
 	}
