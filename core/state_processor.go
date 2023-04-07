@@ -77,7 +77,11 @@ func (fp *StateProcessor) Process(block *types.Block, statedb *state.StateDB,
 	start := time.Now()
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
-		statedb.Prepare(tx.Hash(), block.Hash(), i)
+		txhash := tx.HashOld()
+		if fp.config.IsTIP10(block.Number()) {
+			txhash = tx.Hash()
+		}
+		statedb.Prepare(txhash, block.Hash(), i)
 		receipt, err := ApplyTransaction(fp.config, fp.bc, gp, statedb, header, tx, usedGas, feeAmount, cfg)
 		if err != nil {
 			return nil, nil, 0, nil, err
@@ -134,18 +138,21 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	if msg.Fee() != nil {
 		feeAmount.Add(msg.Fee(), feeAmount) //add fee
 	}
-
+	txhash := tx.HashOld()
+	if config.IsTIP10(header.Number) {
+		txhash = tx.Hash()
+	}
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing wether the root touch-delete accounts.
 	receipt := types.NewReceipt(root, result.Failed(), *usedGas)
-	receipt.TxHash = tx.Hash()
+	receipt.TxHash = txhash
 	receipt.GasUsed = result.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.Hash())
+	receipt.Logs = statedb.GetLogs(txhash)
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number
