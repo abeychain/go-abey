@@ -508,7 +508,8 @@ func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs
 // safely used to calculate a signature from.
 //
 // The hash is calulcated as
-//   keccak256("\x19True Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19True Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func signHash(data []byte) []byte {
@@ -577,12 +578,13 @@ func (s *PrivateAccountAPI) SignAndSendTransaction(ctx context.Context, args Sen
 // PublicBlockChainAPI provides an API to access the True blockchain.
 // It offers only methods that operate on public data that is freely available to anyone.
 type PublicBlockChainAPI struct {
-	b Backend
+	config *params.ChainConfig
+	b      Backend
 }
 
 // NewPublicBlockChainAPI creates a new True blockchain API.
-func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
-	return &PublicBlockChainAPI{b}
+func NewPublicBlockChainAPI(config *params.ChainConfig, b Backend) *PublicBlockChainAPI {
+	return &PublicBlockChainAPI{config: config, b: b}
 }
 
 // SnailBlockNumber returns the block number of the snailchain head.
@@ -1071,7 +1073,7 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 // RPCMarshalBlock converts the given block to the RPC output which depends on fullTx. If inclTx is true transactions are
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
-func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
+func RPCMarshalBlock(b *types.Block, inclTx, fullTx, newTxhash bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
 	fields := map[string]interface{}{
 		"number":           (*hexutil.Big)(head.Number),
@@ -1156,7 +1158,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 }
 
 // rpcOutputBlock uses the generalized output filler.
-func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx, fullTx bool) (map[string]interface{}, error) {
 	fields, err := RPCMarshalBlock(b, inclTx, fullTx)
 	if err != nil {
 		return nil, err
