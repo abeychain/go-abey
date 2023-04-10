@@ -186,7 +186,7 @@ func NewPbftAgent(abey Backend, config *params.ChainConfig, engine consensus.Eng
 	return agent
 }
 
-//initialize node info
+// initialize node info
 func (agent *PbftAgent) initNodeInfo(abey Backend) {
 	//config *Config, coinbase common.Address
 	config := abey.Config()
@@ -217,7 +217,7 @@ func (agent *PbftAgent) initNodeInfo(abey Backend) {
 		",pubKey", hex.EncodeToString(agent.committeeNode.Publickey))
 }
 
-//initialize nodeInfoWorks
+// initialize nodeInfoWorks
 func (agent *PbftAgent) initNodeWork() {
 	nodeWork1 := &nodeInfoWork{
 		ticker:        time.NewTicker(sendNodeTime),
@@ -232,7 +232,7 @@ func (agent *PbftAgent) initNodeWork() {
 	agent.nodeInfoWorks = append(agent.nodeInfoWorks, nodeWork1, nodeWork2)
 }
 
-//Start means receive events from election and send pbftNode infomation
+// Start means receive events from election and send pbftNode infomation
 func (agent *PbftAgent) Start() {
 	if agent.singleNode { //single node model start
 		go agent.singleloop()
@@ -261,7 +261,7 @@ type nodeInfoWork struct {
 	isCurrent         bool
 }
 
-//update the nodeInfoWorks element isCurrent,and return nodeInfoWork that the isCurrent equals true
+// update the nodeInfoWorks element isCurrent,and return nodeInfoWork that the isCurrent equals true
 func (agent *PbftAgent) updateCurrentNodeWork() *nodeInfoWork {
 	if agent.nodeInfoWorks[0].isCurrent {
 		agent.nodeInfoWorks[0].isCurrent = false
@@ -273,12 +273,12 @@ func (agent *PbftAgent) updateCurrentNodeWork() *nodeInfoWork {
 	return agent.nodeInfoWorks[0]
 }
 
-//IsCurrentCommitteeMember get whether self is committee member or not
+// IsCurrentCommitteeMember get whether self is committee member or not
 func (agent *PbftAgent) IsCommitteeMember() bool {
 	return agent.isCurrentCommitteeMember
 }
 
-//IsLeader get current committee leader
+// IsLeader get current committee leader
 func (agent *PbftAgent) IsLeader() bool {
 	if agent.currentCommitteeInfo == nil || agent.currentCommitteeInfo.Id == nil || !agent.currentCommitteeInfo.Id.IsUint64() {
 		return false
@@ -286,7 +286,7 @@ func (agent *PbftAgent) IsLeader() bool {
 	return agent.server.IsLeader(agent.currentCommitteeInfo.Id)
 }
 
-//return isCurrent equals false of nodeInfoWork
+// return isCurrent equals false of nodeInfoWork
 func (agent *PbftAgent) getCurrentNodeWork() *nodeInfoWork {
 	if !agent.nodeInfoWorks[0].isCurrent {
 		return agent.nodeInfoWorks[0]
@@ -299,7 +299,7 @@ func (nodeWork *nodeInfoWork) loadNodeWork(receivedCommitteeInfo *types.Committe
 	nodeWork.isCommitteeMember = isCommitteeMember
 }
 
-//start send committeeNode
+// start send committeeNode
 func (agent *PbftAgent) startSend(receivedCommitteeInfo *types.CommitteeInfo, isCommitteeMember bool) {
 	nodeWork := agent.updateCurrentNodeWork()
 	nodeWork.loadNodeWork(receivedCommitteeInfo, isCommitteeMember)
@@ -320,7 +320,7 @@ func (agent *PbftAgent) startSend(receivedCommitteeInfo *types.CommitteeInfo, is
 	}
 }
 
-//stop send committeeNode
+// stop send committeeNode
 func (agent *PbftAgent) stopSend() {
 	nodeWork := agent.getCurrentNodeWork()
 	if nodeWork.isCommitteeMember {
@@ -696,7 +696,7 @@ func (agent *PbftAgent) clearEndFastNumber(committeeID *big.Int) {
 	}
 }
 
-//  when receive block insert chain event ,put cacheBlock into fastchain
+// when receive block insert chain event ,put cacheBlock into fastchain
 func (agent *PbftAgent) putCacheInsertChain(receiveBlock *types.Block) error {
 	agent.cacheBlockMu.Lock()
 	defer agent.cacheBlockMu.Unlock()
@@ -741,7 +741,7 @@ func (agent *PbftAgent) putCacheInsertChain(receiveBlock *types.Block) error {
 	return nil
 }
 
-//handleConsensusBlock committeeNode braodcat:if parentBlock is not in fastChain,put block  into cacheblock
+// handleConsensusBlock committeeNode braodcat:if parentBlock is not in fastChain,put block  into cacheblock
 func (agent *PbftAgent) handleConsensusBlock(receiveBlock *types.Block) error {
 	receiveBlockHeight := receiveBlock.Number()
 	if agent.fastChain.CurrentBlock().Number().Cmp(receiveBlockHeight) >= 0 {
@@ -826,7 +826,7 @@ func (agent *PbftAgent) cryNodeInfoIsCommittee(encryptNode *types.EncryptNodeMes
 	return false, nil, common.Hash{}, nil
 }
 
-//send committeeNode to p2p,make other committeeNode receive and decrypt
+// send committeeNode to p2p,make other committeeNode receive and decrypt
 func (agent *PbftAgent) sendPbftNode(nodeWork *nodeInfoWork) {
 	cryNodeInfo := encryptNodeInfo(nodeWork.committeeInfo, agent.committeeNode, agent.privateKey)
 	agent.sendAndMarkNode(cryNodeInfo)
@@ -873,7 +873,7 @@ func (agent *PbftAgent) handlePbftNode(cryNodeInfo *types.EncryptNodeMessage, no
 	}
 }
 
-//GetNodeInfoByHash get cryptoNodeInfo by hash
+// GetNodeInfoByHash get cryptoNodeInfo by hash
 func (agent *PbftAgent) GetNodeInfoByHash(nodeInfoHash common.Hash) (*types.EncryptNodeMessage, bool) {
 	agent.markNodeMu.Lock()
 	defer agent.markNodeMu.Unlock()
@@ -885,7 +885,7 @@ func (agent *PbftAgent) GetNodeInfoByHash(nodeInfoHash common.Hash) (*types.Encr
 	return nil, isExist
 }
 
-//AddRemoteNodeInfo send cryNodeInfo of committeeNode to network,and recieved by other committeenode
+// AddRemoteNodeInfo send cryNodeInfo of committeeNode to network,and recieved by other committeenode
 func (agent *PbftAgent) AddRemoteNodeInfo(cryNodeInfo *types.EncryptNodeMessage) error {
 	if cryNodeInfo == nil {
 		log.Error("AddRemoteNodeInfo cryNodeInfo nil")
@@ -910,12 +910,12 @@ func decryptNodeInfo(cryNodeInfo *types.EncryptNodeMessage, privateKey *ecdsa.Pr
 	return nil
 }
 
-//GetFastLastProposer get last proposer
+// GetFastLastProposer get last proposer
 func (agent *PbftAgent) GetFastLastProposer() common.Address {
 	return agent.fastChain.CurrentBlock().Proposer()
 }
 
-//FetchFastBlock  generate fastBlock as leader
+// FetchFastBlock  generate fastBlock as leader
 func (agent *PbftAgent) FetchFastBlock(committeeID *big.Int, infos []*types.CommitteeMember) (*types.Block, error) {
 	agent.mu.Lock()
 	defer agent.mu.Unlock()
@@ -1009,18 +1009,18 @@ func (agent *PbftAgent) updateSnailHashForSignInfo(fastblock *types.Block) {
 	}
 }
 
-//GetCurrentHeight return  current fastBlock number
+// GetCurrentHeight return  current fastBlock number
 func (agent *PbftAgent) GetCurrentHeight() *big.Int {
 	num := new(big.Int).Set(agent.fastChain.CurrentBlock().Number())
 	return num
 }
 
-//GetSeedMember get seed member
+// GetSeedMember get seed member
 func (agent *PbftAgent) GetSeedMember() []*types.CommitteeMember {
 	return nil
 }
 
-//validate space between latest fruit number of snailchain  and  lastest fastBlock number
+// validate space between latest fruit number of snailchain  and  lastest fastBlock number
 func (agent *PbftAgent) validateBlockSpace(header *types.Header) error {
 	if agent.singleNode {
 		return nil
@@ -1048,7 +1048,7 @@ func (agent *PbftAgent) validateBlockSpace(header *types.Header) error {
 	return nil
 }
 
-//generate rewardSnailHegiht
+// generate rewardSnailHegiht
 func (agent *PbftAgent) rewardSnailBlock(header *types.Header) {
 	rewardSnailHegiht := agent.fastChain.NextSnailNumberReward()
 	curSnailNum := agent.snailChain.CurrentBlock().Number()
@@ -1084,7 +1084,7 @@ func (agent *PbftAgent) GetSnailRewardContent(rewardSnailHegiht uint64) *types.S
 	return content
 }
 
-//GenerateSignWithVote  generate sign from committeeMember in fastBlock
+// GenerateSignWithVote  generate sign from committeeMember in fastBlock
 func (agent *PbftAgent) GenerateSignWithVote(fb *types.Block, vote uint32, result bool) (*types.PbftSign, error) {
 	if !result {
 		vote = types.VoteAgreeAgainst
@@ -1106,12 +1106,12 @@ func (agent *PbftAgent) GenerateSignWithVote(fb *types.Block, vote uint32, resul
 	return voteSign, err
 }
 
-//GenerateSign  generate sign with default agree from committeeMember in fastBlock
+// GenerateSign  generate sign with default agree from committeeMember in fastBlock
 func (agent *PbftAgent) GenerateSign(fb *types.Block) (*types.PbftSign, error) {
 	return agent.GenerateSignWithVote(fb, types.VoteAgree, true)
 }
 
-//VerifyFastBlock  committee member  verify fastBlock  and vote agree or disagree sign
+// VerifyFastBlock  committee member  verify fastBlock  and vote agree or disagree sign
 func (agent *PbftAgent) VerifyFastBlock(fb *types.Block, result bool) (*types.PbftSign, error) {
 	if agent.fastChain.IsFallback() {
 		voteSign, _ := agent.GenerateSignWithVote(fb, types.VoteAgreeAgainst, result)
@@ -1227,8 +1227,9 @@ func (agent *PbftAgent) verifyRewardInCommittee(fb *types.Block) error {
 	return nil
 }
 
-//BroadcastConsensus  when More than 2/3 signs with agree,
-//  committee Member Reach a consensus  and insert the fastBlock into fastBlockChain
+// BroadcastConsensus  when More than 2/3 signs with agree,
+//
+//	committee Member Reach a consensus  and insert the fastBlock into fastBlockChain
 func (agent *PbftAgent) BroadcastConsensus(fb *types.Block) error {
 	agent.mu.Lock()
 	defer agent.mu.Unlock()
@@ -1284,9 +1285,12 @@ func (env *AgentWork) commitTransactions(mux *event.TypeMux, txs *types.Transact
 		//
 		// We use the eip155 signer regardless of the current hf.
 		from, _ := types.Sender(env.signer, tx)
-
+		txhash := tx.HashOld()
+		if env.config.IsTIP10(env.header.Number) {
+			txhash = tx.Hash()
+		}
 		// Start executing the transaction
-		env.state.Prepare(tx.Hash(), common.Hash{}, env.tcount)
+		env.state.Prepare(txhash, common.Hash{}, env.tcount)
 
 		logs, err := env.commitTransaction(tx, bc, env.gasPool, feeAmount)
 		switch err {
@@ -1357,12 +1361,12 @@ func (agent *PbftAgent) SubscribeNewPbftSignEvent(ch chan<- types.PbftSignEvent)
 	return agent.scope.Track(agent.signFeed.Subscribe(ch))
 }
 
-//SubscribeNodeInfoEvent  registers a subscription of NodeInfoEvent.
+// SubscribeNodeInfoEvent  registers a subscription of NodeInfoEvent.
 func (agent *PbftAgent) SubscribeNodeInfoEvent(ch chan<- types.NodeInfoEvent) event.Subscription {
 	return agent.scope.Track(agent.nodeInfoFeed.Subscribe(ch))
 }
 
-//IsCommitteeMember  whether publickey in  committee member
+// IsCommitteeMember  whether publickey in  committee member
 func (agent *PbftAgent) updateCommittee(receivedCommitteeInfo *types.CommitteeInfo) {
 	receivedID := receivedCommitteeInfo.Id
 	if receivedID == nil {
@@ -1386,7 +1390,7 @@ func (agent *PbftAgent) updateCommittee(receivedCommitteeInfo *types.CommitteeIn
 	}
 }
 
-//IsUsedOrUnusedMember  whether publickey in  committee member
+// IsUsedOrUnusedMember  whether publickey in  committee member
 func (agent *PbftAgent) IsUsedOrUnusedMember(committeeInfo *types.CommitteeInfo, publickey []byte) bool {
 	flag := agent.election.GetMemberFlag(committeeInfo.GetAllMembers(), publickey)
 	if flag == types.StateUsedFlag || flag == types.StateUnusedFlag {
@@ -1395,12 +1399,12 @@ func (agent *PbftAgent) IsUsedOrUnusedMember(committeeInfo *types.CommitteeInfo,
 	return false
 }
 
-//IsCommitteeMember  whether agent in  committee member
+// IsCommitteeMember  whether agent in  committee member
 func (agent *PbftAgent) getMemberFlagFromCommittee(committeeInfo *types.CommitteeInfo) uint32 {
 	return agent.election.GetMemberFlag(committeeInfo.GetAllMembers(), agent.committeeNode.Publickey)
 }
 
-//IsCommitteeMember  whether agent in  committee member
+// IsCommitteeMember  whether agent in  committee member
 func (agent *PbftAgent) isCommitteeMember(committeeInfo *types.CommitteeInfo) bool {
 	flag := agent.getMemberFlagFromCommittee(committeeInfo)
 	return flag == types.StateUsedFlag
@@ -1438,7 +1442,7 @@ func (agent *PbftAgent) GetCommitteeNumber(blockHeight *big.Int) int32 {
 	return int32(len(committees))
 }
 
-//CommitteeNumber return current committee number
+// CommitteeNumber return current committee number
 func (agent *PbftAgent) CommitteeNumber() uint64 {
 	if nil == agent.currentCommitteeInfo.Id {
 		return 0
@@ -1446,7 +1450,7 @@ func (agent *PbftAgent) CommitteeNumber() uint64 {
 	return agent.currentCommitteeInfo.Id.Uint64()
 }
 
-//GetCommitteeStatus return current committee infomation
+// GetCommitteeStatus return current committee infomation
 func (agent *PbftAgent) GetCommitteeStatus() map[string]interface{} {
 	committeeID := agent.CommitteeNumber()
 	return agent.server.GetCommitteeStatus(big.NewInt((int64)(committeeID)))
@@ -1467,13 +1471,13 @@ func (agent *PbftAgent) setCommitteeInfo(CommitteeType int, newCommitteeInfo *ty
 	}
 }
 
-//AcquireCommitteeAuth determine whether the node pubKey  is in the specified committee
+// AcquireCommitteeAuth determine whether the node pubKey  is in the specified committee
 func (agent *PbftAgent) AcquireCommitteeAuth(fastHeight *big.Int) bool {
 	committeeMembers := agent.election.GetCommittee(fastHeight)
 	return agent.election.IsCommitteeMember(committeeMembers, agent.committeeNode.Publickey)
 }
 
-//MarkNodeInfo Mark received NodeInfo
+// MarkNodeInfo Mark received NodeInfo
 func (agent *PbftAgent) MarkNodeInfo(encryptNode *types.EncryptNodeMessage, nodeTagHash common.Hash) {
 	// If we reached the memory allowance, drop a previously known nodeInfo hash
 	for agent.knownRecievedNodes.Size() >= maxKnownNodes {
@@ -1482,7 +1486,7 @@ func (agent *PbftAgent) MarkNodeInfo(encryptNode *types.EncryptNodeMessage, node
 	agent.knownRecievedNodes.Set(encryptNode.Hash(), nodeTagHash)
 }
 
-//MarkNodeTag Mark received nodeTag,avoid old node information
+// MarkNodeTag Mark received nodeTag,avoid old node information
 func (agent *PbftAgent) MarkNodeTag(nodeTag common.Hash, timestamp *big.Int) {
 	for agent.committeeNodeTag.Size() >= maxKnownNodes {
 		agent.committeeNodeTag.Pop()
@@ -1490,7 +1494,7 @@ func (agent *PbftAgent) MarkNodeTag(nodeTag common.Hash, timestamp *big.Int) {
 	agent.committeeNodeTag.Set(nodeTag, timestamp)
 }
 
-//MarkNodeTag Mark received nodeTag,avoid old node information
+// MarkNodeTag Mark received nodeTag,avoid old node information
 func (agent *PbftAgent) MarkBroadcastNodeTag(cryptoNodeInfo *types.EncryptNodeMessage) {
 	agent.markNodeMu.Lock()
 	defer agent.markNodeMu.Unlock()
@@ -1500,7 +1504,7 @@ func (agent *PbftAgent) MarkBroadcastNodeTag(cryptoNodeInfo *types.EncryptNodeMe
 	agent.broadcastNodeTag.Set(cryptoNodeInfo.Hash(), cryptoNodeInfo)
 }
 
-//single node start
+// single node start
 func (agent *PbftAgent) singleloop() {
 	for {
 		var (
@@ -1534,7 +1538,7 @@ func (agent *PbftAgent) singleloop() {
 	}
 }
 
-//GetCurrentCommittee return committee member's pubkey information
+// GetCurrentCommittee return committee member's pubkey information
 func (agent *PbftAgent) GetCurrentCommittee() []string {
 	members := agent.currentCommitteeInfo.Members
 	memberKeys := make([]string, 0)
@@ -1545,7 +1549,7 @@ func (agent *PbftAgent) GetCurrentCommittee() []string {
 	return memberKeys
 }
 
-//GetAlternativeCommittee return received back committee member's pubkey information
+// GetAlternativeCommittee return received back committee member's pubkey information
 func (agent *PbftAgent) GetAlternativeCommittee() []string {
 	members := agent.currentCommitteeInfo.BackMembers
 	memberKeys := make([]string, 0)
@@ -1556,7 +1560,7 @@ func (agent *PbftAgent) GetAlternativeCommittee() []string {
 	return memberKeys
 }
 
-//GetAlternativeCommittee return received back committee member's pubkey information
+// GetAlternativeCommittee return received back committee member's pubkey information
 func (agent *PbftAgent) GetPrivateKey() *ecdsa.PrivateKey {
 	return agent.privateKey
 }
