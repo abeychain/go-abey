@@ -1,4 +1,4 @@
-FROM alpine:3.7
+FROM alpine:3.14
 
 RUN \
   apk add --update go git make gcc musl-dev=1.1.19-r10 linux-headers ca-certificates && \
