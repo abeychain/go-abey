@@ -74,17 +74,17 @@ func (api *PublicAbeychainAPI) CommitteeBase() common.Address {
 	return crypto.PubkeyToAddress(*pubKey)
 }
 
-//IsCommitteeMember return node whether current committee member
+// IsCommitteeMember return node whether current committee member
 func (api *PublicAbeychainAPI) IsCommitteeMember() bool {
 	return api.e.agent.isCurrentCommitteeMember
 }
 
-//CommitteeNumber return number of current committee
+// CommitteeNumber return number of current committee
 func (api *PublicAbeychainAPI) CommitteeNumber() uint64 {
 	return api.e.agent.CommitteeNumber()
 }
 
-//GetCurrentState get current committee state
+// GetCurrentState get current committee state
 func (api *PublicAbeychainAPI) GetCurrentState() map[string]interface{} {
 	return api.e.agent.GetCommitteeStatus()
 }
@@ -446,7 +446,7 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 // the private debugging endpoint.
 type PrivateDebugAPI struct {
 	config *params.ChainConfig
-	abey  *Abeychain
+	abey   *Abeychain
 }
 
 // NewPrivateDebugAPI creates a new API definition for the full node-related
@@ -486,7 +486,8 @@ func (api *PrivateDebugAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, 
 		} else {
 			results[i].RLP = fmt.Sprintf("0x%x", rlpBytes)
 		}
-		if results[i].Block, err = abeyapi.RPCMarshalBlock(block, true, true); err != nil {
+		newtxhash := api.config.IsTIP10(block.Number())
+		if results[i].Block, err = abeyapi.RPCMarshalBlock(block, true, true, newtxhash); err != nil {
 			results[i].Block = map[string]interface{}{"error": err.Error()}
 		}
 	}
