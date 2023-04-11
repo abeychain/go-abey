@@ -398,22 +398,18 @@ func (tx *Transaction) HashOld() common.Hash {
 	return v
 }
 func (tx *Transaction) Hash() common.Hash {
+	if hash := tx.hash.Load(); hash != nil {
+		return hash.(common.Hash)
+	}
+	v := common.Hash{}
 	if tx.Payer() == nil {
 		rawTx := tx.copyTxWithoutPayer()
-		if hash := rawTx.hash.Load(); hash != nil {
-			return hash.(common.Hash)
-		}
-		v := rlpHash(rawTx)
-		rawTx.hash.Store(v)
-		return v
+		v = rlpHash(rawTx)
 	} else {
-		if hash := tx.hash.Load(); hash != nil {
-			return hash.(common.Hash)
-		}
-		v := rlpHash(tx)
-		tx.hash.Store(v)
-		return v
+		v = rlpHash(tx)
 	}
+	tx.hash.Store(v)
+	return v
 }
 func (tx *Transaction) copyTxWithoutPayer() *RawTransaction {
 	return tx.ConvertRawTransaction()
