@@ -1,19 +1,18 @@
-//// Copyright 2017 The go-ethereum Authors
-//// This file is part of the go-ethereum library.
-////
-//// The go-ethereum library is free software: you can redistribute it and/or modify
-//// it under the terms of the GNU Lesser General Public License as published by
-//// the Free Software Foundation, either version 3 of the License, or
-//// (at your option) any later version.
-////
-//// The go-ethereum library is distributed in the hope that it will be useful,
-//// but WITHOUT ANY WARRANTY; without even the implied warranty of
-//// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-//// GNU Lesser General Public License for more details.
-////
-//// You should have received a copy of the GNU Lesser General Public License
-//// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-//
+// // Copyright 2017 The go-ethereum Authors
+// // This file is part of the go-ethereum library.
+// //
+// // The go-ethereum library is free software: you can redistribute it and/or modify
+// // it under the terms of the GNU Lesser General Public License as published by
+// // the Free Software Foundation, either version 3 of the License, or
+// // (at your option) any later version.
+// //
+// // The go-ethereum library is distributed in the hope that it will be useful,
+// // but WITHOUT ANY WARRANTY; without even the implied warranty of
+// // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// // GNU Lesser General Public License for more details.
+// //
+// // You should have received a copy of the GNU Lesser General Public License
+// // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 package core
 
 //
@@ -418,6 +417,7 @@ func generateAddr() common.Address {
 	priv, _ := crypto.GenerateKey()
 	privHex := hex.EncodeToString(crypto.FromECDSA(priv))
 	fmt.Println(privHex)
+	fmt.Println("pubkey:", hex.EncodeToString(crypto.FromECDSAPub(&priv.PublicKey)))
 	addr := crypto.PubkeyToAddress(priv.PublicKey)
 	fmt.Println(addr.String())
 	fmt.Println("finish")
@@ -686,7 +686,7 @@ func getReward(addr common.Address, infos []*types.SARewardInfos) *big.Int {
 	return reward
 }
 func Test1(t *testing.T) {
-	fmt.Println(generateAddr())
+	generateAddr()
 	fmt.Println("finish")
 }
 func Test03(t *testing.T) {
