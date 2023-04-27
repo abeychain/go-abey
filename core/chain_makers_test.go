@@ -553,3 +553,67 @@ func makeAccounts(count int) ([]common.Address, []*ecdsa.PrivateKey) {
 
 	return addresses, privateKeys
 }
+
+func Test_newTxHash(t *testing.T) {
+
+	var (
+		chainId          = big.NewInt(6666)
+		tip10Block       = big.NewInt(100)
+		db               = abeydb.NewMemDatabase()
+		pow              = minerva.NewFaker()
+		initAccountCount = 5
+		gspec            = &Genesis{
+			Config: &params.ChainConfig{ChainID: chainId,
+				TIP7:  &params.BlockConfig{FastNumber: big.NewInt(0)},
+				TIP8:  &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)},
+				TIP9:  &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
+				TIP10: &params.BlockConfig{FastNumber: tip10Block},
+			},
+			Alloc:      types.GenesisAlloc{},
+			Difficulty: big.NewInt(0),
+		}
+		tx_amount = big.NewInt(100000000000000000)
+		tx_price  = big.NewInt(1000000)
+		tx_fee    = big.NewInt(100000000000000000)
+	)
+	addrs, privs := makeAccounts(initAccountCount)
+	for _, addr := range addrs {
+		gspec.Alloc[addr] = types.GenesisAccount{Balance: big.NewInt(5000 * params.Ether)}
+	}
+
+	var (
+		genesis    = gspec.MustFastCommit(db)
+		fastParent = genesis
+		signer     = types.NewTIP1Signer(params.TestChainConfig.ChainID)
+	)
+
+	//generate blockchain
+	blockchain, _ := NewBlockChain(db, nil, gspec.Config, pow, vm.Config{})
+	defer blockchain.Stop()
+
+	blocks, _ := GenerateChain(gspec.Config, fastParent, pow, db, 50, func(i int, gen *BlockGen) {
+		tx1, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addrs[0]), addrs[1], tx_amount,
+			params.TxGas, tx_price, nil), signer, privs[0])
+		gen.AddTx(tx1)
+	})
+	if i, err := blockchain.InsertChain(blocks); err != nil {
+		fmt.Printf("insert error (block %d): %v\n", blocks[i-1].NumberU64(), err)
+		return
+	}
+	fastParent = blockchain.CurrentBlock()
+	//statedb, _ := state.New(blockchain.CurrentBlock().Root(), state.NewDatabase(db))
+
+	blocks2, _ := GenerateChain(gspec.Config, fastParent, pow, db, int(tip10Block.Int64()), func(i int, gen *BlockGen) {
+		signTx_sender, _ := types.SignTx(types.NewTransaction_Payment(gen.TxNonce(addrs[0]), addrs[1], tx_amount, tx_fee,
+			params.TxGas, tx_price, nil, addrs[2]), signer, privs[0])
+		tx2, _ := types.SignTx_Payment(signTx_sender, signer, privs[2])
+		gen.AddTx(tx2)
+	})
+
+	if i, err := blockchain.InsertChain(blocks2); err != nil {
+		fmt.Printf("insert error (block %d): %v\n", blocks2[i].NumberU64(), err)
+		return
+	}
+	fastParent = blockchain.CurrentBlock()
+
+}
