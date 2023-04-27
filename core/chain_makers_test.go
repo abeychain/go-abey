@@ -537,3 +537,19 @@ func getAddressBalance(addresses []common.Address, statedb *state.StateDB) (bala
 //	b.txs = otxs
 //	b.receipts = recpts
 //}
+
+func makeAccounts(count int) ([]common.Address, []*ecdsa.PrivateKey) {
+	var (
+		addresses   []common.Address
+		privateKeys []*ecdsa.PrivateKey
+		//geneSnailBlockNumber = 3
+	)
+	for i := 1; i <= count; i++ {
+		key, _ := crypto.GenerateKey()
+		privateKeys = append(privateKeys, key)
+		address := crypto.PubkeyToAddress(key.PublicKey)
+		addresses = append(addresses, address)
+	}
+
+	return addresses, privateKeys
+}
