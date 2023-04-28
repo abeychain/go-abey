@@ -33,6 +33,10 @@ import (
 	"testing"
 )
 
+var (
+	OneCoin = big.NewInt(params.Ether)
+)
+
 func init() {
 	log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
 }
@@ -578,7 +582,7 @@ func Test_newTxHash(t *testing.T) {
 	)
 	addrs, privs := makeAccounts(initAccountCount)
 	for _, addr := range addrs {
-		gspec.Alloc[addr] = types.GenesisAccount{Balance: big.NewInt(5000 * params.Ether)}
+		gspec.Alloc[addr] = types.GenesisAccount{Balance: new(big.Int).Add(OneCoin, big.NewInt(5000))}
 	}
 
 	var (
