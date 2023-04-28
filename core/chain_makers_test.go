@@ -588,7 +588,7 @@ func Test_newTxHash(t *testing.T) {
 	var (
 		genesis    = gspec.MustFastCommit(db)
 		fastParent = genesis
-		signer     = types.NewTIP1Signer(params.TestChainConfig.ChainID)
+		signer     = types.NewTIP1Signer(chainId)
 	)
 
 	//generate blockchain
@@ -619,5 +619,5 @@ func Test_newTxHash(t *testing.T) {
 		return
 	}
 	fastParent = blockchain.CurrentBlock()
-
+	fmt.Println("finish........")
 }
