@@ -12,6 +12,7 @@ import (
 	"github.com/abeychain/go-abey/node"
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rpc"
+	"log"
 	"math/big"
 	"reflect"
 	"testing"
@@ -438,5 +439,24 @@ func sendTransaction(ec *Client) error {
 	if err != nil {
 		return err
 	}
-	return ec.SendTransaction(context.Background(), tx)
+	err = ec.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return err
+	}
+	receipt, err := ec.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		return err
+	}
+
+	if receipt.Status == types.ReceiptStatusSuccessful {
+		block, err := ec.BlockByHash(context.Background(), receipt.BlockHash)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Transaction Success", " block Number", receipt.BlockNumber.Uint64(),
+			" block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
+	} else if receipt.Status == types.ReceiptStatusFailed {
+		fmt.Println("Transaction Failed ", " Block Number", receipt.BlockNumber.Uint64())
+	}
+	return nil
 }
