@@ -6,6 +6,7 @@ import (
 	"fmt"
 	abeychain "github.com/abeychain/go-abey"
 	"github.com/abeychain/go-abey/common"
+	"github.com/abeychain/go-abey/common/hexutil"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/params"
@@ -163,7 +164,8 @@ var (
 	payerKey, _ = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
 	payerAddr   = crypto.PubkeyToAddress(payerKey.PublicKey)
 	txFee       = big.NewInt(1e17)
-	devUrl      = "http://127.0.0.0:7445"
+	// "http://18.138.171.105:7545"
+	devUrl = "https://rpc.abeychain.com"
 )
 
 func makeTransaction(nonce uint64) *types.Transaction {
@@ -176,11 +178,21 @@ func makePayerTransaction(nonce uint64) *types.Transaction {
 }
 
 func firstSetup(ec *Client) error {
-	devGenesisKey, _ := crypto.HexToECDSA("55dcdfd62f565a66e1886959e82a365e4987ed0b405adc43614a42c3481edd1a")
+	devGenesisKey, err := crypto.HexToECDSA("55dcdfd62f565a66e1886959e82a365e4987ed0b405adc43614a42c3481edd1a")
+	if err != nil {
+		return err
+	}
 	addr0 := crypto.PubkeyToAddress(devGenesisKey.PublicKey)
 
-	b, e := ec.BalanceAt(context.Background(), addr0, nil)
+	num, e := ec.BlockNumber(context.Background())
 	if e != nil {
+		panic(e)
+	}
+	fmt.Println("current block number is", num, "is tip10", params.DevnetChainConfig.IsTIP10(big.NewInt(int64(num))))
+	fmt.Println(hexutil.EncodeBig(big.NewInt(int64(num))))
+	b, e := ec.BalanceAt(context.Background(), addr0, big.NewInt(int64(num)))
+	if e != nil {
+		fmt.Println(e)
 		return e
 	}
 	fmt.Println("genesis key balance", b.String())
@@ -273,7 +285,11 @@ func sendPayerTransaction(ec *Client, tx *types.Transaction, prv, prvPayer *ecds
 }
 
 func TestSetup(t *testing.T) {
-	ec, _ := Dial(devUrl)
+	ec, err := Dial(devUrl)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	firstSetup(ec)
 }
 func transTest(ec *Client) {
