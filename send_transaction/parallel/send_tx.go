@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/abeychain/go-abey/abeyclient"
 	"github.com/abeychain/go-abey/accounts/keystore"
 	"github.com/abeychain/go-abey/cmd/utils"
 	"github.com/abeychain/go-abey/common"
 	"github.com/abeychain/go-abey/console"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
-	"github.com/abeychain/go-abey/abeyclient"
 	tlog "github.com/abeychain/go-abey/log"
 	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
@@ -462,7 +462,7 @@ func writeNodesJSON(file string, nodes KeyAccount) {
 		printError("MarshalIndent error", err)
 	}
 	if file == "-" {
-		os.Stdout.Write(nodesJSON)
+		//os.Stdout.Write(nodesJSON)
 		return
 	}
 	if err := ioutil.WriteFile(file, nodesJSON, 0644); err != nil {

@@ -167,6 +167,7 @@ var (
 	payerKey, _ = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
 	payerAddr   = crypto.PubkeyToAddress(payerKey.PublicKey)
 	txFee       = big.NewInt(1e17)
+	devUrl      = "http://127.0.0.0:7445"
 )
 
 var testTx1 = MustSignNewTx(testKey, types.NewTIP1Signer(params.TestChainConfig.ChainID), types.NewTransaction(
@@ -217,10 +218,6 @@ func makeSignPayerTransaction(chainid *big.Int, nonce uint64) (*types.Transactio
 func firstSetup(ec *Client) error {
 	devGenesisKey, _ := crypto.HexToECDSA("55dcdfd62f565a66e1886959e82a365e4987ed0b405adc43614a42c3481edd1a")
 	addr0 := crypto.PubkeyToAddress(devGenesisKey.PublicKey)
-	chainID, err := ec.ChainID(context.Background())
-	if err != nil {
-		return err
-	}
 
 	b, e := ec.BalanceAt(context.Background(), addr0, nil)
 	if e != nil {
@@ -228,58 +225,22 @@ func firstSetup(ec *Client) error {
 	}
 	fmt.Println("genesis key balance", b.String())
 	amount := new(big.Int).Mul(big.NewInt(5000), big.NewInt(1e18))
-	nonce, e := ec.NonceAt(context.Background(), addr0, nil)
+	nonce, e := ec.PendingNonceAt(context.Background(), addr0)
 	if e != nil {
 		return e
 	}
 	tx0 := types.NewTransaction(nonce, testAddr, amount, 30000, big.NewInt(int64(params.TxGas)), nil)
 	tx1 := types.NewTransaction(nonce+1, payerAddr, amount, 30000, big.NewInt(int64(params.TxGas)), nil)
-	tx0, e = types.SignTx(tx0, types.NewTIP1Signer(chainID), devGenesisKey)
+
+	e = sendTransaction(ec, tx0, devGenesisKey)
 	if e != nil {
-		return err
+		return e
 	}
-	tx1, e = types.SignTx(tx1, types.NewTIP1Signer(chainID), devGenesisKey)
+	e = sendTransaction(ec, tx1, devGenesisKey)
 	if e != nil {
-		return err
+		return e
 	}
 
-	err = ec.SendTransaction(context.Background(), tx0)
-	if err != nil {
-		return err
-	}
-	receipt0, err := ec.TransactionReceipt(context.Background(), tx0.Hash())
-	if err != nil {
-		return err
-	}
-	if receipt0.Status == types.ReceiptStatusSuccessful {
-		block, err := ec.BlockByHash(context.Background(), receipt0.BlockHash)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("Transaction Success", " block Number", receipt0.BlockNumber.Uint64(),
-			" block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
-	} else if receipt0.Status == types.ReceiptStatusFailed {
-		fmt.Println("Transaction Failed ", " Block Number", receipt0.BlockNumber.Uint64())
-	}
-
-	err = ec.SendTransaction(context.Background(), tx1)
-	if err != nil {
-		return err
-	}
-	receipt1, err := ec.TransactionReceipt(context.Background(), tx0.Hash())
-	if err != nil {
-		return err
-	}
-	if receipt1.Status == types.ReceiptStatusSuccessful {
-		block, err := ec.BlockByHash(context.Background(), receipt1.BlockHash)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("Transaction Success", " block Number", receipt1.BlockNumber.Uint64(),
-			" block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
-	} else if receipt1.Status == types.ReceiptStatusFailed {
-		fmt.Println("Transaction Failed ", " Block Number", receipt1.BlockNumber.Uint64())
-	}
 	return nil
 }
 
@@ -515,20 +476,13 @@ func testTransactionSender(t *testing.T, client *rpc.Client) {
 	}
 }
 
-func sendTransaction(ec *Client) error {
+func sendTransaction(ec *Client, tx *types.Transaction, prv *ecdsa.PrivateKey) error {
 	chainID, err := ec.ChainID(context.Background())
 	if err != nil {
 		return err
 	}
-	nonce, err := ec.PendingNonceAt(context.Background(), testAddr)
-	if err != nil {
-		return err
-	}
-
 	signer := types.NewTIP1Signer(chainID)
-	tx, err := signNewTx(testKey, signer, types.NewTransaction(
-		nonce, common.Address{3}, big.NewInt(100), 22000, big.NewInt(int64(params.TxGas)), nil))
-
+	tx, err = types.SignTx(tx, signer, prv)
 	if err != nil {
 		return err
 	}
@@ -552,4 +506,44 @@ func sendTransaction(ec *Client) error {
 		fmt.Println("Transaction Failed ", " Block Number", receipt.BlockNumber.Uint64())
 	}
 	return nil
+}
+func sendPayerTransaction(ec *Client, tx *types.Transaction, prv, prvPayer *ecdsa.PrivateKey) error {
+	chainID, err := ec.ChainID(context.Background())
+	if err != nil {
+		return err
+	}
+	signer := types.NewTIP1Signer(chainID)
+	tx, err = types.SignTx(tx, signer, prv)
+	if err != nil {
+		return err
+	}
+	tx, err = types.SignTx_Payment(tx, signer, payerKey)
+	if err != nil {
+		return err
+	}
+
+	err = ec.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return err
+	}
+	receipt, err := ec.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		return err
+	}
+
+	if receipt.Status == types.ReceiptStatusSuccessful {
+		block, err := ec.BlockByHash(context.Background(), receipt.BlockHash)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Transaction Success", " block Number", receipt.BlockNumber.Uint64(),
+			" block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
+	} else if receipt.Status == types.ReceiptStatusFailed {
+		fmt.Println("Transaction Failed ", " Block Number", receipt.BlockNumber.Uint64())
+	}
+	return nil
+}
+func TestSetup(t *testing.T) {
+	ec, _ := Dial(devUrl)
+	firstSetup(ec)
 }
