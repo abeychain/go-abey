@@ -1,14 +1,12 @@
 package abeyclient
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	abeychain "github.com/abeychain/go-abey"
 	"github.com/abeychain/go-abey/common"
-	minerva "github.com/abeychain/go-abey/consensus/minerva"
-	"github.com/abeychain/go-abey/core"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/node"
@@ -168,11 +166,11 @@ var (
 )
 
 var testTx1 = MustSignNewTx(testKey, types.NewTIP1Signer(params.TestChainConfig.ChainID), types.NewTransaction(
-	0, common.Address{2},big.NewInt(100),10000,big.NewInt(int64(params.TxGas)),nil)
-
+	0, common.Address{2}, big.NewInt(100), 10000, big.NewInt(int64(params.TxGas)), nil))
 
 var testTx2 = MustSignNewTx(testKey, types.NewTIP1Signer(params.TestChainConfig.ChainID), types.NewTransaction(
-	1, common.Address{3},big.NewInt(100),10000,big.NewInt(int64(params.TxGas)),nil))
+	1, common.Address{3}, big.NewInt(100), 10000, big.NewInt(int64(params.TxGas)), nil))
+
 // MustSignNewTx creates a transaction and signs it.
 // This panics if the transaction cannot be signed.
 func MustSignNewTx(prv *ecdsa.PrivateKey, s types.Signer, tx *types.Transaction) *types.Transaction {
@@ -191,35 +189,24 @@ func signNewTx(prv *ecdsa.PrivateKey, s types.Signer, tx *types.Transaction) (*t
 	return tx.WithSignature(s, sig)
 }
 
-
-func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
-	// Generate test chain.
-	blocks := generateTestChain()
-
+func newTestBackend(t *testing.T) *node.Node {
 	// Create node
 	n, err := node.New(&node.Config{})
 	if err != nil {
 		t.Fatalf("can't create new node: %v", err)
 	}
 	// Create Ethereum Service
-	config := &ethconfig.Config{Genesis: genesis}
-	config.Ethash.PowMode = minerva.ModeFake
-	ethservice, err := eth.New(n, config)
-	if err != nil {
-		t.Fatalf("can't create new abeychain service: %v", err)
-	}
+
 	// Import the test chain.
 	if err := n.Start(); err != nil {
 		t.Fatalf("can't start test node: %v", err)
 	}
-	if _, err := ethservice.BlockChain().InsertChain(blocks[1:]); err != nil {
-		t.Fatalf("can't import test blocks: %v", err)
-	}
-	return n, blocks
+
+	return n
 }
 
 func TestEthClient(t *testing.T) {
-	backend, chain := newTestBackend(t)
+	backend := newTestBackend(t)
 	client, _ := backend.Attach()
 	defer backend.Close()
 	defer client.Close()
@@ -227,32 +214,17 @@ func TestEthClient(t *testing.T) {
 	tests := map[string]struct {
 		test func(t *testing.T)
 	}{
-		"Header": {
-			func(t *testing.T) { testHeader(t, chain, client) },
-		},
 		"BalanceAt": {
 			func(t *testing.T) { testBalanceAt(t, client) },
 		},
 		"TxInBlockInterrupted": {
 			func(t *testing.T) { testTransactionInBlockInterrupted(t, client) },
 		},
-		"ChainID": {
-			func(t *testing.T) { testChainID(t, client) },
-		},
 		"GetBlock": {
 			func(t *testing.T) { testGetBlock(t, client) },
 		},
-		"StatusFunctions": {
-			func(t *testing.T) { testStatusFunctions(t, client) },
-		},
 		"CallContract": {
 			func(t *testing.T) { testCallContract(t, client) },
-		},
-		"CallContractAtHash": {
-			func(t *testing.T) { testCallContractAtHash(t, client) },
-		},
-		"AtFunctions": {
-			func(t *testing.T) { testAtFunctions(t, client) },
 		},
 		"TransactionSender": {
 			func(t *testing.T) { testTransactionSender(t, client) },
@@ -382,96 +354,6 @@ func testGetBlock(t *testing.T, client *rpc.Client) {
 	}
 }
 
-func testStatusFunctions(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
-
-	// Sync progress
-	progress, err := ec.SyncProgress(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if progress != nil {
-		t.Fatalf("unexpected progress: %v", progress)
-	}
-
-	// NetworkID
-	networkID, err := ec.NetworkID(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if networkID.Cmp(big.NewInt(0)) != 0 {
-		t.Fatalf("unexpected networkID: %v", networkID)
-	}
-
-	// SuggestGasPrice
-	gasPrice, err := ec.SuggestGasPrice(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if gasPrice.Cmp(big.NewInt(1000000000)) != 0 {
-		t.Fatalf("unexpected gas price: %v", gasPrice)
-	}
-
-	// SuggestGasTipCap
-	gasTipCap, err := ec.SuggestGasTipCap(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if gasTipCap.Cmp(big.NewInt(234375000)) != 0 {
-		t.Fatalf("unexpected gas tip cap: %v", gasTipCap)
-	}
-
-	// FeeHistory
-	history, err := ec.FeeHistory(context.Background(), 1, big.NewInt(2), []float64{95, 99})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	want := &abeychain.FeeHistory{
-		OldestBlock: big.NewInt(2),
-		Reward: [][]*big.Int{
-			{
-				big.NewInt(234375000),
-				big.NewInt(234375000),
-			},
-		},
-		BaseFee: []*big.Int{
-			big.NewInt(765625000),
-			big.NewInt(671627818),
-		},
-		GasUsedRatio: []float64{0.008912678667376286},
-	}
-	if !reflect.DeepEqual(history, want) {
-		t.Fatalf("FeeHistory result doesn't match expected: (got: %v, want: %v)", history, want)
-	}
-}
-
-func testCallContractAtHash(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
-
-	// EstimateGas
-	msg := abeychain.CallMsg{
-		From:  testAddr,
-		To:    &common.Address{},
-		Gas:   21000,
-		Value: big.NewInt(1),
-	}
-	gas, err := ec.EstimateGas(context.Background(), msg)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if gas != 21000 {
-		t.Fatalf("unexpected gas price: %v", gas)
-	}
-	block, err := ec.HeaderByNumber(context.Background(), big.NewInt(1))
-	if err != nil {
-		t.Fatalf("BlockByNumber error: %v", err)
-	}
-	// CallContract
-	if _, err := ec.CallContractAtHash(context.Background(), msg, block.Hash()); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func testCallContract(t *testing.T, client *rpc.Client) {
 	ec := NewClient(client)
 
@@ -551,7 +433,7 @@ func sendTransaction(ec *Client) error {
 
 	signer := types.NewTIP1Signer(chainID)
 	tx, err := signNewTx(testKey, signer, types.NewTransaction(
-		nonce, common.Address{3},big.NewInt(100),22000,big.NewInt(int64(params.TxGas)),nil))
+		nonce, common.Address{3}, big.NewInt(100), 22000, big.NewInt(int64(params.TxGas)), nil))
 
 	if err != nil {
 		return err

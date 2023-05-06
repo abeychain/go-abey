@@ -727,7 +727,7 @@ func toCallArg(msg abeychain.CallMsg) interface{} {
 	return arg
 }
 
-//abey_protocolVersion
+// abey_protocolVersion
 func (ec *Client) GetProtocolVersion(ctx context.Context) (string, error) {
 	var result string
 	err := ec.c.CallContext(ctx, &result, "abey_protocolVersion", nil)
@@ -737,7 +737,7 @@ func (ec *Client) GetProtocolVersion(ctx context.Context) (string, error) {
 	return result, nil
 }
 
-//abey_coinbase
+// abey_coinbase
 func (ec *Client) Coinbase(ctx context.Context) (string, error) {
 	var result string
 	err := ec.c.CallContext(ctx, &result, "abey_coinbase", nil)
@@ -747,7 +747,7 @@ func (ec *Client) Coinbase(ctx context.Context) (string, error) {
 	return result, nil
 }
 
-//abey_pubkey
+// abey_pubkey
 func (ec *Client) Pubkey(ctx context.Context) (string, error) {
 	var result string
 	err := ec.c.CallContext(ctx, &result, "abey_pubkey", nil)
@@ -757,7 +757,7 @@ func (ec *Client) Pubkey(ctx context.Context) (string, error) {
 	return result, nil
 }
 
-//abey_mining
+// abey_mining
 func (ec *Client) IsMining(ctx context.Context) (bool, error) {
 	var result bool
 	err := ec.c.CallContext(ctx, &result, "abey_mining", nil)
@@ -767,7 +767,7 @@ func (ec *Client) IsMining(ctx context.Context) (bool, error) {
 	return result, nil
 }
 
-//personal_listAccounts
+// personal_listAccounts
 func (ec *Client) ListAccounts(ctx context.Context) ([]common.Address, error) {
 	var result []common.Address
 	err := ec.c.CallContext(ctx, &result, "personal_listAccounts", nil)
@@ -777,7 +777,7 @@ func (ec *Client) ListAccounts(ctx context.Context) ([]common.Address, error) {
 	return result, nil
 }
 
-//impawn_getAllStakingAccount
+// impawn_getAllStakingAccount
 func (ec *Client) GetAllStakingAccount(ctx context.Context, number *big.Int) (json.RawMessage, error) {
 	var result json.RawMessage
 	err := ec.c.CallContext(ctx, &result, "impawn_getAllStakingAccount", toBlockNumArg(number))
@@ -787,7 +787,7 @@ func (ec *Client) GetAllStakingAccount(ctx context.Context, number *big.Int) (js
 	return result, nil
 }
 
-//impawn_getStakingAsset
+// impawn_getStakingAsset
 func (ec *Client) GetStakingAsset(ctx context.Context, account common.Address, number *big.Int) ([]vm.StakingAsset, error) {
 	var result []vm.StakingAsset
 	err := ec.c.CallContext(ctx, &result, "impawn_getStakingAsset", account, toBlockNumArg(number))
@@ -797,7 +797,7 @@ func (ec *Client) GetStakingAsset(ctx context.Context, account common.Address, n
 	return result, nil
 }
 
-//impawn_getLockedAsset
+// impawn_getLockedAsset
 func (ec *Client) GetLockedAsset(ctx context.Context, account common.Address, number *big.Int) ([]vm.LockedAsset, error) {
 	var result []vm.LockedAsset
 	err := ec.c.CallContext(ctx, &result, "impawn_getLockedAsset", account, toBlockNumArg(number))
@@ -807,7 +807,7 @@ func (ec *Client) GetLockedAsset(ctx context.Context, account common.Address, nu
 	return result, nil
 }
 
-//impawn_getAllCancelableAsset
+// impawn_getAllCancelableAsset
 func (ec *Client) GetAllCancelableAsset(ctx context.Context, account common.Address, number *big.Int) ([]vm.CancelableAsset, error) {
 	var result []vm.CancelableAsset
 	err := ec.c.CallContext(ctx, &result, "impawn_getAllCancelableAsset", account, toBlockNumArg(number))
@@ -817,7 +817,7 @@ func (ec *Client) GetAllCancelableAsset(ctx context.Context, account common.Addr
 	return result, nil
 }
 
-//impawn_getStakingAccount
+// impawn_getStakingAccount
 func (ec *Client) GetStakingAccount(ctx context.Context, account common.Address, number *big.Int) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	err := ec.c.CallContext(ctx, &result, "impawn_getStakingAccount", account, toBlockNumArg(number))
@@ -835,7 +835,7 @@ func (ec *Client) GetImpawnSummay(ctx context.Context, number *big.Int) (map[str
 	return result, nil
 }
 
-//abey_getChainRewardContent
+// abey_getChainRewardContent
 func (ec *Client) GetChainRewardContent(ctx context.Context, account common.Address, number *big.Int) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	err := ec.c.CallContext(ctx, &result, "abey_getChainRewardContent", toBlockNumArg(number), account)
@@ -843,4 +843,11 @@ func (ec *Client) GetChainRewardContent(ctx context.Context, account common.Addr
 		return result, err
 	}
 	return result, nil
+}
+
+// BlockNumber returns the most recent block number
+func (ec *Client) BlockNumber(ctx context.Context) (uint64, error) {
+	var result hexutil.Uint64
+	err := ec.c.CallContext(ctx, &result, "abey_blockNumber")
+	return uint64(result), err
 }
