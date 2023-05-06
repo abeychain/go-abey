@@ -161,9 +161,12 @@ func TestToFilterArg(t *testing.T) {
 }
 
 var (
-	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testKey, _  = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 	testAddr    = crypto.PubkeyToAddress(testKey.PublicKey)
 	testBalance = big.NewInt(2e15)
+	payerKey, _ = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
+	payerAddr   = crypto.PubkeyToAddress(payerKey.PublicKey)
+	txFee       = big.NewInt(1e17)
 )
 
 var testTx1 = MustSignNewTx(testKey, types.NewTIP1Signer(params.TestChainConfig.ChainID), types.NewTransaction(
@@ -188,6 +191,96 @@ func signNewTx(prv *ecdsa.PrivateKey, s types.Signer, tx *types.Transaction) (*t
 		return nil, err
 	}
 	return tx.WithSignature(s, sig)
+}
+
+func makeSignTransaction(chainid *big.Int, nonce uint64) (*types.Transaction, error) {
+	return MustSignNewTx(testKey, types.NewTIP1Signer(chainid), types.NewTransaction(
+		nonce, common.Address{80}, big.NewInt(4000000), 50000, big.NewInt(int64(params.TxGas)), nil)), nil
+}
+func makeSignPayerTransaction(chainid *big.Int, nonce uint64) (*types.Transaction, error) {
+	tx := types.NewTransaction_Payment(nonce, common.Address{81}, big.NewInt(5000000), txFee, 50000,
+		big.NewInt(int64(params.TxGas)), nil, payerAddr)
+	signer := types.NewTIP1Signer(chainid)
+	tx, err := types.SignTx(tx, signer, testKey)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("txhash001", tx.Hash().Hex())
+	tx, err = types.SignTx_Payment(tx, signer, payerKey)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("txhash002", tx.Hash().Hex())
+	return tx, nil
+}
+
+func firstSetup(ec *Client) error {
+	devGenesisKey, _ := crypto.HexToECDSA("55dcdfd62f565a66e1886959e82a365e4987ed0b405adc43614a42c3481edd1a")
+	addr0 := crypto.PubkeyToAddress(devGenesisKey.PublicKey)
+	chainID, err := ec.ChainID(context.Background())
+	if err != nil {
+		return err
+	}
+
+	b, e := ec.BalanceAt(context.Background(), addr0, nil)
+	if e != nil {
+		return e
+	}
+	fmt.Println("genesis key balance", b.String())
+	amount := new(big.Int).Mul(big.NewInt(5000), big.NewInt(1e18))
+	nonce, e := ec.NonceAt(context.Background(), addr0, nil)
+	if e != nil {
+		return e
+	}
+	tx0 := types.NewTransaction(nonce, testAddr, amount, 30000, big.NewInt(int64(params.TxGas)), nil)
+	tx1 := types.NewTransaction(nonce+1, payerAddr, amount, 30000, big.NewInt(int64(params.TxGas)), nil)
+	tx0, e = types.SignTx(tx0, types.NewTIP1Signer(chainID), devGenesisKey)
+	if e != nil {
+		return err
+	}
+	tx1, e = types.SignTx(tx1, types.NewTIP1Signer(chainID), devGenesisKey)
+	if e != nil {
+		return err
+	}
+
+	err = ec.SendTransaction(context.Background(), tx0)
+	if err != nil {
+		return err
+	}
+	receipt0, err := ec.TransactionReceipt(context.Background(), tx0.Hash())
+	if err != nil {
+		return err
+	}
+	if receipt0.Status == types.ReceiptStatusSuccessful {
+		block, err := ec.BlockByHash(context.Background(), receipt0.BlockHash)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Transaction Success", " block Number", receipt0.BlockNumber.Uint64(),
+			" block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
+	} else if receipt0.Status == types.ReceiptStatusFailed {
+		fmt.Println("Transaction Failed ", " Block Number", receipt0.BlockNumber.Uint64())
+	}
+
+	err = ec.SendTransaction(context.Background(), tx1)
+	if err != nil {
+		return err
+	}
+	receipt1, err := ec.TransactionReceipt(context.Background(), tx0.Hash())
+	if err != nil {
+		return err
+	}
+	if receipt1.Status == types.ReceiptStatusSuccessful {
+		block, err := ec.BlockByHash(context.Background(), receipt1.BlockHash)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Transaction Success", " block Number", receipt1.BlockNumber.Uint64(),
+			" block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
+	} else if receipt1.Status == types.ReceiptStatusFailed {
+		fmt.Println("Transaction Failed ", " Block Number", receipt1.BlockNumber.Uint64())
+	}
+	return nil
 }
 
 func newTestBackend(t *testing.T) *node.Node {
