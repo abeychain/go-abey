@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"reflect"
 	"testing"
+	"time"
 )
 
 // Verify that Client implements the abeychain interfaces.
@@ -194,20 +195,20 @@ func firstSetup(ec *Client) error {
 		fmt.Println(e)
 		return e
 	}
-	fmt.Println("genesis address balance", b.String())
+	fmt.Println("genesis address balance", types.ToAbey(b).String())
 	b, e = ec.BalanceAt(context.Background(), testAddr, nil)
 	if e != nil {
 		fmt.Println(e)
 		return e
 	}
-	fmt.Println("testkey balance", b.String())
+	fmt.Println("testkey balance", types.ToAbey(b).String())
 
 	b, e = ec.BalanceAt(context.Background(), payerAddr, nil)
 	if e != nil {
 		fmt.Println(e)
 		return e
 	}
-	fmt.Println("payerAddr", b.String())
+	fmt.Println("payerAddr", types.ToAbey(b).String())
 
 	amount := new(big.Int).Mul(big.NewInt(5000), big.NewInt(1e18))
 	nonce, e := ec.PendingNonceAt(context.Background(), addr0)
@@ -226,19 +227,20 @@ func firstSetup(ec *Client) error {
 		return e
 	}
 
+	time.Sleep(time.Second * 3)
 	b, e = ec.BalanceAt(context.Background(), testAddr, nil)
 	if e != nil {
 		fmt.Println(e)
 		return e
 	}
-	fmt.Println("testkey balance", b.String())
+	fmt.Println("testkey balance", types.ToAbey(b).String())
 
 	b, e = ec.BalanceAt(context.Background(), payerAddr, nil)
 	if e != nil {
 		fmt.Println(e)
 		return e
 	}
-	fmt.Println("payerAddr balance", b.String())
+	fmt.Println("payerAddr balance", types.ToAbey(b).String())
 	return nil
 }
 
@@ -256,6 +258,8 @@ func sendTransaction(ec *Client, tx *types.Transaction, prv *ecdsa.PrivateKey) e
 	if err != nil {
 		return err
 	}
+	time.Sleep(time.Second * 7)
+
 	receipt, err := ec.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		return err
@@ -292,6 +296,9 @@ func sendPayerTransaction(ec *Client, tx *types.Transaction, prv, prvPayer *ecds
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(time.Second * 7)
+
 	receipt, err := ec.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		return err
@@ -316,7 +323,11 @@ func TestSetup(t *testing.T) {
 		fmt.Println(err)
 		return
 	}
-	firstSetup(ec)
+	err = firstSetup(ec)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 func transTest(ec *Client) {
 
