@@ -345,7 +345,6 @@ func transTest(ec *Client) {
 		panic(e)
 	}
 	tx := makeTransaction(nonce)
-	fmt.Println("common tx hash", tx.Hash().Hex())
 	err := sendTransaction(ec, tx, testKey)
 	if err != nil {
 		panic(err)
@@ -358,7 +357,6 @@ func transTest(ec *Client) {
 		panic(e)
 	}
 	tx = makePayerTransaction(nonce)
-	fmt.Println("payer tx hash", tx.Hash().Hex())
 	err = sendPayerTransaction(ec, tx, testKey, payerKey)
 	if err != nil {
 		panic(err)
