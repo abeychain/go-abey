@@ -259,6 +259,7 @@ func sendTransaction(ec *Client, tx *types.Transaction, prv *ecdsa.PrivateKey) e
 		return err
 	}
 	time.Sleep(time.Second * 7)
+	fmt.Println("send transaction end,the txhash", tx.Hash().Hex())
 
 	receipt, err := ec.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
@@ -298,6 +299,7 @@ func sendPayerTransaction(ec *Client, tx *types.Transaction, prv, prvPayer *ecds
 	}
 
 	time.Sleep(time.Second * 7)
+	fmt.Println("send payer transaction end,the txhash", tx.Hash().Hex())
 
 	receipt, err := ec.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
@@ -364,8 +366,8 @@ func queryTest(ec *Client) {
 		panic(e)
 	}
 	fmt.Println("current block number is", num, "is tip10", params.DevnetChainConfig.IsTIP10(big.NewInt(int64(num))))
-	// tx0 = ""
-	txstr0 := ""
+	// tx0 = "0xd902aac85aaa9522f29eadbe913b97d9d24edc2fdbf5ed45b96ef886959f1ddb"
+	txstr0 := "0x3f25c5d6d1810ecde887abacdc36ee458f1d6d236c55db4636ef8737813a0ee4"
 	txhash0 := common.HexToHash(txstr0)
 
 	tx0, pending, err := ec.TransactionByHash(context.Background(), txhash0)
