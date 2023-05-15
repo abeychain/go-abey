@@ -6,7 +6,6 @@ import (
 	"fmt"
 	abeychain "github.com/abeychain/go-abey"
 	"github.com/abeychain/go-abey/common"
-	"github.com/abeychain/go-abey/common/hexutil"
 	"github.com/abeychain/go-abey/core/types"
 	"github.com/abeychain/go-abey/crypto"
 	"github.com/abeychain/go-abey/params"
@@ -164,8 +163,8 @@ var (
 	payerKey, _ = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
 	payerAddr   = crypto.PubkeyToAddress(payerKey.PublicKey)
 	txFee       = big.NewInt(1e17)
-	// "http://18.138.171.105:7545"
-	devUrl = "https://rpc.abeychain.com"
+	// "http://18.138.171.105:7545"  "https://rpc.abeychain.com"
+	devUrl = "http://18.138.171.105:7545"
 )
 
 func makeTransaction(nonce uint64) *types.Transaction {
@@ -189,20 +188,34 @@ func firstSetup(ec *Client) error {
 		panic(e)
 	}
 	fmt.Println("current block number is", num, "is tip10", params.DevnetChainConfig.IsTIP10(big.NewInt(int64(num))))
-	fmt.Println(hexutil.EncodeBig(big.NewInt(int64(num))))
-	b, e := ec.BalanceAt(context.Background(), addr0, big.NewInt(int64(num)))
+
+	b, e := ec.BalanceAt(context.Background(), addr0, nil)
 	if e != nil {
 		fmt.Println(e)
 		return e
 	}
-	fmt.Println("genesis key balance", b.String())
+	fmt.Println("genesis address balance", b.String())
+	b, e = ec.BalanceAt(context.Background(), testAddr, nil)
+	if e != nil {
+		fmt.Println(e)
+		return e
+	}
+	fmt.Println("testkey balance", b.String())
+
+	b, e = ec.BalanceAt(context.Background(), payerAddr, nil)
+	if e != nil {
+		fmt.Println(e)
+		return e
+	}
+	fmt.Println("payerAddr", b.String())
+
 	amount := new(big.Int).Mul(big.NewInt(5000), big.NewInt(1e18))
 	nonce, e := ec.PendingNonceAt(context.Background(), addr0)
 	if e != nil {
 		return e
 	}
-	tx0 := types.NewTransaction(nonce, testAddr, amount, 30000, big.NewInt(int64(params.TxGas)), nil)
-	tx1 := types.NewTransaction(nonce+1, payerAddr, amount, 30000, big.NewInt(int64(params.TxGas)), nil)
+	tx0 := types.NewTransaction(nonce, testAddr, amount, 30000, big.NewInt(int64(50*params.GWei)), nil)
+	tx1 := types.NewTransaction(nonce+1, payerAddr, amount, 30000, big.NewInt(int64(50*params.GWei)), nil)
 
 	e = sendTransaction(ec, tx0, devGenesisKey)
 	if e != nil {
@@ -213,6 +226,19 @@ func firstSetup(ec *Client) error {
 		return e
 	}
 
+	b, e = ec.BalanceAt(context.Background(), testAddr, nil)
+	if e != nil {
+		fmt.Println(e)
+		return e
+	}
+	fmt.Println("testkey balance", b.String())
+
+	b, e = ec.BalanceAt(context.Background(), payerAddr, nil)
+	if e != nil {
+		fmt.Println(e)
+		return e
+	}
+	fmt.Println("payerAddr balance", b.String())
 	return nil
 }
 
@@ -349,4 +375,10 @@ func Test1(t *testing.T) {
 	ec, _ := Dial(devUrl)
 
 	queryTest(ec)
+}
+func Test2(t *testing.T) {
+	allocAmount := new(big.Int).Mul(big.NewInt(990000000), big.NewInt(1e18))
+	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	res := allocAmount.Cmp(i)
+	fmt.Println(res)
 }
