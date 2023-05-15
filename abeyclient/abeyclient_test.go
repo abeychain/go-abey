@@ -170,11 +170,11 @@ var (
 
 func makeTransaction(nonce uint64) *types.Transaction {
 	return types.NewTransaction(
-		nonce, common.Address{80}, big.NewInt(4000000), 50000, big.NewInt(int64(params.TxGas)), nil)
+		nonce, common.Address{80}, big.NewInt(4000000), 50000, big.NewInt(int64(50*params.GWei)), nil)
 }
 func makePayerTransaction(nonce uint64) *types.Transaction {
 	return types.NewTransaction_Payment(nonce, common.Address{81}, big.NewInt(5000000), txFee, 50000,
-		big.NewInt(int64(params.TxGas)), nil, payerAddr)
+		big.NewInt(int64(50*params.GWei)), nil, payerAddr)
 }
 
 func firstSetup(ec *Client) error {
@@ -346,7 +346,10 @@ func transTest(ec *Client) {
 	}
 	tx := makeTransaction(nonce)
 	fmt.Println("common tx hash", tx.Hash().Hex())
-	sendTransaction(ec, tx, testKey)
+	err := sendTransaction(ec, tx, testKey)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println("send payer tx.......")
 
@@ -356,7 +359,10 @@ func transTest(ec *Client) {
 	}
 	tx = makePayerTransaction(nonce)
 	fmt.Println("payer tx hash", tx.Hash().Hex())
-	sendPayerTransaction(ec, tx, testKey, payerKey)
+	err = sendPayerTransaction(ec, tx, testKey, payerKey)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func queryTest(ec *Client) {
@@ -367,7 +373,7 @@ func queryTest(ec *Client) {
 	}
 	fmt.Println("current block number is", num, "is tip10", params.DevnetChainConfig.IsTIP10(big.NewInt(int64(num))))
 	// tx0 = "0xd902aac85aaa9522f29eadbe913b97d9d24edc2fdbf5ed45b96ef886959f1ddb"
-	txstr0 := "0x3f25c5d6d1810ecde887abacdc36ee458f1d6d236c55db4636ef8737813a0ee4"
+	txstr0 := "0x91209db45589f215a2ecb75be1fdb2fca873545cecaf558de183f295ec54afa9"
 	txhash0 := common.HexToHash(txstr0)
 
 	tx0, pending, err := ec.TransactionByHash(context.Background(), txhash0)
