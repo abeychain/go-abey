@@ -263,7 +263,11 @@ func sendTransaction(ec *Client, tx *types.Transaction, prv *ecdsa.PrivateKey) e
 
 	receipt, err := ec.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		return err
+		fmt.Println("send transaction end,use the old txhash", tx.HashOld().Hex())
+		receipt, err = ec.TransactionReceipt(context.Background(), tx.HashOld())
+		if err != nil {
+			return err
+		}
 	}
 
 	if receipt.Status == types.ReceiptStatusSuccessful {
