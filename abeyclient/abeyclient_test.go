@@ -375,7 +375,7 @@ func queryTest(ec *Client) {
 	}
 	fmt.Println("current block number is", num, "is tip10", params.DevnetChainConfig.IsTIP10(big.NewInt(int64(num))))
 	// tx0 = "0xd902aac85aaa9522f29eadbe913b97d9d24edc2fdbf5ed45b96ef886959f1ddb"
-	txstr0 := "0x91209db45589f215a2ecb75be1fdb2fca873545cecaf558de183f295ec54afa9"
+	txstr0 := "0xa66d3fbbcccb438b4b6edc11984b80d2b8d34554d0a1244311494308d4c03e13"
 	txhash0 := common.HexToHash(txstr0)
 
 	tx0, pending, err := ec.TransactionByHash(context.Background(), txhash0)
