@@ -121,7 +121,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		{
 			Namespace: "abey",
 			Version:   "1.0",
-			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
+			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock, apiBackend.ChainConfig()),
 			Public:    true,
 		},
 	}...)
@@ -129,7 +129,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		{
 			Namespace: "eth",
 			Version:   "1.0",
-			Service:   NewPublicTransactionPoolAPI2(apiBackend, nonceLock),
+			Service:   NewPublicTransactionPoolAPI2(apiBackend, nonceLock, apiBackend.ChainConfig()),
 			Public:    true,
 		},
 	}...)
