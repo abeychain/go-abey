@@ -384,6 +384,11 @@ func queryTest(ec *Client) {
 	}
 	fmt.Println("pending", pending)
 	fmt.Println("tx0", tx0.Info())
+	receipt, err := ec.TransactionReceipt(context.Background(), txhash0)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("tx in the block", receipt.BlockNumber)
 }
 
 func Test0(t *testing.T) {
@@ -402,4 +407,37 @@ func Test2(t *testing.T) {
 	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
 	res := allocAmount.Cmp(i)
 	fmt.Println(res)
+}
+func Test3(t *testing.T) {
+	ec, _ := Dial(devUrl)
+	num := params.DevnetChainConfig.TIP10.FastNumber
+	err := traceBlocks(ec, num)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+func traceBlocks(ec *Client, height *big.Int) error {
+	//latest, e := ec.BlockNumber(context.Background())
+	//if e != nil {
+	//	return e
+	//}
+	for i := int64(1); i < height.Int64(); i++ {
+		block, err := ec.BlockByNumber(context.Background(), big.NewInt(i))
+		if err != nil {
+			fmt.Println("get block err,height", i, "err", err)
+		}
+		txs := block.Transactions()
+		if len(txs) > 0 {
+			fmt.Println("========================================")
+			fmt.Println("block height", block.Number().Uint64(), " has txs", len(txs))
+			for ii, tx := range txs {
+				fmt.Println("index", ii, "oldhash", tx.HashOld().Hex(), "newhash", tx.Hash().Hex(), "is payer", tx.Payer() != nil)
+				fmt.Println("tx details", tx.Info())
+			}
+			fmt.Println("block header:", block.Header())
+			fmt.Println("block body:", block.Body())
+			fmt.Println("========================================")
+		}
+	}
+	return nil
 }
