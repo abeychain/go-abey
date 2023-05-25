@@ -295,16 +295,16 @@ func (bc *BlockChain) loadLastState() error {
 		}
 	}
 	// Restore the last known currentReward
-	//rewardHead := bc.GetLastRowByFastCurrentBlock()
-	//
-	//if rewardHead != nil {
-	//	bc.currentReward.Store(rewardHead)
-	//	rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
-	//} else {
-	//	reward := &types.BlockReward{SnailNumber: big.NewInt(0)}
-	//	bc.currentReward.Store(reward)
-	//	rawdb.WriteHeadRewardNumber(bc.db, 0)
-	//}
+	rewardHead := bc.GetLastRowByFastCurrentBlock()
+	
+	if rewardHead != nil {
+		bc.currentReward.Store(rewardHead)
+		rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
+	} else {
+		reward := &types.BlockReward{SnailNumber: big.NewInt(0)}
+		bc.currentReward.Store(reward)
+		rawdb.WriteHeadRewardNumber(bc.db, 0)
+	}
 
 	// Restore the last known currentReward
 	bc.lastBlock.Store(currentBlock)
