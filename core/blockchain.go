@@ -295,8 +295,14 @@ func (bc *BlockChain) loadLastState() error {
 		}
 	}
 	// Restore the last known currentReward
-	rewardHead := bc.GetLastRowByFastCurrentBlock()
-	
+	//rewardHead := bc.GetLastRowByFastCurrentBlock()
+	rewardHead := &types.BlockReward{
+		FastHash:    common.Hash{},
+		FastNumber:  big.NewInt(0),
+		SnailHash:   common.Hash{},
+		SnailNumber: bc.chainConfig.TIP9.SnailNumber,
+	}
+
 	if rewardHead != nil {
 		bc.currentReward.Store(rewardHead)
 		rawdb.WriteHeadRewardNumber(bc.db, rewardHead.SnailNumber.Uint64())
