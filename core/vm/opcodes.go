@@ -122,6 +122,7 @@ const (
 	BEGINSUB  OpCode = 0x5c
 	RETURNSUB OpCode = 0x5d
 	JUMPSUB   OpCode = 0x5e
+	PUSH0     OpCode = 0x5f
 )
 
 // 0x60 range.
