@@ -42,7 +42,7 @@ import (
 	"github.com/abeychain/go-abey/params"
 	"github.com/abeychain/go-abey/rlp"
 	"github.com/abeychain/go-abey/trie"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -301,6 +301,9 @@ func (bc *BlockChain) loadLastState() error {
 		FastNumber:  big.NewInt(0),
 		SnailHash:   common.Hash{},
 		SnailNumber: bc.chainConfig.TIP9.SnailNumber,
+	}
+	if !bc.chainConfig.IsTIP9(currentHeader.Number) {
+		rewardHead = bc.GetLastRowByFastCurrentBlock()
 	}
 
 	if rewardHead != nil {
