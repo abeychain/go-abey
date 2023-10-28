@@ -19,7 +19,7 @@ func init() {
 	log.Root().SetHandler(log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
 }
 
-///////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////
 func TestGetLockedAsset(t *testing.T) {
 	// Create a helper to check if a gas allowance results in an executable transaction
 	executable := func(number uint64, gen *core.BlockGen, blockchain *core.BlockChain, header *types.Header, statedb *state.StateDB) {
@@ -65,7 +65,7 @@ func TestFeeAndPK(t *testing.T) {
 	//epoch  [id:2,begin:2001,end:4000]   5002
 }
 
-///////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////
 func TestDeposit(t *testing.T) {
 	// Create a helper to check if a gas allowance results in an executable transaction
 	executable := func(number uint64, gen *core.BlockGen, blockchain *core.BlockChain, header *types.Header, statedb *state.StateDB) {
@@ -135,7 +135,7 @@ func TestDepositGetDeposit(t *testing.T) {
 	fmt.Println(" saddr1 ", types.ToAbey(manager.GetBalance(saddr1)), " StakingAddress ", manager.GetBalance(types.StakingAddress), " ", types.ToAbey(manager.GetBalance(types.StakingAddress)))
 }
 
-///////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////
 func TestSendTX(t *testing.T) {
 	params.MinTimeGap = big.NewInt(0)
 	params.SnailRewardInterval = big.NewInt(3)
@@ -143,6 +143,7 @@ func TestSendTX(t *testing.T) {
 	gspec.Config.TIP8 = &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)}
 	gspec.Config.TIP9 = &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)}
 	gspec.Config.TIP10 = &params.BlockConfig{FastNumber: big.NewInt(0)}
+	gspec.Config.TIP11 = &params.BlockConfig{FastNumber: big.NewInt(0)}
 
 	genesis := gspec.MustFastCommit(db)
 	blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{})
@@ -158,7 +159,7 @@ func TestSendTX(t *testing.T) {
 	}
 }
 
-///////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////
 func TestRewardTime(t *testing.T) {
 	params.MinTimeGap = big.NewInt(0)
 	params.SnailRewardInterval = big.NewInt(3)
@@ -167,6 +168,7 @@ func TestRewardTime(t *testing.T) {
 	gspec.Config.TIP8 = &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)}
 	gspec.Config.TIP9 = &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)}
 	gspec.Config.TIP10 = &params.BlockConfig{FastNumber: big.NewInt(0)}
+	gspec.Config.TIP11 = &params.BlockConfig{FastNumber: big.NewInt(0)}
 
 	genesis := gspec.MustFastCommit(db)
 	blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{})

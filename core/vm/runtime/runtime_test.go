@@ -181,6 +181,7 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 			TIP8:    &params.BlockConfig{FastNumber: big.NewInt(0)},
 			TIP9:    &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 			TIP10:   &params.BlockConfig{FastNumber: big.NewInt(0)},
+			TIP11:   &params.BlockConfig{FastNumber: big.NewInt(0)},
 		},
 		EVMConfig: vm.Config{},
 	}

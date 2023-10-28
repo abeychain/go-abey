@@ -58,6 +58,7 @@ func ExampleGenerateChain() {
 				TIP8:  &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)},
 				TIP9:  &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 				TIP10: &params.BlockConfig{FastNumber: big.NewInt(100)},
+				TIP11: &params.BlockConfig{FastNumber: big.NewInt(100)},
 			},
 			Alloc: types.GenesisAlloc{addr1: {Balance: big.NewInt(3000000)}},
 		}
@@ -572,6 +573,7 @@ func Test_newTxHash(t *testing.T) {
 				TIP8:  &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(-1)},
 				TIP9:  &params.BlockConfig{FastNumber: big.NewInt(0), SnailNumber: big.NewInt(0)},
 				TIP10: &params.BlockConfig{FastNumber: tip10Block},
+				TIP11: &params.BlockConfig{FastNumber: tip10Block},
 			},
 			Alloc:      types.GenesisAlloc{},
 			Difficulty: big.NewInt(0),

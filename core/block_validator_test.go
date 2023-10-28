@@ -227,6 +227,7 @@ func TestTip9(t *testing.T) {
 		TIP8:    &params.BlockConfig{FastNumber: big.NewInt(0), CID: big.NewInt(0)},
 		TIP9:    &params.BlockConfig{FastNumber: big.NewInt(100), SnailNumber: big.NewInt(0)},
 		TIP10:   &params.BlockConfig{FastNumber: big.NewInt(0)},
+		TIP11:   &params.BlockConfig{FastNumber: big.NewInt(0)},
 	}
 	var (
 		engine    = minerva.NewFaker()
