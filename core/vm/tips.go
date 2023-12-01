@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/holiman/uint256"
 	"github.com/abeychain/go-abey/params"
+	"github.com/holiman/uint256"
 )
 
 var activators = map[int]func(*JumpTable){
@@ -29,6 +29,7 @@ var activators = map[int]func(*JumpTable){
 	1884: enable1884,
 	1344: enable1344,
 	2315: enable2315,
+	3855: enable3855,
 }
 
 // EnableEIP enables the given EIP on the config.
@@ -132,5 +133,35 @@ func enable2315(jt *JumpTable) {
 		minStack:    minStack(0, 0),
 		maxStack:    maxStack(0, 0),
 		jumps:       true,
+	}
+}
+
+// enable3198 applies EIP-3198 (BASEFEE Opcode)
+// - Adds an opcode that returns the current block's base fee.
+func enable3198(jt *JumpTable) {
+	// New opcode
+	jt[BASEFEE] = &operation{
+		execute:     opBaseFee,
+		constantGas: GasQuickStep,
+		minStack:    minStack(0, 1),
+		maxStack:    maxStack(0, 1),
+	}
+}
+
+// opBaseFee implements BASEFEE opcode
+func opBaseFee(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {
+	//baseFee, _ := uint256.FromBig(interpreter.evm.Context.BaseFee)
+	//callContext.stack.push(baseFee)
+	return nil, nil
+}
+
+// enable3855 applies EIP-3855 (PUSH0 opcode)
+func enable3855(jt *JumpTable) {
+	// New opcode
+	jt[PUSH0] = &operation{
+		execute:     opPush0,
+		constantGas: GasQuickStep,
+		minStack:    minStack(0, 1),
+		maxStack:    maxStack(0, 1),
 	}
 }

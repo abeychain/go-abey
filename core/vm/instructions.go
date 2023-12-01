@@ -859,9 +859,7 @@ func makeLog(size int) executionFunc {
 
 // opPush0 implements the PUSH0 opcode
 func opPush0(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {
-	if interpreter.evm.chainConfig.IsTIP10(interpreter.evm.BlockNumber) {
-		callContext.stack.push(new(uint256.Int))
-	}
+	callContext.stack.push(new(uint256.Int))
 	return nil, nil
 }
 

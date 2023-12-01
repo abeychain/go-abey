@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"fmt"
 	"github.com/abeychain/go-abey/params"
 )
 
@@ -51,10 +52,37 @@ type operation struct {
 var (
 	constantinopleInstructionSet = newConstantinopleInstructionSet()
 	yoloV1InstructionSet         = newYoloV1InstructionSet()
+	tip11InstructionSet          = newTIP11InstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
 type JumpTable [256]*operation
+
+func validate(jt JumpTable) JumpTable {
+	for i, op := range jt {
+		if op == nil {
+			panic(fmt.Sprintf("op %#x is not set", i))
+		}
+		// The interpreter has an assumption that if the memorySize function is
+		// set, then the dynamicGas function is also set. This is a somewhat
+		// arbitrary assumption, and can be removed if we need to -- but it
+		// allows us to avoid a condition check. As long as we have that assumption
+		// in there, this little sanity check prevents us from merging in a
+		// change which violates it.
+		if op.memorySize != nil && op.dynamicGas == nil {
+			panic(fmt.Sprintf("op %v has dynamic memory but not dynamic gas", OpCode(i).String()))
+		}
+	}
+	return jt
+}
+
+func newTIP11InstructionSet() JumpTable {
+	instructionSet := newYoloV1InstructionSet()
+
+	enable3855(&instructionSet) // Subroutines - https://eips.ethereum.org/EIPS/eip-2315
+
+	return instructionSet
+}
 
 func newYoloV1InstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
@@ -544,12 +572,6 @@ func newFrontierInstructionSet() JumpTable {
 			constantGas: params.JumpdestGas,
 			minStack:    minStack(0, 0),
 			maxStack:    maxStack(0, 0),
-		},
-		PUSH0: {
-			execute:     opPush0,
-			constantGas: GasQuickStep,
-			minStack:    minStack(0, 1),
-			maxStack:    maxStack(0, 1),
 		},
 		PUSH1: {
 			execute:     opPush1,

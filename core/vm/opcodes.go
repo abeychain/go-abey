@@ -103,6 +103,8 @@ const (
 	GASLIMIT
 	CHAINID     OpCode = 0x46
 	SELFBALANCE OpCode = 0x47
+	BASEFEE     OpCode = 0x48
+	BLOBHASH    OpCode = 0x49
 )
 
 // 0x50 range - 'storage' and execution.
@@ -284,6 +286,8 @@ var opCodeToString = map[OpCode]string{
 	GASLIMIT:    "GASLIMIT",
 	CHAINID:     "CHAINID",
 	SELFBALANCE: "SELFBALANCE",
+	BASEFEE:     "BASEFEE",
+	BLOBHASH:    "BLOBHASH",
 
 	// 0x50 range - 'storage' and execution.
 	POP: "POP",
@@ -457,6 +461,8 @@ var stringToOp = map[string]OpCode{
 	"DIFFICULTY":     DIFFICULTY,
 	"GASLIMIT":       GASLIMIT,
 	"SELFBALANCE":    SELFBALANCE,
+	"BASEFEE":        BASEFEE,
+	"BLOBHASH":       BLOBHASH,
 	"POP":            POP,
 	"MLOAD":          MLOAD,
 	"MSTORE":         MSTORE,

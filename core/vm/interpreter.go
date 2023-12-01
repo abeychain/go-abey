@@ -98,6 +98,9 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// we'll set the default jump table.
 	if cfg.JumpTable[STOP] == nil {
 		var jt JumpTable = yoloV1InstructionSet
+		if evm.chainConfig.IsTIP11(evm.BlockNumber) {
+			jt = tip11InstructionSet
+		}
 		// switch {
 		// case evm.chainRules.IsTIP11:
 		// 	jt = yoloV1InstructionSet
