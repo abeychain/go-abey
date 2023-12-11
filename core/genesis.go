@@ -611,7 +611,7 @@ func DefaultDevGenesisBlock() *Genesis {
 }
 
 func DefaultSingleNodeGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	value := new(big.Int).Mul(big.NewInt(900000), big.NewInt(1e18))
 	// priv: 229ca04fb83ec698296037c7d2b04a731905df53b96c260555cbeed9e4c64036
 	key1 := hexutil.MustDecode("0x04718502f879a949ca5fa29f78f1d3cef362ecdc36ee42a3023cca80371c2e1936d1f632a0ec5bf5edb2af228a5ba1669d31ea55df87548de172e5767b9201097d")
 
@@ -623,7 +623,7 @@ func DefaultSingleNodeGenesisBlock() *Genesis {
 		Difficulty: big.NewInt(256),
 		//Alloc:      decodePrealloc(mainnetAllocData),
 		Alloc: map[common.Address]types.GenesisAccount{
-			common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"): {Balance: i},
+			common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"): {Balance: value},
 		},
 		Committee: []*types.CommitteeMember{
 			{Coinbase: common.HexToAddress("0xf0C8898B2016Afa0Ec5912413ebe403930446779"), Publickey: key1},

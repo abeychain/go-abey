@@ -63,7 +63,7 @@ func (m *Minerva) Author(header *types.Header) (common.Address, error) {
 	return common.Address{}, nil
 }
 
-//AuthorSnail return Snail mine coinbase
+// AuthorSnail return Snail mine coinbase
 func (m *Minerva) AuthorSnail(header *types.SnailHeader) (common.Address, error) {
 	return header.Coinbase, nil
 }
@@ -94,7 +94,7 @@ func (m *Minerva) getParents(chain consensus.SnailChainReader, header *types.Sna
 	return GetParents(chain, header)
 }
 
-//GetParents the calc different need parents
+// GetParents the calc different need parents
 func GetParents(chain consensus.SnailChainReader, header *types.SnailHeader) []*types.SnailHeader {
 	number := header.Number.Uint64()
 	period := params.DifficultyPeriod.Uint64()
@@ -120,7 +120,7 @@ func GetParents(chain consensus.SnailChainReader, header *types.SnailHeader) []*
 	return parents
 }
 
-//VerifySnailHeader verify snail Header number
+// VerifySnailHeader verify snail Header number
 func (m *Minerva) VerifySnailHeader(chain consensus.SnailChainReader, fastchain consensus.ChainReader, header *types.SnailHeader, seal bool, isFruit bool) error {
 	// If we're running a full engine faking, accept any input as valid
 	if m.config.PowMode == ModeFullFake {
@@ -294,7 +294,7 @@ func (m *Minerva) VerifySnailHeaders(chain consensus.SnailChainReader, headers [
 	return abort, errorsOut
 }
 
-//ValidateRewarded verify whether the block has been rewarded.
+// ValidateRewarded verify whether the block has been rewarded.
 func (m *Minerva) ValidateRewarded(number uint64, hash common.Hash, fastchain consensus.ChainReader) error {
 	if br := fastchain.GetBlockReward(number); br != nil && br.SnailHash != hash {
 		log.Info("err reward snail block", "number", number, "reward hash", br.SnailHash, "this snail hash", hash, "fast number", br.FastNumber, "fast hash", br.FastHash)
@@ -303,7 +303,7 @@ func (m *Minerva) ValidateRewarded(number uint64, hash common.Hash, fastchain co
 	return nil
 }
 
-//ValidateFruitHeader is to verify if the fruit is legal
+// ValidateFruitHeader is to verify if the fruit is legal
 func (m *Minerva) ValidateFruitHeader(block *types.SnailHeader, fruit *types.SnailHeader, chain consensus.SnailChainReader, fastchain consensus.ChainReader, checkpoint uint64) error {
 	//check number(fb)
 	//
@@ -484,7 +484,7 @@ func (m *Minerva) CalcSnailDifficulty(chain consensus.SnailChainReader, time uin
 	return CalcDifficulty(chain.Config(), time, parents)
 }
 
-//CalcFruitDifficulty is Calc the Fruit difficulty again and compare the header diff
+// CalcFruitDifficulty is Calc the Fruit difficulty again and compare the header diff
 func (m *Minerva) CalcFruitDifficulty(chain consensus.SnailChainReader, time uint64, fastTime uint64, pointer *types.SnailHeader) *big.Int {
 	return CalcFruitDifficulty(chain.Config(), time, fastTime, pointer)
 }
@@ -513,9 +513,12 @@ func (m *Minerva) VerifySigns(fastnumber *big.Int, fastHash common.Hash, signs [
 			count++
 		}
 	}
-	if count <= len(members)*2/3 {
-		log.Warn("VerifySigns number error", "signs", len(signs), "agree", count, "members", len(members))
-		return consensus.ErrInvalidSign
+	// single node mode
+	if len(members) > 1 {
+		if count <= len(members)*2/3 {
+			log.Warn("VerifySigns number error", "signs", len(signs), "agree", count, "members", len(members))
+			return consensus.ErrInvalidSign
+		}
 	}
 
 	signMembers, errs := m.election.VerifySigns(signs)
@@ -541,14 +544,14 @@ func (m *Minerva) VerifySigns(fastnumber *big.Int, fastHash common.Hash, signs [
 	return nil
 }
 
-//VerifySwitchInfo verify the switch info of Committee
+// VerifySwitchInfo verify the switch info of Committee
 func (m *Minerva) VerifySwitchInfo(fastnumber *big.Int, info []*types.CommitteeMember) error {
 
 	return m.election.VerifySwitchInfo(fastnumber, info)
 
 }
 
-//VerifyFreshness the fruit have fresh is 17 blocks
+// VerifyFreshness the fruit have fresh is 17 blocks
 func (m *Minerva) VerifyFreshness(chain consensus.SnailChainReader, fruit *types.SnailHeader, headerNumber *big.Int, canonical bool) error {
 	// check freshness
 	pointer := chain.GetHeaderByNumber(fruit.PointerNumber.Uint64())
@@ -616,7 +619,7 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parents []*types.Sn
 
 }
 
-//CalcFruitDifficulty is the Fruit difficulty adjustment algorithm
+// CalcFruitDifficulty is the Fruit difficulty adjustment algorithm
 // need calc fruit difficulty each new fruit
 func CalcFruitDifficulty(config *params.ChainConfig, time uint64, fastTime uint64, pointer *types.SnailHeader) *big.Int {
 	diff := new(big.Int).Div(pointer.Difficulty, params.FruitBlockRatio)
@@ -802,7 +805,7 @@ func (m *Minerva) Prepare(chain consensus.ChainReader, header *types.Header) err
 }
 
 // PrepareSnail implements consensus.Engine, initializing the difficulty field of a
-//// header to conform to the minerva protocol. The changes are done inline.
+// // header to conform to the minerva protocol. The changes are done inline.
 func (m *Minerva) PrepareSnail(fastchain consensus.ChainReader, chain consensus.SnailChainReader, header *types.SnailHeader) error {
 	parents := m.getParents(chain, header)
 	//parent := m.sbc.GetHeader(header.ParentHash, header.Number.Uint64()-1)
@@ -830,7 +833,7 @@ func (m *Minerva) PrepareSnail(fastchain consensus.ChainReader, chain consensus.
 }
 
 // PrepareSnailWithParent implements consensus.Engine, initializing the difficulty field of a
-//// header to conform to the minerva protocol. The changes are done inline.
+// // header to conform to the minerva protocol. The changes are done inline.
 func (m *Minerva) PrepareSnailWithParent(fastchain consensus.ChainReader, chain consensus.SnailChainReader, header *types.SnailHeader, parents []*types.SnailHeader) error {
 	//parents := m.getParents(chain, header)
 	//parent := m.sbc.GetHeader(header.ParentHash, header.Number.Uint64()-1)
@@ -996,7 +999,7 @@ func (m *Minerva) finalizeValidators(chain consensus.ChainReader, state *state.S
 	return nil
 }
 
-//LogPrint log debug
+// LogPrint log debug
 func LogPrint(info string, addr common.Address, amount *big.Int) {
 	log.Debug("[Consensus AddBalance]", "info", info, "CoinBase:", addr.String(), "amount", amount)
 }
@@ -1214,7 +1217,7 @@ func rewardFruitCommitteeMember(state *state.StateDB, election consensus.Committ
 	return nil, tmp
 }
 
-//GetBlockReward Reward for block allocation
+// GetBlockReward Reward for block allocation
 func GetBlockReward(num *big.Int) (committee, minerBlock, minerFruit *big.Int) {
 	committee = getBaseRewardCoinForPos(num)
 	minerBlock, minerFruit = GetRewardForPow(num)
