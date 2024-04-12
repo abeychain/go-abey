@@ -61,6 +61,7 @@ func TestDefaultGenesisBlock(t *testing.T) {
 		t.Errorf("wrong testnet genesis hash, got %v, want %v", common.ToHex(block.Hash().Bytes()), params.TestnetGenesisHash)
 	}
 }
+
 func TestDefaultLesGenesisBlock(t *testing.T) {
 	client, err := abeyclient.Dial("https://rpc.abeychain.com")
 	if err != nil {
@@ -686,7 +687,9 @@ func getReward(addr common.Address, infos []*types.SARewardInfos) *big.Int {
 	return reward
 }
 func Test1(t *testing.T) {
-	generateAddr()
+	for i := 0; i < 1; i++ {
+		generateAddr()
+	}
 	fmt.Println("finish")
 }
 func Test03(t *testing.T) {
