@@ -21,11 +21,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/abeychain/go-abey/accounts/abi"
-	"github.com/abeychain/go-abey/metrics"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/abeychain/go-abey/accounts/abi"
+	"github.com/abeychain/go-abey/metrics"
 
 	"github.com/abeychain/go-abey/accounts"
 	"github.com/abeychain/go-abey/accounts/keystore"
@@ -1075,6 +1076,7 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 // transaction hashes.
 func RPCMarshalBlock(b *types.Block, inclTx, fullTx, newTxhash bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
+	uncles := []interface{}{}
 	fields := map[string]interface{}{
 		"number":           (*hexutil.Big)(head.Number),
 		"hash":             b.Hash(),
@@ -1085,6 +1087,7 @@ func RPCMarshalBlock(b *types.Block, inclTx, fullTx, newTxhash bool) (map[string
 		"sha3Uncles":       common.Hash{},
 		"miner":            head.Proposer.StringToAbey(),
 		"difficulty":       (*hexutil.Big)(big.NewInt(0)),
+		"totalDifficulty":  (*hexutil.Big)(big.NewInt(0)),
 		"logsBloom":        head.Bloom,
 		"stateRoot":        head.Root,
 		"snailHash":        head.SnailHash,
@@ -1096,6 +1099,7 @@ func RPCMarshalBlock(b *types.Block, inclTx, fullTx, newTxhash bool) (map[string
 		"timestamp":        (*hexutil.Big)(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
+		"uncles":           uncles,
 	}
 
 	formatSign := func(sign *types.PbftSign) (map[string]interface{}, error) {
