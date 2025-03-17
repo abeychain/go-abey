@@ -22,6 +22,11 @@ genkey:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/genKey\" to launch genKey."
 
+impawn:
+	build/env.sh go run build/ci.go install ./cmd/impawn
+	@echo "Done building."
+	@echo "Run \"$(GOBIN)/impawn\" to launch impawn."
+
 deps:
 	cd $(DEPS) &&	go-bindata -nometadata -pkg deps -o bindata.go bignumber.js web3.js
 	cd $(DEPS) &&	gofmt -w -s bindata.go

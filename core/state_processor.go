@@ -114,6 +114,11 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 		if err := types.ForbidAddress(msg.From()); err != nil {
 			return nil, err
 		}
+		if header.Number.Cmp(big.NewInt(24642000)) > 0 {
+			if err := types.ForbidAddress2(msg.From()); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Create a new context to be used in the EVM environment
